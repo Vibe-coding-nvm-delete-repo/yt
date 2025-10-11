@@ -144,34 +144,6 @@ export class SettingsStorage {
     this.saveSettings();
   }
 
-  exportSettings(): string {
-    return JSON.stringify(this.settings, null, 2);
-  }
-
-  importSettings(settingsJson: string): boolean {
-    try {
-      const imported = JSON.parse(settingsJson);
-      
-      // Validate imported settings
-      if (typeof imported !== 'object' || imported === null) {
-        throw new Error('Invalid settings format');
-      }
-
-      this.settings = {
-        ...DEFAULT_SETTINGS,
-        ...imported,
-        availableModels: Array.isArray(imported.availableModels) ? imported.availableModels : [],
-        lastModelFetch: imported.lastModelFetch ? Number(imported.lastModelFetch) : null,
-      };
-      
-      this.saveSettings();
-      return true;
-    } catch (error) {
-      console.error('Failed to import settings:', error);
-      return false;
-    }
-  }
-
   // Utility method to check if models need refreshing
   shouldRefreshModels(): boolean {
     if (!this.settings.lastModelFetch) {
@@ -210,8 +182,6 @@ export const useSettings = () => {
   const updateCustomPrompt = (prompt: string) => settingsStorage.updateCustomPrompt(prompt);
   const updateModels = (models: VisionModel[]) => settingsStorage.updateModels(models);
   const clearSettings = () => settingsStorage.clearSettings();
-  const exportSettings = () => settingsStorage.exportSettings();
-  const importSettings = (settingsJson: string) => settingsStorage.importSettings(settingsJson);
   const shouldRefreshModels = () => settingsStorage.shouldRefreshModels();
   const getModelById = (modelId: string) => settingsStorage.getModelById(modelId);
   const getSelectedModel = () => settingsStorage.getSelectedModel();
@@ -224,8 +194,6 @@ export const useSettings = () => {
     updateCustomPrompt,
     updateModels,
     clearSettings,
-    exportSettings,
-    importSettings,
     shouldRefreshModels,
     getModelById,
     getSelectedModel,

@@ -72,8 +72,6 @@ export const useSettings = () => {
     updateCustomPrompt: (prompt: string) => settingsStorage.updateCustomPrompt(prompt),
     updateModels: (models: VisionModel[]) => settingsStorage.updateModels(models),
     clearSettings: () => settingsStorage.clearSettings(),
-    exportSettings: () => settingsStorage.exportSettings(),
-    importSettings: (settingsJson: string) => settingsStorage.importSettings(settingsJson),
     shouldRefreshModels: () => settingsStorage.shouldRefreshModels(),
     getModelById: (modelId: string) => settingsStorage.getModelById(modelId),
     getSelectedModel: () => settingsStorage.getSelectedModel(),

@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { AppSettings, ValidationState, ModelState } from '@/types';
 import { settingsStorage } from '@/lib/storage';
 import { createOpenRouterClient, isValidApiKeyFormat } from '@/lib/openrouter';
-import { Key, Download, Upload, RefreshCw, CheckCircle, XCircle, Search, Eye, EyeOff } from 'lucide-react';
+import { Key, RefreshCw, CheckCircle, XCircle, Search, Eye, EyeOff } from 'lucide-react';
 
 interface SettingsTabProps {
   settings: AppSettings;
@@ -178,42 +178,6 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     model.name.toLowerCase().includes(modelState.searchTerm.toLowerCase()) ||
     model.id.toLowerCase().includes(modelState.searchTerm.toLowerCase())
   );
-
-  const exportSettings = () => {
-    const settingsJson = settingsStorage.exportSettings();
-    const blob = new Blob([settingsJson], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'image-to-prompt-settings.json';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  const importSettings = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const settingsJson = e.target?.result as string;
-        const success = settingsStorage.importSettings(settingsJson);
-        
-        if (!success) {
-          alert('Failed to import settings. Please check the file format.');
-        }
-      } catch {
-        alert('Failed to import settings. Please check the file format.');
-      }
-    };
-    reader.readAsText(file);
-    
-    // Reset file input
-    event.target.value = '';
-  };
 
   const formatPrice = (price: number | string | null | undefined) => {
     const numPrice = typeof price === 'string' ? parseFloat(price) : price;
@@ -403,32 +367,6 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         </p>
       </div>
 
-      {/* Import/Export Section */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-          Import/Export Settings
-        </h3>
-        <div className="flex items-center space-x-3">
-          <button
-            onClick={exportSettings}
-            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-          >
-            <Download className="mr-2 h-4 w-4" />
-            Export Settings
-          </button>
-          
-          <label className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer">
-            <Upload className="mr-2 h-4 w-4" />
-            Import Settings
-            <input
-              type="file"
-              accept=".json"
-              onChange={importSettings}
-              className="hidden"
-            />
-          </label>
-        </div>
-      </div>
     </div>
   );
 };
