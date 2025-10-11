@@ -4,7 +4,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { AppSettings, ImageUploadState, GenerationState } from '@/types';
 import { createOpenRouterClient } from '@/lib/openrouter';
 import { imageStateStorage } from '@/lib/storage';
-import { Upload, X, Loader2, Download, Copy, CheckCircle, AlertCircle, Image as ImageIcon } from 'lucide-react';
+import { Upload, X, Loader2, Copy, CheckCircle, AlertCircle, Image as ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 
 interface ImageToPromptTabProps {
@@ -26,6 +26,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
     error: null,
   });
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
+  const [uploadTimestamp, setUploadTimestamp] = useState<Date | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
@@ -107,6 +108,9 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
         isUploading: false,
         error: null,
       });
+
+      // Set upload timestamp
+      setUploadTimestamp(new Date());
 
       // Persist to localStorage
       imageStateStorage.saveUploadedImage(
@@ -210,6 +214,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
       generatedPrompt: null,
       error: null,
     });
+    setUploadTimestamp(null);
     
     // Clear from localStorage
     imageStateStorage.clearImageState();
@@ -232,21 +237,23 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
     }
   }, [generationState.generatedPrompt]);
 
-  const downloadPrompt = useCallback(() => {
-    if (!generationState.generatedPrompt) return;
-
-    const blob = new Blob([generationState.generatedPrompt], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `generated-prompt-${Date.now()}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, [generationState.generatedPrompt]);
+  const formatTimestamp = (date: Date): string => {
+    return date.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
 
   const isGenerateDisabled = !uploadState.preview || !settings.selectedModel || !settings.isValidApiKey || generationState.isGenerating;
+
+  // Calculate character count
+  const charCount = generationState.generatedPrompt?.length || 0;
+  const charLimit = 1500;
+  const isOverLimit = charCount > charLimit;
 
   return (
     <div className="space-y-6">
@@ -260,9 +267,9 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
           <div className="flex items-center">
             <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mr-3" />
             <div>
-              <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+              <h2 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
                 API Key Required
-              </h3>
+              </h2>
               <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
                 Please add and validate your OpenRouter API key in the Settings tab to start generating prompts.
               </p>
@@ -276,9 +283,9 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
           <div className="flex items-center">
             <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mr-3" />
             <div>
-              <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+              <h2 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
                 Model Selection Required
-              </h3>
+              </h2>
               <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
                 Please select a vision model in the Settings tab to start generating prompts.
               </p>
@@ -369,23 +376,28 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
               </button>
             </div>
 
-            {/* File Info */}
+            {/* File Info - Left aligned with single space after labels */}
             {uploadState.file && (
-              <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm">
-                <div className="flex justify-between">
-                  <span className="font-medium text-gray-700 dark:text-gray-300">File:</span>
-                  <span className="text-gray-900 dark:text-white">{uploadState.file.name}</span>
+              <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm space-y-1">
+                <div className="text-gray-900 dark:text-white">
+                  <span className="font-medium text-gray-700 dark:text-gray-300">File:</span> {uploadState.file.name}
                 </div>
-                <div className="flex justify-between">
-                  <span className="font-medium text-gray-700 dark:text-gray-300">Size:</span>
-                  <span className="text-gray-900 dark:text-white">
-                    {(uploadState.file.size / 1024 / 1024).toFixed(2)} MB
-                  </span>
+                <div className="text-gray-900 dark:text-white">
+                  <span className="font-medium text-gray-700 dark:text-gray-300">Size:</span> {(uploadState.file.size / 1024 / 1024).toFixed(2)} MB
                 </div>
-                <div className="flex justify-between">
-                  <span className="font-medium text-gray-700 dark:text-gray-300">Type:</span>
-                  <span className="text-gray-900 dark:text-white">{uploadState.file.type}</span>
+                <div className="text-gray-900 dark:text-white">
+                  <span className="font-medium text-gray-700 dark:text-gray-300">Type:</span> {uploadState.file.type}
                 </div>
+                {uploadTimestamp && (
+                  <div className="text-gray-900 dark:text-white">
+                    <span className="font-medium text-gray-700 dark:text-gray-300">Uploaded:</span> {formatTimestamp(uploadTimestamp)}
+                  </div>
+                )}
+                {generationState.generatedPrompt && (
+                  <div className="text-gray-900 dark:text-white">
+                    <span className="font-medium text-gray-700 dark:text-gray-300">Length:</span> {charCount}/1500
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -437,35 +449,41 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
           </h2>
           
           <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            {/* Character Counter */}
+            <div className="mb-3">
+              <span 
+                className={`text-lg font-semibold ${
+                  isOverLimit 
+                    ? 'text-red-600 dark:text-red-400' 
+                    : 'text-green-600 dark:text-green-400'
+                }`}
+              >
+                {charCount}/{charLimit}
+              </span>
+            </div>
+
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Your generated prompt:
               </span>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={copyToClipboard}
-                  className="flex items-center px-3 py-1 text-sm bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
-                >
-                  {copiedToClipboard ? (
-                    <>
-                      <CheckCircle className="mr-1 h-3 w-3" />
-                      Copied!
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="mr-1 h-3 w-3" />
-                      Copy
-                    </>
-                  )}
-                </button>
-                <button
-                  onClick={downloadPrompt}
-                  className="flex items-center px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-                >
-                  <Download className="mr-1 h-3 w-3" />
-                  Download
-                </button>
-              </div>
+              {/* Bigger Copy Button - 50% larger */}
+              <button
+                onClick={copyToClipboard}
+                className="flex items-center px-5 py-2 text-base bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+                aria-label="Copy prompt to clipboard"
+              >
+                {copiedToClipboard ? (
+                  <>
+                    <CheckCircle className="mr-2 h-5 w-5" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="mr-2 h-5 w-5" />
+                    Copy
+                  </>
+                )}
+              </button>
             </div>
             <div className="bg-white dark:bg-gray-900 p-4 rounded border border-gray-200 dark:border-gray-700">
               <p className="text-gray-900 dark:text-white whitespace-pre-wrap">
