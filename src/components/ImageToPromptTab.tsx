@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { AppSettings, ImageUploadState, GenerationState } from '@/types';
 import { createOpenRouterClient } from '@/lib/openrouter';
+import { imageStateStorage } from '@/lib/storage';
 import { Upload, X, Loader2, Copy, CheckCircle, AlertCircle, Image as ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 
@@ -29,6 +30,26 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
+
+  // Load persisted image state on mount
+  useEffect(() => {
+    const persistedState = imageStateStorage.getImageState();
+    
+    if (persistedState.preview) {
+      setUploadState(prev => ({
+        ...prev,
+        preview: persistedState.preview,
+        file: null, // File object can't be persisted, but we have the preview
+      }));
+    }
+
+    if (persistedState.generatedPrompt) {
+      setGenerationState(prev => ({
+        ...prev,
+        generatedPrompt: persistedState.generatedPrompt,
+      }));
+    }
+  }, []);
 
   const validateFile = (file: File): string | null => {
     // Check file type
@@ -79,13 +100,25 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
 
     try {
       const dataUrl = await readFileAsDataURL(file);
+      
+      // Save to state
       setUploadState({
         file,
         preview: dataUrl,
         isUploading: false,
         error: null,
       });
+
+      // Set upload timestamp
       setUploadTimestamp(new Date());
+
+      // Persist to localStorage
+      imageStateStorage.saveUploadedImage(
+        dataUrl,
+        file.name,
+        file.size,
+        file.type
+      );
     } catch (error) {
       setUploadState(prev => ({
         ...prev,
@@ -122,6 +155,13 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
     }
   }, [handleFileSelect]);
 
+  // Handle click anywhere in drop zone to trigger file input
+  const handleDropZoneClick = useCallback(() => {
+    if (fileInputRef.current && !uploadState.isUploading) {
+      fileInputRef.current.click();
+    }
+  }, [uploadState.isUploading]);
+
   const generatePrompt = useCallback(async () => {
     if (!uploadState.preview || !settings.selectedModel || !settings.isValidApiKey) {
       setGenerationState(prev => ({
@@ -150,6 +190,9 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
         generatedPrompt: prompt,
         error: null,
       });
+
+      // Persist generated prompt
+      imageStateStorage.saveGeneratedPrompt(prompt);
     } catch (error) {
       setGenerationState({
         isGenerating: false,
@@ -172,6 +215,9 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
       error: null,
     });
     setUploadTimestamp(null);
+    
+    // Clear from localStorage
+    imageStateStorage.clearImageState();
     
     // Reset file input
     if (fileInputRef.current) {
@@ -261,13 +307,23 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
+            onClick={handleDropZoneClick}
             className={`
-              border-2 border-dashed rounded-lg p-8 text-center transition-colors
+              border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer
               ${uploadState.isUploading
                 ? 'border-gray-300 bg-gray-50 dark:border-gray-600 dark:bg-gray-800'
-                : 'border-gray-300 hover:border-gray-400 dark:border-gray-600 dark:hover:border-gray-500 bg-white dark:bg-gray-800'
+                : 'border-gray-300 hover:border-gray-400 dark:border-gray-600 dark:hover:border-gray-500 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750'
               }
             `}
+            role="button"
+            tabIndex={0}
+            aria-label="Upload image - Click to browse or drag and drop"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleDropZoneClick();
+              }
+            }}
           >
             {uploadState.isUploading ? (
               <div className="flex flex-col items-center space-y-3">
@@ -279,13 +335,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
                 <Upload className="h-12 w-12 text-gray-400" />
                 <div>
                   <p className="text-lg font-medium text-gray-900 dark:text-white">
-                    Drop your image here, or{' '}
-                    <label
-                      htmlFor="file-upload"
-                      className="text-blue-600 hover:text-blue-500 cursor-pointer"
-                    >
-                      browse
-                    </label>
+                    Drop your image here, or click to browse
                   </p>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                     Supports JPEG, PNG, WebP, and GIF up to 10MB
@@ -298,21 +348,23 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
                   accept="image/*"
                   onChange={handleFileInput}
                   className="hidden"
+                  aria-label="File upload input"
                 />
               </div>
             )}
           </div>
         ) : (
           <div className="space-y-4">
-            {/* Image Preview */}
+            {/* Image Preview - Full image display with object-contain */}
             <div className="relative group">
-              <div className="rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
+              <div className="rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center min-h-64">
                 <Image
                   src={uploadState.preview}
                   alt="Uploaded image"
                   width={800}
-                  height={256}
-                  className="w-full h-64 object-cover"
+                  height={600}
+                  className="max-w-full h-auto object-contain"
+                  style={{ maxHeight: '600px' }}
                 />
               </div>
               <button
