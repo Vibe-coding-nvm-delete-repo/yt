@@ -228,10 +228,18 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
 
   const renderApiKeysTab = () => (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+      <div className="flex items-center text-gray-900 dark:text-white">
         <Key className="mr-2 h-5 w-5" />
-        OpenRouter API Key
-      </h3>
+        <h3 className="text-lg font-semibold">OpenRouter API Key</h3>
+        <Tooltip
+          id="settings-openrouter-api-key"
+          label="More information about the OpenRouter API key"
+          message="Paste your OpenRouter API key (starts with sk-or-v1-). Toggle visibility as needed, then click Validate to confirm before fetching models."
+        />
+        {validationState.isValid && (
+          <CheckCircle className="ml-2 h-4 w-4 text-green-600" aria-hidden="true" />
+        )}
+      </div>
       
       <div className="space-y-3">
         <div className="relative">
