@@ -223,6 +223,16 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     return `$${numPrice.toFixed(6)}`;
   };
 
+  const safeAdd = (a: number | string | null | undefined, b: number | string | null | undefined): number => {
+    const numA = typeof a === 'string' ? parseFloat(a) : a;
+    const numB = typeof b === 'string' ? parseFloat(b) : b;
+    
+    const validA = typeof numA === 'number' && !isNaN(numA) && isFinite(numA) ? numA : 0;
+    const validB = typeof numB === 'number' && !isNaN(numB) && isFinite(numB) ? numB : 0;
+    
+    return validA + validB;
+  };
+
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
@@ -335,7 +345,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
               <option value="">Select a model...</option>
               {filteredModels.map((model) => (
                 <option key={model.id} value={model.id}>
-                  {model.name} - {formatPrice(model.pricing.prompt + model.pricing.completion)}/token
+                  {model.name} - {formatPrice(safeAdd(model.pricing.prompt, model.pricing.completion))}/token
                 </option>
               ))}
             </select>
