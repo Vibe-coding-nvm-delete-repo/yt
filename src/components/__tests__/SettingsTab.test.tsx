@@ -106,19 +106,11 @@ function runTests() {
     assertEqual(formatted, '$0.000003');
   });
 
-  // Verify import/export removal (tests run in Node context with dynamic imports not available)
-  test('Storage: exportSettings method removed from settingsStorage', () => {
-    // Test would verify removal but requires dynamic import
-    // Manual verification: check that settingsStorage.exportSettings is undefined
-    // This is validated by TypeScript compilation and runtime behavior
-    assertEqual(true, true, 'Import/export methods removed (verified by TypeScript)');
-  });
-
-  test('Storage: importSettings method removed from settingsStorage', () => {
-    // Test would verify removal but requires dynamic import
-    // Manual verification: check that settingsStorage.importSettings is undefined
-    // This is validated by TypeScript compilation and runtime behavior
-    assertEqual(true, true, 'Import/export methods removed (verified by TypeScript)');
+  // Verify import/export removal
+  test('SettingsTab: SettingsStorage no longer has export/import methods', () => {
+    const { settingsStorage } = require('../../lib/storage');
+    assertEqual(typeof settingsStorage.exportSettings, 'undefined');
+    assertEqual(typeof settingsStorage.importSettings, 'undefined');
   });
 
   console.log(`\n📊 Results: ${passed} passed, ${failed} failed\n`);
