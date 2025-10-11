@@ -34,6 +34,14 @@ export interface GenerationState {
   error: string | null;
 }
 
+export interface PersistedImageState {
+  preview: string | null;
+  fileName: string | null;
+  fileSize: number | null;
+  fileType: string | null;
+  generatedPrompt: string | null;
+}
+
 export interface TabState {
   activeTab: 'image-to-prompt' | 'settings';
 }
