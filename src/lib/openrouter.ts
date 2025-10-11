@@ -54,9 +54,21 @@ export class OpenRouterClient {
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+      let errorData: unknown;
+      try {
+        errorData = await response.json();
+      } catch {
+        errorData = {};
+      }
+      
+      const errorMessage = typeof errorData === 'object' && errorData && 'error' in errorData && 
+        typeof errorData.error === 'object' && errorData.error && 'message' in errorData.error &&
+        typeof errorData.error.message === 'string'
+        ? errorData.error.message 
+        : `HTTP ${response.status}: ${response.statusText}`;
+        
       throw new ApiError(
-        errorData.error?.message || `HTTP ${response.status}: ${response.statusText}`,
+        errorMessage,
         response.status.toString(),
         errorData
       );
@@ -70,9 +82,10 @@ export class OpenRouterClient {
       await this.makeRequest('/models', { method: 'GET' });
       return true;
     } catch (error) {
-      if (error instanceof ApiError && error.code === '401') {
+      if (error instanceof ApiError && (error.code === '401' || error.code === '403')) {
         return false;
       }
+      console.error('validateApiKey error:', error);
       throw error;
     }
   }
@@ -81,36 +94,44 @@ export class OpenRouterClient {
     try {
       const response = await this.makeRequest<OpenRouterModelsResponse>('/models');
       
-      if (!response.data || !Array.isArray(response.data)) {
+      if (!response?.data || !Array.isArray(response.data)) {
+        console.error('Invalid response format:', response);
         throw new ApiError('Invalid response format from OpenRouter API');
       }
 
       const models: VisionModel[] = response.data
+        .filter((model: OpenRouterModelResponse): model is OpenRouterModelResponse => 
+          Boolean(model?.id) && 
+          Boolean(model?.name)
+        )
         .filter((model: OpenRouterModelResponse) => 
-          model.id && 
-          model.name && 
-          (model.supports_vision || model.supports_image || 
+          model.supports_vision || model.supports_image || 
            model.id.toLowerCase().includes('vision') ||
            model.id.toLowerCase().includes('claude-3') ||
            model.id.toLowerCase().includes('gpt-4-vision') ||
-           model.id.toLowerCase().includes('gemini-pro-vision'))
+           model.id.toLowerCase().includes('gemini-pro-vision')
         )
         .map((model: OpenRouterModelResponse): VisionModel => ({
           id: model.id,
           name: model.name,
-          description: model.description,
+          description: model.description || '',
           pricing: {
-            prompt: model.pricing?.prompt || 0,
-            completion: model.pricing?.completion || 0,
+            prompt: Number(model.pricing?.prompt) || 0,
+            completion: Number(model.pricing?.completion) || 0,
           },
-          context_length: model.context_length,
-          supports_image: model.supports_image || model.supports_vision,
-          supports_vision: model.supports_vision || model.supports_image,
+          context_length: Number(model.context_length) || undefined,
+          supports_image: Boolean(model.supports_image) || Boolean(model.supports_vision),
+          supports_vision: Boolean(model.supports_vision) || Boolean(model.supports_image),
         }))
         .sort((a: VisionModel, b: VisionModel) => a.name.localeCompare(b.name));
 
+      if (models.length === 0) {
+        throw new ApiError('No vision models found. Please check your API key and try again.');
+      }
+
       return models;
     } catch (error) {
+      console.error('getVisionModels error:', error);
       if (error instanceof ApiError) {
         throw error;
       }

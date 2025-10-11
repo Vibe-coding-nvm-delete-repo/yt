@@ -122,6 +122,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       
       settingsStorage.validateApiKey(isValid);
     } catch (error) {
+      console.error('API validation error:', error);
       setValidationState({
         isValidating: false,
         isValid: false,
@@ -131,7 +132,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   }, [apiKey]);
 
   const fetchModels = useCallback(async () => {
-    if (!settings.isValidApiKey) {
+    // Use the most recent validation state instead of props
+    if (!validationState.isValid) {
       setModelState(prev => ({
         ...prev,
         error: 'Please validate your API key first',
@@ -163,13 +165,14 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         setSelectedModel(models[0].id);
       }
     } catch (error) {
+      console.error('Model fetch error:', error);
       setModelState(prev => ({
         ...prev,
         isLoading: false,
         error: error instanceof Error ? error.message : 'Failed to fetch models',
       }));
     }
-  }, [apiKey, settings.isValidApiKey, selectedModel]);
+  }, [apiKey, validationState.isValid, selectedModel]);
 
   const filteredModels = modelState.models.filter(model =>
     model.name.toLowerCase().includes(modelState.searchTerm.toLowerCase()) ||
@@ -285,11 +288,11 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
             Vision Model
           </h3>
-          <button
-            onClick={fetchModels}
-            disabled={modelState.isLoading || !settings.isValidApiKey}
-            className="flex items-center px-3 py-1 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
+            <button
+              onClick={fetchModels}
+              disabled={modelState.isLoading || !validationState.isValid}
+              className="flex items-center px-3 py-1 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
             {modelState.isLoading ? (
               <RefreshCw className="mr-2 h-3 w-3 animate-spin" />
             ) : (
