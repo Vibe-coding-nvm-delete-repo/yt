@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { AppSettings, ValidationState, ModelState } from '@/types';
 import { settingsStorage } from '@/lib/storage';
 import { createOpenRouterClient, isValidApiKeyFormat } from '@/lib/openrouter';
-import { Key, Download, Upload, RefreshCw, CheckCircle, XCircle, Search, Eye, EyeOff } from 'lucide-react';
+import { Key, Download, Upload, RefreshCw, CheckCircle, XCircle, Search, Eye, EyeOff, ChevronDown } from 'lucide-react';
 
 interface SettingsTabProps {
   settings: AppSettings;
@@ -30,6 +30,10 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     error: null,
     searchTerm: '',
   });
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [dropdownSearch, setDropdownSearch] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Handle settings updates from storage
   useEffect(() => {
@@ -70,6 +74,28 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       settingsStorage.updateSelectedModel(selectedModel);
     }
   }, [selectedModel, settings.selectedModel]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+        setDropdownSearch('');
+      }
+    };
+
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isDropdownOpen]);
+
+  // Focus search input when dropdown opens
+  useEffect(() => {
+    if (isDropdownOpen && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [isDropdownOpen]);
 
   const handleApiKeyChange = (value: string) => {
     setApiKey(value);
@@ -173,11 +199,6 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       }));
     }
   }, [apiKey, validationState.isValid, selectedModel]);
-
-  const filteredModels = modelState.models.filter(model =>
-    model.name.toLowerCase().includes(modelState.searchTerm.toLowerCase()) ||
-    model.id.toLowerCase().includes(modelState.searchTerm.toLowerCase())
-  );
 
   const exportSettings = () => {
     const settingsJson = settingsStorage.exportSettings();
@@ -314,31 +335,79 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
 
         {modelState.models.length > 0 && (
           <div className="space-y-3">
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search models..."
-                value={modelState.searchTerm}
-                onChange={(e) => setModelState(prev => ({ ...prev, searchTerm: e.target.value }))}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              />
+            {/* Model count message */}
+            <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+              <p className="text-sm text-green-700 dark:text-green-300">
+                ✓ Successfully fetched {modelState.models.length} vision models
+              </p>
             </div>
 
-            {/* Model Dropdown */}
-            <select
-              value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            >
-              <option value="">Select a model...</option>
-              {filteredModels.map((model) => (
-                <option key={model.id} value={model.id}>
-                  {model.name} - {formatPrice(model.pricing.prompt + model.pricing.completion)}/token
-                </option>
-              ))}
-            </select>
+            {/* Custom Searchable Dropdown */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                type="button"
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-left flex items-center justify-between"
+                aria-label="Select model"
+              >
+                <span className="text-gray-900 dark:text-white">
+                  {selectedModel
+                    ? modelState.models.find(m => m.id === selectedModel)?.name || 'Select a model...'
+                    : 'Select a model...'}
+                </span>
+                <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform ${isDropdownOpen ? 'transform rotate-180' : ''}`} />
+              </button>
+
+              {isDropdownOpen && (
+                <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-80 overflow-hidden flex flex-col">
+                  {/* Search input inside dropdown */}
+                  <div className="p-2 border-b border-gray-200 dark:border-gray-600">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <input
+                        ref={searchInputRef}
+                        type="text"
+                        placeholder="Search models..."
+                        value={dropdownSearch}
+                        onChange={(e) => setDropdownSearch(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Models list with scroll */}
+                  <div className="overflow-y-auto flex-1">
+                    {modelState.models
+                      .filter(model =>
+                        model.name.toLowerCase().includes(dropdownSearch.toLowerCase()) ||
+                        model.id.toLowerCase().includes(dropdownSearch.toLowerCase())
+                      )
+                      .map((model) => (
+                        <button
+                          key={model.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedModel(model.id);
+                            setIsDropdownOpen(false);
+                            setDropdownSearch('');
+                          }}
+                          className={`w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors ${
+                            selectedModel === model.id
+                              ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                              : 'text-gray-900 dark:text-white'
+                          }`}
+                        >
+                          <div className="text-sm font-medium">{model.name}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {formatPrice(model.pricing.prompt + model.pricing.completion)}/token
+                          </div>
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Model Info */}
             {selectedModel && (
