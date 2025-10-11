@@ -6,6 +6,7 @@ import { createOpenRouterClient } from '@/lib/openrouter';
 import { imageStateStorage } from '@/lib/storage';
 import { Upload, X, Loader2, Copy, CheckCircle, AlertCircle, Image as ImageIcon } from 'lucide-react';
 import Image from 'next/image';
+import { Tooltip } from '@/components/common/Tooltip';
 
 interface ImageToPromptTabProps {
   settings: AppSettings;
@@ -296,10 +297,21 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
 
       {/* Upload Area */}
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+        <div className="flex items-center text-gray-900 dark:text-white">
           <ImageIcon className="mr-2 h-5 w-5" />
-          Upload Image
-        </h2>
+          <h2 className="text-lg font-semibold">Upload Image</h2>
+          <Tooltip
+            id="upload-image"
+            label="More information about uploading images"
+            message="Upload a JPEG, PNG, WebP, or GIF image up to 10MB. You can drag and drop or click the area to browse."
+          />
+          {uploadState.preview && (
+            <CheckCircle
+              className="ml-2 h-4 w-4 text-green-600"
+              aria-hidden="true"
+            />
+          )}
+        </div>
 
         {!uploadState.preview ? (
           <div
@@ -412,6 +424,14 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
 
       {/* Generate Button */}
       <div className="space-y-4">
+        <div className="flex items-center justify-between text-gray-900 dark:text-white">
+          <h2 className="text-lg font-semibold">Generate Prompt</h2>
+          <Tooltip
+            id="generate-prompt"
+            label="More information about generating prompts"
+            message="After uploading an image and selecting a model, click Generate Prompt to create a detailed prompt from the image."
+          />
+        </div>
         <button
           onClick={generatePrompt}
           disabled={isGenerateDisabled}
