@@ -1,0 +1,417 @@
+'use client';
+
+import React, { useState, useEffect, useCallback } from 'react';
+import { AppSettings, ValidationState, ModelState } from '@/types';
+import { settingsStorage } from '@/lib/storage';
+import { createOpenRouterClient, isValidApiKeyFormat } from '@/lib/openrouter';
+import { Key, Download, Upload, RefreshCw, CheckCircle, XCircle, Search, Eye, EyeOff } from 'lucide-react';
+
+interface SettingsTabProps {
+  settings: AppSettings;
+  onSettingsUpdate: (settings: AppSettings) => void;
+}
+
+export const SettingsTab: React.FC<SettingsTabProps> = ({
+  settings,
+  onSettingsUpdate,
+}) => {
+  const [apiKey, setApiKey] = useState(settings.openRouterApiKey);
+  const [customPrompt, setCustomPrompt] = useState(settings.customPrompt);
+  const [selectedModel, setSelectedModel] = useState(settings.selectedModel);
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [validationState, setValidationState] = useState<ValidationState>({
+    isValidating: false,
+    isValid: settings.isValidApiKey,
+    error: null,
+  });
+  const [modelState, setModelState] = useState<ModelState>({
+    isLoading: false,
+    models: settings.availableModels,
+    error: null,
+    searchTerm: '',
+  });
+
+  // Handle settings updates from storage
+  useEffect(() => {
+    const unsubscribe = settingsStorage.subscribe(() => {
+      const updatedSettings = settingsStorage.getSettings();
+      onSettingsUpdate(updatedSettings);
+      
+      setApiKey(updatedSettings.openRouterApiKey);
+      setCustomPrompt(updatedSettings.customPrompt);
+      setSelectedModel(updatedSettings.selectedModel);
+      setValidationState(prev => ({
+        ...prev,
+        isValid: updatedSettings.isValidApiKey,
+      }));
+      setModelState(prev => ({
+        ...prev,
+        models: updatedSettings.availableModels,
+      }));
+    });
+
+    return unsubscribe;
+  }, [onSettingsUpdate]);
+
+  // Auto-save custom prompt
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (customPrompt !== settings.customPrompt) {
+        settingsStorage.updateCustomPrompt(customPrompt);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [customPrompt, settings.customPrompt]);
+
+  // Auto-save selected model
+  useEffect(() => {
+    if (selectedModel !== settings.selectedModel) {
+      settingsStorage.updateSelectedModel(selectedModel);
+    }
+  }, [selectedModel, settings.selectedModel]);
+
+  const handleApiKeyChange = (value: string) => {
+    setApiKey(value);
+    settingsStorage.updateApiKey(value);
+    
+    // Reset validation when API key changes
+    if (value !== settings.openRouterApiKey) {
+      setValidationState({
+        isValidating: false,
+        isValid: false,
+        error: null,
+      });
+    }
+  };
+
+  const validateApiKey = useCallback(async () => {
+    if (!apiKey.trim()) {
+      setValidationState({
+        isValidating: false,
+        isValid: false,
+        error: 'API key is required',
+      });
+      return;
+    }
+
+    if (!isValidApiKeyFormat(apiKey)) {
+      setValidationState({
+        isValidating: false,
+        isValid: false,
+        error: 'Invalid API key format. OpenRouter keys start with "sk-or-v1-"',
+      });
+      return;
+    }
+
+    setValidationState(prev => ({
+      ...prev,
+      isValidating: true,
+      error: null,
+    }));
+
+    try {
+      const client = createOpenRouterClient(apiKey);
+      const isValid = await client.validateApiKey();
+      
+      setValidationState({
+        isValidating: false,
+        isValid,
+        error: null,
+      });
+      
+      settingsStorage.validateApiKey(isValid);
+    } catch (error) {
+      setValidationState({
+        isValidating: false,
+        isValid: false,
+        error: error instanceof Error ? error.message : 'Failed to validate API key',
+      });
+    }
+  }, [apiKey]);
+
+  const fetchModels = useCallback(async () => {
+    if (!settings.isValidApiKey) {
+      setModelState(prev => ({
+        ...prev,
+        error: 'Please validate your API key first',
+      }));
+      return;
+    }
+
+    setModelState(prev => ({
+      ...prev,
+      isLoading: true,
+      error: null,
+    }));
+
+    try {
+      const client = createOpenRouterClient(apiKey);
+      const models = await client.getVisionModels();
+      
+      setModelState(prev => ({
+        ...prev,
+        isLoading: false,
+        models,
+        error: null,
+      }));
+      
+      settingsStorage.updateModels(models);
+      
+      // Auto-select first model if none selected
+      if (!selectedModel && models.length > 0) {
+        setSelectedModel(models[0].id);
+      }
+    } catch (error) {
+      setModelState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: error instanceof Error ? error.message : 'Failed to fetch models',
+      }));
+    }
+  }, [apiKey, settings.isValidApiKey, selectedModel]);
+
+  const filteredModels = modelState.models.filter(model =>
+    model.name.toLowerCase().includes(modelState.searchTerm.toLowerCase()) ||
+    model.id.toLowerCase().includes(modelState.searchTerm.toLowerCase())
+  );
+
+  const exportSettings = () => {
+    const settingsJson = settingsStorage.exportSettings();
+    const blob = new Blob([settingsJson], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'image-to-prompt-settings.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const importSettings = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const settingsJson = e.target?.result as string;
+        const success = settingsStorage.importSettings(settingsJson);
+        
+        if (!success) {
+          alert('Failed to import settings. Please check the file format.');
+        }
+      } catch {
+        alert('Failed to import settings. Please check the file format.');
+      }
+    };
+    reader.readAsText(file);
+    
+    // Reset file input
+    event.target.value = '';
+  };
+
+  const formatPrice = (price: number) => {
+    return `$${price.toFixed(6)}`;
+  };
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+        Settings
+      </h2>
+
+      {/* API Key Section */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+          <Key className="mr-2 h-5 w-5" />
+          OpenRouter API Key
+        </h3>
+        
+        <div className="space-y-3">
+          <div className="relative">
+            <input
+              type={showApiKey ? 'text' : 'password'}
+              value={apiKey}
+              onChange={(e) => handleApiKeyChange(e.target.value)}
+              placeholder="sk-or-v1-..."
+              className="w-full px-4 py-2 pr-12 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            />
+            <button
+              type="button"
+              onClick={() => setShowApiKey(!showApiKey)}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+              aria-label={showApiKey ? 'Hide API key' : 'Show API key'}
+            >
+              {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
+          
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={validateApiKey}
+              disabled={validationState.isValidating || !apiKey.trim()}
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {validationState.isValidating ? (
+                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <CheckCircle className="mr-2 h-4 w-4" />
+              )}
+              Validate API Key
+            </button>
+            
+            {validationState.isValid && (
+              <div className="flex items-center text-green-600 dark:text-green-400">
+                <CheckCircle className="mr-1 h-4 w-4" />
+                <span className="text-sm">API key is valid</span>
+              </div>
+            )}
+            
+            {validationState.error && (
+              <div className="flex items-center text-red-600 dark:text-red-400">
+                <XCircle className="mr-1 h-4 w-4" />
+                <span className="text-sm">{validationState.error}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Model Selection Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+            Vision Model
+          </h3>
+          <button
+            onClick={fetchModels}
+            disabled={modelState.isLoading || !settings.isValidApiKey}
+            className="flex items-center px-3 py-1 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {modelState.isLoading ? (
+              <RefreshCw className="mr-2 h-3 w-3 animate-spin" />
+            ) : (
+              <RefreshCw className="mr-2 h-3 w-3" />
+            )}
+            Fetch Models
+          </button>
+        </div>
+
+        {modelState.error && (
+          <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <p className="text-sm text-red-600 dark:text-red-400">{modelState.error}</p>
+          </div>
+        )}
+
+        {modelState.models.length > 0 && (
+          <div className="space-y-3">
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search models..."
+                value={modelState.searchTerm}
+                onChange={(e) => setModelState(prev => ({ ...prev, searchTerm: e.target.value }))}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              />
+            </div>
+
+            {/* Model Dropdown */}
+            <select
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            >
+              <option value="">Select a model...</option>
+              {filteredModels.map((model) => (
+                <option key={model.id} value={model.id}>
+                  {model.name} - {formatPrice(model.pricing.prompt + model.pricing.completion)}/token
+                </option>
+              ))}
+            </select>
+
+            {/* Model Info */}
+            {selectedModel && (
+              <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm">
+                {(() => {
+                  const model = modelState.models.find(m => m.id === selectedModel);
+                  if (!model) return null;
+                  
+                  return (
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="font-medium text-gray-700 dark:text-gray-300">Model:</span>
+                        <span className="text-gray-900 dark:text-white">{model.name}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-medium text-gray-700 dark:text-gray-300">Prompt Price:</span>
+                        <span className="text-gray-900 dark:text-white">{formatPrice(model.pricing.prompt)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-medium text-gray-700 dark:text-gray-300">Completion Price:</span>
+                        <span className="text-gray-900 dark:text-white">{formatPrice(model.pricing.completion)}</span>
+                      </div>
+                      {model.description && (
+                        <div>
+                          <span className="font-medium text-gray-700 dark:text-gray-300">Description:</span>
+                          <p className="text-gray-600 dark:text-gray-400 mt-1">{model.description}</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Custom Prompt Section */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+          Custom Prompt Template
+        </h3>
+        <textarea
+          value={customPrompt}
+          onChange={(e) => setCustomPrompt(e.target.value)}
+          rows={4}
+          placeholder="Enter your custom prompt template..."
+          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none"
+        />
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          This prompt will be used when generating prompts from images. Changes are saved automatically.
+        </p>
+      </div>
+
+      {/* Import/Export Section */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+          Import/Export Settings
+        </h3>
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={exportSettings}
+            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Export Settings
+          </button>
+          
+          <label className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer">
+            <Upload className="mr-2 h-4 w-4" />
+            Import Settings
+            <input
+              type="file"
+              accept=".json"
+              onChange={importSettings}
+              className="hidden"
+            />
+          </label>
+        </div>
+      </div>
+    </div>
+  );
+};

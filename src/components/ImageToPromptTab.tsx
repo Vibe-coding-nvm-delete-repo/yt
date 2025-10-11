@@ -1,0 +1,430 @@
+'use client';
+
+import React, { useState, useRef, useCallback } from 'react';
+import { AppSettings, ImageUploadState, GenerationState } from '@/types';
+import { createOpenRouterClient } from '@/lib/openrouter';
+import { Upload, X, Loader2, Download, Copy, CheckCircle, AlertCircle, Image as ImageIcon } from 'lucide-react';
+import Image from 'next/image';
+
+interface ImageToPromptTabProps {
+  settings: AppSettings;
+}
+
+export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
+  settings,
+}) => {
+  const [uploadState, setUploadState] = useState<ImageUploadState>({
+    file: null,
+    preview: null,
+    isUploading: false,
+    error: null,
+  });
+  const [generationState, setGenerationState] = useState<GenerationState>({
+    isGenerating: false,
+    generatedPrompt: null,
+    error: null,
+  });
+  const [copiedToClipboard, setCopiedToClipboard] = useState(false);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const dropZoneRef = useRef<HTMLDivElement>(null);
+
+  const validateFile = (file: File): string | null => {
+    // Check file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      return 'Invalid file type. Please upload a JPEG, PNG, WebP, or GIF image.';
+    }
+
+    // Check file size (max 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+    if (file.size > maxSize) {
+      return 'File size too large. Please upload an image smaller than 10MB.';
+    }
+
+    return null;
+  };
+
+  const readFileAsDataURL = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (e.target?.result) {
+          resolve(e.target.result as string);
+        } else {
+          reject(new Error('Failed to read file'));
+        }
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileSelect = useCallback(async (file: File) => {
+    const validationError = validateFile(file);
+    if (validationError) {
+      setUploadState(prev => ({
+        ...prev,
+        error: validationError,
+      }));
+      return;
+    }
+
+    setUploadState(prev => ({
+      ...prev,
+      isUploading: true,
+      error: null,
+    }));
+
+    try {
+      const dataUrl = await readFileAsDataURL(file);
+      setUploadState({
+        file,
+        preview: dataUrl,
+        isUploading: false,
+        error: null,
+      });
+    } catch (error) {
+      setUploadState(prev => ({
+        ...prev,
+        isUploading: false,
+        error: error instanceof Error ? error.message : 'Failed to process image',
+      }));
+    }
+  }, []);
+
+  const handleFileInput = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      handleFileSelect(file);
+    }
+  }, [handleFileSelect]);
+
+  const handleDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+  }, []);
+
+  const handleDragLeave = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const files = event.dataTransfer.files;
+    if (files.length > 0) {
+      handleFileSelect(files[0]);
+    }
+  }, [handleFileSelect]);
+
+  const generatePrompt = useCallback(async () => {
+    if (!uploadState.preview || !settings.selectedModel || !settings.isValidApiKey) {
+      setGenerationState(prev => ({
+        ...prev,
+        error: 'Please ensure you have a valid API key, selected a model, and uploaded an image.',
+      }));
+      return;
+    }
+
+    setGenerationState(prev => ({
+      ...prev,
+      isGenerating: true,
+      error: null,
+    }));
+
+    try {
+      const client = createOpenRouterClient(settings.openRouterApiKey);
+      const prompt = await client.generateImagePrompt(
+        uploadState.preview,
+        settings.customPrompt,
+        settings.selectedModel
+      );
+
+      setGenerationState({
+        isGenerating: false,
+        generatedPrompt: prompt,
+        error: null,
+      });
+    } catch (error) {
+      setGenerationState({
+        isGenerating: false,
+        generatedPrompt: null,
+        error: error instanceof Error ? error.message : 'Failed to generate prompt',
+      });
+    }
+  }, [uploadState.preview, settings]);
+
+  const clearImage = useCallback(() => {
+    setUploadState({
+      file: null,
+      preview: null,
+      isUploading: false,
+      error: null,
+    });
+    setGenerationState({
+      isGenerating: false,
+      generatedPrompt: null,
+      error: null,
+    });
+    
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, []);
+
+  const copyToClipboard = useCallback(async () => {
+    if (!generationState.generatedPrompt) return;
+
+    try {
+      await navigator.clipboard.writeText(generationState.generatedPrompt);
+      setCopiedToClipboard(true);
+      setTimeout(() => setCopiedToClipboard(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error);
+    }
+  }, [generationState.generatedPrompt]);
+
+  const downloadPrompt = useCallback(() => {
+    if (!generationState.generatedPrompt) return;
+
+    const blob = new Blob([generationState.generatedPrompt], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `generated-prompt-${Date.now()}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [generationState.generatedPrompt]);
+
+  const isGenerateDisabled = !uploadState.preview || !settings.selectedModel || !settings.isValidApiKey || generationState.isGenerating;
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+        Image to Prompt
+      </h2>
+
+      {/* Status Messages */}
+      {!settings.isValidApiKey && (
+        <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+          <div className="flex items-center">
+            <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mr-3" />
+            <div>
+              <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                API Key Required
+              </h3>
+              <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
+                Please add and validate your OpenRouter API key in the Settings tab to start generating prompts.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {settings.isValidApiKey && !settings.selectedModel && (
+        <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+          <div className="flex items-center">
+            <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mr-3" />
+            <div>
+              <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                Model Selection Required
+              </h3>
+              <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
+                Please select a vision model in the Settings tab to start generating prompts.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Upload Area */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+          <ImageIcon className="mr-2 h-5 w-5" />
+          Upload Image
+        </h3>
+
+        {!uploadState.preview ? (
+          <div
+            ref={dropZoneRef}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={`
+              border-2 border-dashed rounded-lg p-8 text-center transition-colors
+              ${uploadState.isUploading
+                ? 'border-gray-300 bg-gray-50 dark:border-gray-600 dark:bg-gray-800'
+                : 'border-gray-300 hover:border-gray-400 dark:border-gray-600 dark:hover:border-gray-500 bg-white dark:bg-gray-800'
+              }
+            `}
+          >
+            {uploadState.isUploading ? (
+              <div className="flex flex-col items-center space-y-3">
+                <Loader2 className="h-12 w-12 text-gray-400 animate-spin" />
+                <p className="text-gray-600 dark:text-gray-400">Processing image...</p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center space-y-3">
+                <Upload className="h-12 w-12 text-gray-400" />
+                <div>
+                  <p className="text-lg font-medium text-gray-900 dark:text-white">
+                    Drop your image here, or{' '}
+                    <label
+                      htmlFor="file-upload"
+                      className="text-blue-600 hover:text-blue-500 cursor-pointer"
+                    >
+                      browse
+                    </label>
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    Supports JPEG, PNG, WebP, and GIF up to 10MB
+                  </p>
+                </div>
+                <input
+                  ref={fileInputRef}
+                  id="file-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileInput}
+                  className="hidden"
+                />
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Image Preview */}
+            <div className="relative group">
+              <div className="rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
+                <Image
+                  src={uploadState.preview}
+                  alt="Uploaded image"
+                  width={800}
+                  height={256}
+                  className="w-full h-64 object-cover"
+                />
+              </div>
+              <button
+                onClick={clearImage}
+                className="absolute top-2 right-2 p-2 bg-red-600 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700"
+                aria-label="Remove image"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* File Info */}
+            {uploadState.file && (
+              <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm">
+                <div className="flex justify-between">
+                  <span className="font-medium text-gray-700 dark:text-gray-300">File:</span>
+                  <span className="text-gray-900 dark:text-white">{uploadState.file.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium text-gray-700 dark:text-gray-300">Size:</span>
+                  <span className="text-gray-900 dark:text-white">
+                    {(uploadState.file.size / 1024 / 1024).toFixed(2)} MB
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium text-gray-700 dark:text-gray-300">Type:</span>
+                  <span className="text-gray-900 dark:text-white">{uploadState.file.type}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {uploadState.error && (
+          <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <p className="text-sm text-red-600 dark:text-red-400">{uploadState.error}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Generate Button */}
+      <div className="space-y-4">
+        <button
+          onClick={generatePrompt}
+          disabled={isGenerateDisabled}
+          className={`
+            w-full flex items-center justify-center px-6 py-3 rounded-lg font-medium transition-colors
+            ${isGenerateDisabled
+              ? 'bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-600 dark:text-gray-400'
+              : 'bg-blue-600 text-white hover:bg-blue-700'
+            }
+          `}
+        >
+          {generationState.isGenerating ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Generating Prompt...
+            </>
+          ) : (
+            'Generate Prompt'
+          )}
+        </button>
+
+        {generationState.error && (
+          <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <p className="text-sm text-red-600 dark:text-red-400">{generationState.error}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Generated Prompt */}
+      {generationState.generatedPrompt && (
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+            <CheckCircle className="mr-2 h-5 w-5 text-green-600" />
+            Generated Prompt
+          </h3>
+          
+          <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Your generated prompt:
+              </span>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={copyToClipboard}
+                  className="flex items-center px-3 py-1 text-sm bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+                >
+                  {copiedToClipboard ? (
+                    <>
+                      <CheckCircle className="mr-1 h-3 w-3" />
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="mr-1 h-3 w-3" />
+                      Copy
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={downloadPrompt}
+                  className="flex items-center px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                >
+                  <Download className="mr-1 h-3 w-3" />
+                  Download
+                </button>
+              </div>
+            </div>
+            <div className="bg-white dark:bg-gray-900 p-4 rounded border border-gray-200 dark:border-gray-700">
+              <p className="text-gray-900 dark:text-white whitespace-pre-wrap">
+                {generationState.generatedPrompt}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
