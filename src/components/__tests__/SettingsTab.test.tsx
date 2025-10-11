@@ -2,9 +2,11 @@
  * Manual unit tests for SettingsTab utility functions
  * Validates the fix for toFixed error when API returns string pricing
  * Validates that import/export functionality has been removed
- * 
+ *
  * Run: node -e "require('./src/components/__tests__/SettingsTab.test.tsx')"
  */
+
+import { settingsStorage } from '../../lib/storage';
 
 // Utility functions (duplicated for testing)
 const formatPrice = (price: number | string | null | undefined) => {
@@ -108,7 +110,6 @@ function runTests() {
 
   // Verify import/export removal
   test('SettingsTab: SettingsStorage no longer has export/import methods', () => {
-    const { settingsStorage } = require('../../lib/storage');
     assertEqual(typeof settingsStorage.exportSettings, 'undefined');
     assertEqual(typeof settingsStorage.importSettings, 'undefined');
   });
