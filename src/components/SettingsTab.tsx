@@ -215,8 +215,12 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     event.target.value = '';
   };
 
-  const formatPrice = (price: number) => {
-    return `$${price.toFixed(6)}`;
+  const formatPrice = (price: number | string | null | undefined) => {
+    const numPrice = typeof price === 'string' ? parseFloat(price) : price;
+    if (typeof numPrice !== 'number' || isNaN(numPrice) || !isFinite(numPrice)) {
+      return '$0.000000';
+    }
+    return `$${numPrice.toFixed(6)}`;
   };
 
   return (

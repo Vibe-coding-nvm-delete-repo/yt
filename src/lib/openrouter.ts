@@ -36,6 +36,26 @@ export class OpenRouterClient {
     this.apiKey = apiKey;
   }
 
+  /**
+   * Safely convert a value to a number with proper validation
+   * @param value The value to convert
+   * @param defaultValue The default value if conversion fails
+   * @returns A valid number or the default value
+   */
+  private safeNumber(value: unknown, defaultValue: number = 0): number {
+    if (value === null || value === undefined || value === '') {
+      return defaultValue;
+    }
+    
+    const num = typeof value === 'string' ? parseFloat(value) : Number(value);
+    
+    if (isNaN(num) || !isFinite(num)) {
+      return defaultValue;
+    }
+    
+    return num;
+  }
+
   private async makeRequest<T>(
     endpoint: string,
     options: RequestInit = {}
@@ -116,10 +136,10 @@ export class OpenRouterClient {
           name: model.name,
           description: model.description || '',
           pricing: {
-            prompt: Number(model.pricing?.prompt) || 0,
-            completion: Number(model.pricing?.completion) || 0,
+            prompt: this.safeNumber(model.pricing?.prompt, 0),
+            completion: this.safeNumber(model.pricing?.completion, 0),
           },
-          context_length: Number(model.context_length) || undefined,
+          context_length: this.safeNumber(model.context_length) ? Number(model.context_length) : undefined,
           supports_image: Boolean(model.supports_image) || Boolean(model.supports_vision),
           supports_vision: Boolean(model.supports_vision) || Boolean(model.supports_image),
         }))

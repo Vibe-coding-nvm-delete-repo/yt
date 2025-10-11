@@ -1,38 +1,36 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { MainLayout } from './layout/MainLayout';
 import { SettingsTab } from './SettingsTab';
 import { ImageToPromptTab } from './ImageToPromptTab';
-import { TabState, AppSettings } from '@/types';
-import { settingsStorage } from '@/lib/storage';
+import { TabState } from '@/types';
+import { useSettings } from '@/hooks/useSettings';
 
 export const App: React.FC = () => {
   const [tabState, setTabState] = useState<TabState>({
     activeTab: 'image-to-prompt',
   });
   
-  const [settings, setSettings] = useState<AppSettings>(() => 
-    settingsStorage.getSettings()
-  );
-
-  // Handle settings updates from storage
-  useEffect(() => {
-    const unsubscribe = settingsStorage.subscribe(() => {
-      const updatedSettings = settingsStorage.getSettings();
-      setSettings(updatedSettings);
-    });
-
-    return unsubscribe;
-  }, []);
+  const { settings, isInitialized } = useSettings();
 
   const handleTabChange = (tab: TabState['activeTab']) => {
     setTabState({ activeTab: tab });
   };
 
-  const handleSettingsUpdate = (updatedSettings: AppSettings) => {
-    setSettings(updatedSettings);
-  };
+  // Show loading state while settings are being initialized
+  if (!isInitialized) {
+    return (
+      <MainLayout
+        activeTab={tabState.activeTab}
+        onTabChange={handleTabChange}
+      >
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout
@@ -45,7 +43,9 @@ export const App: React.FC = () => {
       {tabState.activeTab === 'settings' && (
         <SettingsTab
           settings={settings}
-          onSettingsUpdate={handleSettingsUpdate}
+          onSettingsUpdate={() => {
+            // Settings are now managed by the hook, no manual update needed
+          }}
         />
       )}
     </MainLayout>
