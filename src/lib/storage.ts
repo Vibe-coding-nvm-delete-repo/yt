@@ -331,8 +331,6 @@ export const useSettings = () => {
   const updateCustomPrompt = (prompt: string) => settingsStorage.updateCustomPrompt(prompt);
   const updateModels = (models: VisionModel[]) => settingsStorage.updateModels(models);
   const clearSettings = () => settingsStorage.clearSettings();
-  const exportSettings = () => settingsStorage.exportSettings();
-  const importSettings = (settingsJson: string) => settingsStorage.importSettings(settingsJson);
   const shouldRefreshModels = () => settingsStorage.shouldRefreshModels();
   const getModelById = (modelId: string) => settingsStorage.getModelById(modelId);
   const getSelectedModel = () => settingsStorage.getSelectedModel();
@@ -345,8 +343,6 @@ export const useSettings = () => {
     updateCustomPrompt,
     updateModels,
     clearSettings,
-    exportSettings,
-    importSettings,
     shouldRefreshModels,
     getModelById,
     getSelectedModel,
