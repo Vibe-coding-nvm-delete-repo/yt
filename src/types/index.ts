@@ -16,6 +16,7 @@ export interface AppSettings {
   selectedModel: string;
   customPrompt: string;
   isValidApiKey: boolean;
+  lastApiKeyValidation: number | null;
   lastModelFetch: number | null;
   availableModels: VisionModel[];
 }

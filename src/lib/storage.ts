@@ -11,6 +11,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   selectedModel: '',
   customPrompt: 'Describe this image in detail and suggest a good prompt for generating similar images.',
   isValidApiKey: false,
+  lastApiKeyValidation: null,
   lastModelFetch: null,
   availableModels: [],
 };
@@ -56,6 +57,7 @@ export class SettingsStorage {
         // Ensure arrays are properly initialized
         availableModels: Array.isArray(parsed.availableModels) ? parsed.availableModels : [],
         // Ensure numeric values are correct
+        lastApiKeyValidation: parsed.lastApiKeyValidation ? Number(parsed.lastApiKeyValidation) : null,
         lastModelFetch: parsed.lastModelFetch ? Number(parsed.lastModelFetch) : null,
       };
     } catch (error) {
@@ -90,6 +92,7 @@ export class SettingsStorage {
           ...DEFAULT_SETTINGS,
           ...newSettings,
           availableModels: Array.isArray(newSettings.availableModels) ? newSettings.availableModels : [],
+          lastApiKeyValidation: newSettings.lastApiKeyValidation ? Number(newSettings.lastApiKeyValidation) : null,
           lastModelFetch: newSettings.lastModelFetch ? Number(newSettings.lastModelFetch) : null,
         };
         this.notifyListeners();
@@ -120,6 +123,9 @@ export class SettingsStorage {
 
   validateApiKey(isValid: boolean): void {
     this.settings.isValidApiKey = isValid;
+    if (isValid) {
+      this.settings.lastApiKeyValidation = Date.now();
+    }
     this.saveSettings();
   }
 
@@ -161,6 +167,7 @@ export class SettingsStorage {
         ...DEFAULT_SETTINGS,
         ...imported,
         availableModels: Array.isArray(imported.availableModels) ? imported.availableModels : [],
+        lastApiKeyValidation: imported.lastApiKeyValidation ? Number(imported.lastApiKeyValidation) : null,
         lastModelFetch: imported.lastModelFetch ? Number(imported.lastModelFetch) : null,
       };
       
