@@ -1,9 +1,11 @@
-import { AppSettings, VisionModel } from '@/types';
+import { AppSettings, VisionModel, PersistedImageState } from '@/types';
 
 const STORAGE_KEY = 'image-to-prompt-settings';
+const IMAGE_STATE_KEY = 'image-to-prompt-image-state';
 
 export const STORAGE_EVENTS = {
   SETTINGS_UPDATED: 'image-to-prompt-settings-updated',
+  IMAGE_STATE_UPDATED: 'image-to-prompt-image-state-updated',
 } as const;
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -11,6 +13,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   selectedModel: '',
   customPrompt: 'Describe this image in detail and suggest a good prompt for generating similar images.',
   isValidApiKey: false,
+  lastApiKeyValidation: null,
   lastModelFetch: null,
   availableModels: [],
 };
@@ -56,6 +59,7 @@ export class SettingsStorage {
         // Ensure arrays are properly initialized
         availableModels: Array.isArray(parsed.availableModels) ? parsed.availableModels : [],
         // Ensure numeric values are correct
+        lastApiKeyValidation: parsed.lastApiKeyValidation ? Number(parsed.lastApiKeyValidation) : null,
         lastModelFetch: parsed.lastModelFetch ? Number(parsed.lastModelFetch) : null,
       };
     } catch (error) {
@@ -90,6 +94,7 @@ export class SettingsStorage {
           ...DEFAULT_SETTINGS,
           ...newSettings,
           availableModels: Array.isArray(newSettings.availableModels) ? newSettings.availableModels : [],
+          lastApiKeyValidation: newSettings.lastApiKeyValidation ? Number(newSettings.lastApiKeyValidation) : null,
           lastModelFetch: newSettings.lastModelFetch ? Number(newSettings.lastModelFetch) : null,
         };
         this.notifyListeners();
@@ -120,6 +125,9 @@ export class SettingsStorage {
 
   validateApiKey(isValid: boolean): void {
     this.settings.isValidApiKey = isValid;
+    if (isValid) {
+      this.settings.lastApiKeyValidation = Date.now();
+    }
     this.saveSettings();
   }
 
@@ -142,6 +150,35 @@ export class SettingsStorage {
   clearSettings(): void {
     this.settings = { ...DEFAULT_SETTINGS };
     this.saveSettings();
+  }
+
+  exportSettings(): string {
+    return JSON.stringify(this.settings, null, 2);
+  }
+
+  importSettings(settingsJson: string): boolean {
+    try {
+      const imported = JSON.parse(settingsJson);
+      
+      // Validate imported settings
+      if (typeof imported !== 'object' || imported === null) {
+        throw new Error('Invalid settings format');
+      }
+
+      this.settings = {
+        ...DEFAULT_SETTINGS,
+        ...imported,
+        availableModels: Array.isArray(imported.availableModels) ? imported.availableModels : [],
+        lastApiKeyValidation: imported.lastApiKeyValidation ? Number(imported.lastApiKeyValidation) : null,
+        lastModelFetch: imported.lastModelFetch ? Number(imported.lastModelFetch) : null,
+      };
+      
+      this.saveSettings();
+      return true;
+    } catch (error) {
+      console.error('Failed to import settings:', error);
+      return false;
+    }
   }
 
   // Utility method to check if models need refreshing
@@ -169,8 +206,120 @@ export class SettingsStorage {
   }
 }
 
+// Image State Storage for persisting uploaded images and generated prompts
+const DEFAULT_IMAGE_STATE: PersistedImageState = {
+  preview: null,
+  fileName: null,
+  fileSize: null,
+  fileType: null,
+  generatedPrompt: null,
+};
+
+export class ImageStateStorage {
+  private static instance: ImageStateStorage;
+  private imageState: PersistedImageState;
+  private listeners: Set<() => void> = new Set();
+
+  private constructor() {
+    this.imageState = this.loadImageState();
+  }
+
+  static getInstance(): ImageStateStorage {
+    if (!ImageStateStorage.instance) {
+      ImageStateStorage.instance = new ImageStateStorage();
+    }
+    return ImageStateStorage.instance;
+  }
+
+  private loadImageState(): PersistedImageState {
+    if (typeof window === 'undefined') {
+      return DEFAULT_IMAGE_STATE;
+    }
+
+    try {
+      const stored = localStorage.getItem(IMAGE_STATE_KEY);
+      if (!stored) {
+        return DEFAULT_IMAGE_STATE;
+      }
+
+      const parsed = JSON.parse(stored);
+      return {
+        ...DEFAULT_IMAGE_STATE,
+        ...parsed,
+      };
+    } catch (error) {
+      console.warn('Failed to load image state from localStorage:', error);
+      return DEFAULT_IMAGE_STATE;
+    }
+  }
+
+  private saveImageState(): void {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    try {
+      localStorage.setItem(IMAGE_STATE_KEY, JSON.stringify(this.imageState));
+      this.notifyListeners();
+      
+      // Dispatch custom event for other components
+      window.dispatchEvent(new CustomEvent(STORAGE_EVENTS.IMAGE_STATE_UPDATED, {
+        detail: this.imageState,
+      }));
+    } catch (error) {
+      console.error('Failed to save image state to localStorage:', error);
+    }
+  }
+
+  private notifyListeners(): void {
+    this.listeners.forEach(listener => listener());
+  }
+
+  subscribe(listener: () => void): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+
+  getImageState(): PersistedImageState {
+    return { ...this.imageState };
+  }
+
+  saveUploadedImage(preview: string, fileName: string, fileSize: number, fileType: string): void {
+    this.imageState = {
+      ...this.imageState,
+      preview,
+      fileName,
+      fileSize,
+      fileType,
+    };
+    this.saveImageState();
+  }
+
+  saveGeneratedPrompt(prompt: string): void {
+    this.imageState = {
+      ...this.imageState,
+      generatedPrompt: prompt,
+    };
+    this.saveImageState();
+  }
+
+  clearImageState(): void {
+    this.imageState = { ...DEFAULT_IMAGE_STATE };
+    this.saveImageState();
+  }
+
+  clearGeneratedPrompt(): void {
+    this.imageState = {
+      ...this.imageState,
+      generatedPrompt: null,
+    };
+    this.saveImageState();
+  }
+}
+
 // Export singleton instance
 export const settingsStorage = SettingsStorage.getInstance();
+export const imageStateStorage = ImageStateStorage.getInstance();
 
 // React hook for using settings
 export const useSettings = () => {

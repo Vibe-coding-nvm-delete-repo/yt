@@ -16,6 +16,7 @@ export interface AppSettings {
   selectedModel: string;
   customPrompt: string;
   isValidApiKey: boolean;
+  lastApiKeyValidation: number | null;
   lastModelFetch: number | null;
   availableModels: VisionModel[];
 }
@@ -31,6 +32,14 @@ export interface GenerationState {
   isGenerating: boolean;
   generatedPrompt: string | null;
   error: string | null;
+}
+
+export interface PersistedImageState {
+  preview: string | null;
+  fileName: string | null;
+  fileSize: number | null;
+  fileType: string | null;
+  generatedPrompt: string | null;
 }
 
 export interface TabState {
