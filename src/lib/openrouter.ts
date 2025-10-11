@@ -5,8 +5,9 @@ interface OpenRouterModelResponse {
   name: string;
   description?: string;
   pricing?: {
-    prompt: number;
-    completion: number;
+    prompt: string | number;
+    completion: string | number;
+    image?: string | number;
   };
   context_length?: number;
   supports_image?: boolean;
@@ -120,17 +121,15 @@ export class OpenRouterClient {
       }
 
       const models: VisionModel[] = response.data
-        .filter((model: OpenRouterModelResponse): model is OpenRouterModelResponse => 
-          Boolean(model?.id) && 
+        .filter((model: OpenRouterModelResponse): model is OpenRouterModelResponse =>
+          Boolean(model?.id) &&
           Boolean(model?.name)
         )
-        .filter((model: OpenRouterModelResponse) => 
-          model.supports_vision || model.supports_image || 
-           model.id.toLowerCase().includes('vision') ||
-           model.id.toLowerCase().includes('claude-3') ||
-           model.id.toLowerCase().includes('gpt-4-vision') ||
-           model.id.toLowerCase().includes('gemini-pro-vision')
-        )
+        .filter((model: OpenRouterModelResponse) => {
+          // Vision models are identified by having a non-zero image pricing
+          const hasImagePricing = model.pricing?.image && this.safeNumber(model.pricing.image, 0) > 0;
+          return hasImagePricing;
+        })
         .map((model: OpenRouterModelResponse): VisionModel => ({
           id: model.id,
           name: model.name,
