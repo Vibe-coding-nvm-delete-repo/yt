@@ -17,6 +17,7 @@ export const useSettings = () => {
       selectedModel: '',
       customPrompt: 'Describe this image in detail and suggest a good prompt for generating similar images.',
       isValidApiKey: false,
+      lastApiKeyValidation: null,
       lastModelFetch: null,
       availableModels: [],
     };
