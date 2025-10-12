@@ -1,27 +1,3 @@
-    // Wait for persisted preview to be applied (image element appears)
-    await waitFor(() => expect(screen.getByAltText('Uploaded image')).toBeInTheDocument(), { timeout: 2000 });
-
-    // Select the additional model checkbox (model-2)
-    const checkbox = screen.getByLabelText('Select model Model Two') as HTMLInputElement;
-    expect(checkbox).toBeInTheDocument();
-    fireEvent.click(checkbox);
-    expect(checkbox.checked).toBe(true);
->>>>>>> origin/main
-
-    // Since the component UI is completely different (multi-image grid now),
-    // the model multi-select checkboxes are obsolete and replaced by a single dropdown per image.
-    // The initial image is rendered, so we click the Generate Batch button.
-    const generateButton = screen.getByRole('button', { name: /generate batch/i });
-    expect(generateButton).toBeEnabled();
-    fireEvent.click(generateButton);
-
-    // Wait for the mocked client generateImagePrompt to be invoked
-    await waitFor(() => expect(genMock).toHaveBeenCalled(), { timeout: 5000 });
-
-    // Ensure individual prompts persistence was attempted at least once
-    expect(mockStorage.imageStateStorage.saveGeneratedPrompt).toHaveBeenCalled();
-  });
-});
 import React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
@@ -54,6 +30,7 @@ describe('ImageToPromptTab - multi-image batch', () => {
       fileType: 'image/png',
       generatedPrompt: null,
       batchHistory: [],
+      schemaVersion: 1,
     }));
 
     // Provide mocked storage methods used by the component
@@ -119,30 +96,5 @@ describe('ImageToPromptTab - multi-image batch', () => {
 
     // Check that cost calculation was called
     expect(calcMock).toHaveBeenCalled();
-  });
-});
-=======
-    // Wait for persisted preview to be applied (image element appears)
-    await waitFor(() => expect(screen.getByAltText('Uploaded image')).toBeInTheDocument(), { timeout: 2000 });
-
-    // Select the additional model checkbox (model-2)
-    const checkbox = screen.getByLabelText('Select model Model Two') as HTMLInputElement;
-    expect(checkbox).toBeInTheDocument();
-    fireEvent.click(checkbox);
-    expect(checkbox.checked).toBe(true);
->>>>>>> origin/main
-
-    // Since the component UI is completely different (multi-image grid now),
-    // the model multi-select checkboxes are obsolete and replaced by a single dropdown per image.
-    // The initial image is rendered, so we click the Generate Batch button.
-    const generateButton = screen.getByRole('button', { name: /generate batch/i });
-    expect(generateButton).toBeEnabled();
-    fireEvent.click(generateButton);
-
-    // Wait for the mocked client generateImagePrompt to be invoked
-    await waitFor(() => expect(genMock).toHaveBeenCalled(), { timeout: 5000 });
-
-    // Ensure individual prompts persistence was attempted at least once
-    expect(mockStorage.imageStateStorage.saveGeneratedPrompt).toHaveBeenCalled();
   });
 });
