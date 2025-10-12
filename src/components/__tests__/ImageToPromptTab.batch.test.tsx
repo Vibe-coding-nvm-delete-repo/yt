@@ -15,8 +15,8 @@ describe('ImageToPromptTab - multi-model batch', () => {
   const mockCreateClient = openrouter.createOpenRouterClient as jest.Mock;
   const mockStorage = storage as any;
 
-    let genMock: jest.MockedFunction<any>;
-    let calcMock: jest.MockedFunction<any>;
+    let genMock: jest.MockedFunction<typeof openrouter.createOpenRouterClient>;
+    let calcMock: jest.MockedFunction<typeof openrouter.createOpenRouterClient>;
 
   beforeEach(() => {
     jest.resetAllMocks();

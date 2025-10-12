@@ -1,4 +1,4 @@
-import { AppSettings, VisionModel, PersistedImageState } from '@/types';
+import { AppSettings, VisionModel, PersistedImageState, BatchEntry } from '@/types';
 
 const STORAGE_KEY = 'image-to-prompt-settings';
 const IMAGE_STATE_KEY = 'image-to-prompt-image-state';
@@ -319,6 +319,31 @@ export class ImageStateStorage {
     this.imageState = {
       ...this.imageState,
       generatedPrompt: null,
+    };
+    this.saveImageState();
+  }
+
+  /**
+   * Append a batch entry to the persisted batch history.
+   * batchEntry should conform to the BatchEntry type defined in types.
+   */
+  saveBatchEntry(batchEntry: BatchEntry): void {
+    const currentHistory = Array.isArray(this.imageState.batchHistory) ? this.imageState.batchHistory : [];
+    this.imageState = {
+      ...this.imageState,
+      batchHistory: [batchEntry, ...currentHistory].slice(0, 50), // keep recent 50 entries
+    };
+    this.saveImageState();
+  }
+
+  getBatchHistory(): BatchEntry[] {
+    return Array.isArray(this.imageState.batchHistory) ? [...this.imageState.batchHistory] : [];
+  }
+
+  clearBatchHistory(): void {
+    this.imageState = {
+      ...this.imageState,
+      batchHistory: [],
     };
     this.saveImageState();
   }

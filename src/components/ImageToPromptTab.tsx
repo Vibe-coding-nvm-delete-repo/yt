@@ -28,14 +28,23 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   });
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
   const [uploadTimestamp, setUploadTimestamp] = useState<Date | null>(null);
-  
+
+  // Multi-model batch state: checked models (user selection) and per-model results
+  const [checkedModels, setCheckedModels] = useState<string[]>(
+    (settings.preferredModels && Array.isArray(settings.preferredModels)) ? settings.preferredModels.slice(0, 5) : []
+  );
+
+  const [batchResults, setBatchResults] = useState<import('@/types').BatchItem[]>(
+    []
+  );
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
 
   // Load persisted image state on mount
   useEffect(() => {
     const persistedState = imageStateStorage.getImageState();
-    
+
     if (persistedState.preview) {
       setUploadState(prev => ({
         ...prev,
@@ -51,6 +60,20 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
       }));
     }
   }, []);
+
+  // Keep checkedModels in sync when availableModels or settings change
+  useEffect(() => {
+    const validIds = settings.availableModels.map(m => m.id);
+    setCheckedModels(prev => prev.filter(id => validIds.includes(id)).slice(0, 5));
+  }, [settings.availableModels]);
+
+  // Persist preferred models when user updates checkedModels
+  useEffect(() => {
+    settingsStorage.updatePreferredModels(checkedModels);
+  }, [checkedModels]);
+
+  // Helper: format currency for display
+  const formatCost = (cost: number) => `$${cost.toFixed(4)}`;
 
   const validateFile = (file: File): string | null => {
     // Check file type
@@ -101,7 +124,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
 
     try {
       const dataUrl = await readFileAsDataURL(file);
-      
+
       // Save to state
       setUploadState({
         file,
@@ -156,7 +179,6 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
     }
   }, [handleFileSelect]);
 
-
   // Handle click anywhere in drop zone to trigger file input
   const handleDropZoneClick = useCallback(() => {
     if (fileInputRef.current && !uploadState.isUploading) {
@@ -210,7 +232,6 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
 
     // Concurrency control
     const concurrency = 2;
-    let inFlight = 0;
     let index = 0;
 
     const results = [...initialResults];
@@ -225,7 +246,6 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
 
       // Update status -> processing
       setBatchResults(prev => prev.map(r => r.modelId === item.modelId ? { ...r, status: 'processing' } : r));
-      inFlight++;
 
       try {
         const prompt = await client.generateImagePrompt(
@@ -255,7 +275,6 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
           error: msg,
         } : r));
       } finally {
-        inFlight--;
         // Trigger next
         if (index < results.length) {
           await runNext();
@@ -304,8 +323,6 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
     setGenerationState(prev => ({ ...prev, isGenerating: false }));
   }, [uploadState.preview, settings, checkedModels]);
 
-
-
   const clearImage = useCallback(() => {
     setUploadState({
       file: null,
@@ -319,10 +336,10 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
       error: null,
     });
     setUploadTimestamp(null);
-    
+
     // Clear from localStorage
     imageStateStorage.clearImageState();
-    
+
     // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -365,29 +382,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
     ? createOpenRouterClient(settings.openRouterApiKey).calculateGenerationCost(selectedModelInfo, generationState.generatedPrompt.length)
     : null;
 
-  // Multi-model batch state: checked models (user selection) and per-model results
-  const [checkedModels, setCheckedModels] = useState<string[]>(
-    (settings.preferredModels && Array.isArray(settings.preferredModels)) ? settings.preferredModels.slice(0, 5) : []
-  );
-
-  const [batchResults, setBatchResults] = useState<import('@/types').BatchItem[]>(
-    []
-  );
-
-  // Keep checkedModels in sync when availableModels or settings change
-  useEffect(() => {
-    const validIds = settings.availableModels.map(m => m.id);
-    setCheckedModels(prev => prev.filter(id => validIds.includes(id)).slice(0, 5));
-  }, [settings.availableModels]);
-
-  // Persist preferred models when user updates checkedModels
-  useEffect(() => {
-    settingsStorage.updatePreferredModels(checkedModels);
-  }, [checkedModels]);
-
-  // Helper: format currency for display
-  const formatCost = (cost: number) => `$${cost.toFixed(4)}`;
-
+  // Render UI
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
