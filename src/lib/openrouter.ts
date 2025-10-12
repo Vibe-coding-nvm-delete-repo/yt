@@ -158,6 +158,49 @@ export class OpenRouterClient {
     }
   }
 
+  /**
+   * Calculate the cost for image processing
+   * Note: Image pricing not currently tracked in VisionModel interface
+   * @param _model The vision model used (unused for now)
+   * @returns Cost estimate in USD (currently 0, can be enhanced later)
+   */
+  calculateImageCost(_model: VisionModel): number {
+    // TODO: Add image pricing to VisionModel interface when needed
+    // For now, image processing costs are not tracked
+    return 0;
+  }
+
+  /**
+   * Estimate the cost for processing text
+   * @param textLength Character count of text
+   * @param model The model used for completion
+   * @returns Cost estimate in USD
+   */
+  calculateTextCost(textLength: number, model: VisionModel): number {
+    const completionPricing = model.pricing?.completion || 0;
+    // Rough estimate: ~4 characters per token
+    const estimatedTokens = Math.ceil(textLength / 4);
+    return this.safeNumber(completionPricing, 0) * 1000 * estimatedTokens;
+  }
+
+  /**
+   * Get combined total cost for a generation
+   * @param model The model used
+   * @param textLength Character count of generated text
+   * @returns Object with individual and total costs
+   */
+  calculateGenerationCost(model: VisionModel, textLength: number) {
+    const inputCost = this.calculateImageCost(model);
+    const outputCost = this.calculateTextCost(textLength, model);
+    const totalCost = inputCost + outputCost;
+
+    return {
+      inputCost,
+      outputCost,
+      totalCost,
+    };
+  }
+
   async generateImagePrompt(
     imageData: string,
     customPrompt: string,

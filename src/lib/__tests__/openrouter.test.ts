@@ -68,4 +68,27 @@ describe('OpenRouterClient', () => {
       );
     });
   });
+
+  describe('cost calculations', () => {
+    const mockModel = {
+      id: 'test-model',
+      name: 'Test Model',
+      description: 'Test model for cost calculations',
+      pricing: {
+        prompt: 0.00003,
+        completion: 0.00006,
+      },
+      context_length: 4096,
+      supports_image: true,
+      supports_vision: true,
+    };
+
+    it('calculates generation cost correctly', () => {
+      const result = client.calculateGenerationCost(mockModel, 12); // 12 character prompt
+      expect(result.inputCost).toBe(0); // Image cost not implemented
+      expect(result.outputCost).toBeGreaterThan(0); // Text cost should be calculated
+      expect(result.totalCost).toBeGreaterThan(0);
+      expect(result.totalCost).toBe(result.inputCost + result.outputCost);
+    });
+  });
 });

@@ -256,6 +256,15 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   const charLimit = 1500;
   const isOverLimit = charCount > charLimit;
 
+  // Get current model information and calculate costs
+  const selectedModelInfo = settings.availableModels.find(model => model.id === settings.selectedModel);
+  const costs = selectedModelInfo && generationState.generatedPrompt
+    ? createOpenRouterClient(settings.openRouterApiKey).calculateGenerationCost(selectedModelInfo, generationState.generatedPrompt.length)
+    : null;
+
+  // Format currency for display
+  const formatCost = (cost: number) => `$${cost.toFixed(4)}`;
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
@@ -460,6 +469,80 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
         )}
       </div>
 
+      {/* Enhanced Prompt Metrics and Generation */}
+      <div className="space-y-4">
+        <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            📊 Generation Metrics
+          </h2>
+
+          {/* Model Info and Estimated Cost */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Model Selected</h3>
+              <p className="text-sm text-gray-900 dark:text-white">
+                {selectedModelInfo?.name || 'Select a model first'}
+              </p>
+            </div>
+
+            {costs ? (
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Estimated Cost</h3>
+                <p className="text-sm text-gray-900 dark:text-white font-medium">
+                  Total: {formatCost(costs.totalCost)}
+                </p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  Input: {formatCost(costs.inputCost)} • Output: {formatCost(costs.outputCost)}
+                </p>
+              </div>
+            ) : (
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cost Preview</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+                  Complete image upload and model selection for cost preview
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Generate Button */}
+        <div className="flex items-center justify-between text-gray-900 dark:text-white">
+          <h2 className="text-lg font-semibold">Generate Prompt</h2>
+          <Tooltip
+            id="generate-prompt"
+            label="More information about generating prompts"
+            message="After uploading an image and selecting a model, click Generate Prompt to create a detailed prompt from the image."
+          />
+        </div>
+        <button
+          onClick={generatePrompt}
+          disabled={isGenerateDisabled}
+          className={`
+            w-full flex items-center justify-center px-6 py-3 rounded-lg font-medium transition-colors
+            ${isGenerateDisabled
+              ? 'bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-600 dark:text-gray-400'
+              : 'bg-blue-600 text-white hover:bg-blue-700'
+            }
+          `}
+        >
+          {generationState.isGenerating ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Generating Prompt...
+            </>
+          ) : (
+            'Generate Prompt'
+          )}
+        </button>
+
+        {generationState.error && (
+          <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <p className="text-sm text-red-600 dark:text-red-400">{generationState.error}</p>
+          </div>
+        )}
+      </div>
+
       {/* Generated Prompt */}
       {generationState.generatedPrompt && (
         <div className="space-y-4">
@@ -467,14 +550,14 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
             <CheckCircle className="mr-2 h-5 w-5 text-green-600" />
             Generated Prompt
           </h2>
-          
+
           <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
             {/* Character Counter */}
             <div className="mb-3">
-              <span 
+              <span
                 className={`text-lg font-semibold ${
-                  isOverLimit 
-                    ? 'text-red-600 dark:text-red-400' 
+                  isOverLimit
+                    ? 'text-red-600 dark:text-red-400'
                     : 'text-green-600 dark:text-green-400'
                 }`}
               >
