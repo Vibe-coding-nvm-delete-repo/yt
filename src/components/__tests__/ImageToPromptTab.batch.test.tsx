@@ -8,9 +8,11 @@ jest.setTimeout(20000);
 
 import * as openrouter from '@/lib/openrouter';
 import * as storage from '@/lib/storage';
+import * as cost from '@/lib/cost';
 
 jest.mock('@/lib/openrouter');
 jest.mock('@/lib/storage');
+jest.mock('@/lib/cost');
 
 describe('ImageToPromptTab - multi-image batch', () => {
   const mockCreateClient = openrouter.createOpenRouterClient as jest.Mock;
@@ -46,6 +48,8 @@ describe('ImageToPromptTab - multi-image batch', () => {
       outputCost: 0.0002,
       totalCost: 0.0003,
     }));
+    // Mock calculateGenerationCost by using the mocked module function
+    (cost.calculateGenerationCost as jest.Mock).mockImplementation(calcMock);
 
     // Mock OpenRouter client factory to return a client with our mocks
     mockCreateClient.mockImplementation(() => {
