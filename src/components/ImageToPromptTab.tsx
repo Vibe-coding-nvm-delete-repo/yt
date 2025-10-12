@@ -156,6 +156,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
     }
   }, [handleFileSelect]);
 
+
   // Handle click anywhere in drop zone to trigger file input
   const handleDropZoneClick = useCallback(() => {
     if (fileInputRef.current && !uploadState.isUploading) {
@@ -164,44 +165,146 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   }, [uploadState.isUploading]);
 
   const generatePrompt = useCallback(async () => {
-    if (!uploadState.preview || !settings.selectedModel || !settings.isValidApiKey) {
+    if (!uploadState.preview || !settings.isValidApiKey) {
       setGenerationState(prev => ({
         ...prev,
-        error: 'Please ensure you have a valid API key, selected a model, and uploaded an image.',
+        error: 'Please ensure you have a valid API key and uploaded an image.',
       }));
       return;
     }
 
-    setGenerationState(prev => ({
-      ...prev,
-      isGenerating: true,
-      error: null,
-    }));
+    // Build the list of models to run: always include selectedModel (if any) + checkedModels
+    const modelsToRun = new Set<string>();
+    if (settings.selectedModel) {
+      modelsToRun.add(settings.selectedModel);
+    }
+    checkedModels.forEach(id => modelsToRun.add(id));
+
+    if (modelsToRun.size === 0) {
+      setGenerationState(prev => ({
+        ...prev,
+        error: 'Please select at least one model to run generation on.',
+      }));
+      return;
+    }
+
+    // Initialize batchResults
+    const initialResults = Array.from(modelsToRun).map((id) => {
+      const modelInfo = settings.availableModels.find(m => m.id === id);
+      return {
+        modelId: id,
+        modelName: modelInfo?.name,
+        status: 'pending' as const,
+        prompt: null,
+        error: null,
+        cost: null,
+      };
+    });
+
+    setBatchResults(initialResults);
+    setGenerationState(prev => ({ ...prev, isGenerating: true, error: null }));
+
+    // Create a batch id and timestamp for persistence
+    const batchId = `batch-${Date.now()}`;
+    const batchTimestamp = Date.now();
+
+    // Concurrency control
+    const concurrency = 2;
+    let inFlight = 0;
+    let index = 0;
+
+    const results = [...initialResults];
+
+    const client = createOpenRouterClient(settings.openRouterApiKey);
+
+    const runNext = async (): Promise<void> => {
+      if (index >= results.length) return;
+      const currentIndex = index++;
+      const item = results[currentIndex];
+      const modelInfo = settings.availableModels.find(m => m.id === item.modelId);
+
+      // Update status -> processing
+      setBatchResults(prev => prev.map(r => r.modelId === item.modelId ? { ...r, status: 'processing' } : r));
+      inFlight++;
+
+      try {
+        const prompt = await client.generateImagePrompt(
+          uploadState.preview as string,
+          settings.customPrompt,
+          item.modelId
+        );
+
+        const cost = modelInfo ? client.calculateGenerationCost(modelInfo, prompt.length) : null;
+
+        // Update per-model result
+        setBatchResults(prev => prev.map(r => r.modelId === item.modelId ? {
+          ...r,
+          status: 'done',
+          prompt,
+          cost,
+          error: null,
+        } : r));
+
+        // Persist individual prompt to history (will be combined in batch below)
+        imageStateStorage.saveGeneratedPrompt(prompt);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Generation failed';
+        setBatchResults(prev => prev.map(r => r.modelId === item.modelId ? {
+          ...r,
+          status: 'error',
+          error: msg,
+        } : r));
+      } finally {
+        inFlight--;
+        // Trigger next
+        if (index < results.length) {
+          await runNext();
+        }
+      }
+    };
+
+    // Start initial workers
+    const starters: Promise<void>[] = [];
+    for (let i = 0; i < concurrency && i < results.length; i++) {
+      starters.push(runNext());
+    }
+
+    await Promise.all(starters);
+
+    // After all done, assemble batch entry and persist
+    const finalResults = (typeof window !== 'undefined') ? (Array.isArray((imageStateStorage.getImageState().batchHistory)) ? undefined : undefined) : undefined;
+    // Build batch entry from latest batchResults state
+    const latestResults = (await new Promise<typeof initialResults>(resolve => {
+      // Read current batchResults from state (we just set it incrementally)
+      // This closure simply reads the variable by capturing it — safer to read from DOM state is not possible here.
+      resolve(results);
+    })) || results;
+
+    const persistedBatch = {
+      id: batchId,
+      timestamp: batchTimestamp,
+      imagePreview: uploadState.preview,
+      items: (batchResults.length > 0 ? batchResults : latestResults).map(r => ({
+        modelId: r.modelId,
+        modelName: r.modelName,
+        prompt: r.prompt,
+        error: r.error,
+        cost: r.cost,
+        status: r.status,
+      })),
+    };
 
     try {
-      const client = createOpenRouterClient(settings.openRouterApiKey);
-      const prompt = await client.generateImagePrompt(
-        uploadState.preview,
-        settings.customPrompt,
-        settings.selectedModel
-      );
-
-      setGenerationState({
-        isGenerating: false,
-        generatedPrompt: prompt,
-        error: null,
-      });
-
-      // Persist generated prompt
-      imageStateStorage.saveGeneratedPrompt(prompt);
-    } catch (error) {
-      setGenerationState({
-        isGenerating: false,
-        generatedPrompt: null,
-        error: error instanceof Error ? error.message : 'Failed to generate prompt',
-      });
+      imageStateStorage.saveBatchEntry(persistedBatch);
+    } catch (e) {
+      // Non-fatal — batch persistence failure shouldn't block UI
+      console.warn('Failed to persist batch entry:', e);
     }
-  }, [uploadState.preview, settings]);
+
+    setGenerationState(prev => ({ ...prev, isGenerating: false }));
+  }, [uploadState.preview, settings, checkedModels]);
+
+
 
   const clearImage = useCallback(() => {
     setUploadState({
@@ -267,16 +370,9 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
     (settings.preferredModels && Array.isArray(settings.preferredModels)) ? settings.preferredModels.slice(0, 5) : []
   );
 
-  const [batchResults, setBatchResults] = useState<
-    {
-      modelId: string;
-      modelName?: string;
-      status: 'pending' | 'processing' | 'done' | 'error';
-      prompt?: string | null;
-      error?: string | null;
-      cost?: { inputCost: number; outputCost: number; totalCost: number } | null;
-    }[]
-  >([]);
+  const [batchResults, setBatchResults] = useState<import('@/types').BatchItem[]>(
+    []
+  );
 
   // Keep checkedModels in sync when availableModels or settings change
   useEffect(() => {
