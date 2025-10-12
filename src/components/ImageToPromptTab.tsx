@@ -38,8 +38,6 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   // Abort controller for the current batch run (allows cancel all)
   const batchAbortRef = useRef<AbortController | null>(null);
 
-  // Processing mode: single (legacy) or multi (new)
-
   // Load persisted image batch history preview if any (keep UX simple)
   useEffect(() => {
     const persisted = imageStateStorage.getImageState();

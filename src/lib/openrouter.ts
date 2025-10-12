@@ -164,7 +164,7 @@ export class OpenRouterClient {
    * @param _model The vision model used (unused for now)
    * @returns Cost estimate in USD (currently 0, can be enhanced later)
    */
-  calculateImageCost(_model: VisionModel): number {
+  calculateImageCost(model: VisionModel): number {
     // TODO: Add image pricing to VisionModel interface when needed
     // For now, image processing costs are not tracked
     return 0;
