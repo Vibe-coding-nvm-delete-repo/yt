@@ -164,7 +164,7 @@ export class OpenRouterClient {
    * @param _model The vision model used (unused for now)
    * @returns Cost estimate in USD (currently 0, can be enhanced later)
    */
-  calculateImageCost(_model: VisionModel): number {
+  calculateImageCost(model: VisionModel): number {
     // TODO: Add image pricing to VisionModel interface when needed
     // For now, image processing costs are not tracked
     return 0;
@@ -177,10 +177,11 @@ export class OpenRouterClient {
    * @returns Cost estimate in USD
    */
   calculateTextCost(textLength: number, model: VisionModel): number {
-    const completionPricing = model.pricing?.completion || 0;
+    const pricePerThousand = this.safeNumber(model.pricing?.completion, 0);
     // Rough estimate: ~4 characters per token
     const estimatedTokens = Math.ceil(textLength / 4);
-    return this.safeNumber(completionPricing, 0) * 1000 * estimatedTokens;
+    // pricePerThousand is USD per 1000 tokens; return proportional cost
+    return (pricePerThousand * estimatedTokens) / 1000;
   }
 
   /**

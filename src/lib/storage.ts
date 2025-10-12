@@ -16,6 +16,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   lastApiKeyValidation: null,
   lastModelFetch: null,
   availableModels: [],
+  preferredModels: [],
 };
 
 export class SettingsStorage {
@@ -58,6 +59,7 @@ export class SettingsStorage {
         ...parsed,
         // Ensure arrays are properly initialized
         availableModels: Array.isArray(parsed.availableModels) ? parsed.availableModels : [],
+        preferredModels: Array.isArray(parsed.preferredModels) ? parsed.preferredModels : [],
         // Ensure numeric values are correct
         lastApiKeyValidation: parsed.lastApiKeyValidation ? Number(parsed.lastApiKeyValidation) : null,
         lastModelFetch: parsed.lastModelFetch ? Number(parsed.lastModelFetch) : null,
@@ -90,13 +92,14 @@ export class SettingsStorage {
     if (event.key === STORAGE_KEY && event.newValue) {
       try {
         const newSettings = JSON.parse(event.newValue);
-        this.settings = {
-          ...DEFAULT_SETTINGS,
-          ...newSettings,
-          availableModels: Array.isArray(newSettings.availableModels) ? newSettings.availableModels : [],
-          lastApiKeyValidation: newSettings.lastApiKeyValidation ? Number(newSettings.lastApiKeyValidation) : null,
-          lastModelFetch: newSettings.lastModelFetch ? Number(newSettings.lastModelFetch) : null,
-        };
+          this.settings = {
+            ...DEFAULT_SETTINGS,
+            ...newSettings,
+            availableModels: Array.isArray(newSettings.availableModels) ? newSettings.availableModels : [],
+            preferredModels: Array.isArray(newSettings.preferredModels) ? newSettings.preferredModels : [],
+            lastApiKeyValidation: newSettings.lastApiKeyValidation ? Number(newSettings.lastApiKeyValidation) : null,
+            lastModelFetch: newSettings.lastModelFetch ? Number(newSettings.lastModelFetch) : null,
+          };
         this.notifyListeners();
       } catch (error) {
         console.warn('Failed to handle storage event:', error);
@@ -114,6 +117,29 @@ export class SettingsStorage {
   }
 
   getSettings(): AppSettings {
+    // Always attempt to reload from localStorage to reflect the latest persisted state.
+    // This helps tests that modify localStorage directly and expect the storage singleton
+    // to pick up changes without recreating the instance.
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          this.settings = {
+            ...DEFAULT_SETTINGS,
+            ...parsed,
+            availableModels: Array.isArray(parsed.availableModels) ? parsed.availableModels : [],
+            preferredModels: Array.isArray(parsed.preferredModels) ? parsed.preferredModels : [],
+            lastApiKeyValidation: parsed.lastApiKeyValidation ? Number(parsed.lastApiKeyValidation) : null,
+            lastModelFetch: parsed.lastModelFetch ? Number(parsed.lastModelFetch) : null,
+          };
+        }
+      } catch (e) {
+        // If parsing fails, fall back to the in-memory settings
+        console.warn('Failed to refresh settings from localStorage:', e);
+      }
+    }
+
     return { ...this.settings };
   }
 
@@ -125,9 +151,8 @@ export class SettingsStorage {
 
   validateApiKey(isValid: boolean): void {
     this.settings.isValidApiKey = isValid;
-    if (isValid) {
-      this.settings.lastApiKeyValidation = Date.now();
-    }
+    // Set timestamp when valid, clear when invalid
+    this.settings.lastApiKeyValidation = isValid ? Date.now() : null;
     this.saveSettings();
   }
 
@@ -144,6 +169,11 @@ export class SettingsStorage {
   updateModels(models: VisionModel[]): void {
     this.settings.availableModels = models;
     this.settings.lastModelFetch = Date.now();
+    this.saveSettings();
+  }
+
+  updatePreferredModels(modelIds: string[]): void {
+    this.settings.preferredModels = Array.isArray(modelIds) ? modelIds.slice(0, 5) : [];
     this.saveSettings();
   }
 
@@ -176,6 +206,10 @@ export class SettingsStorage {
       return null;
     }
     return this.getModelById(this.settings.selectedModel);
+  }
+
+  getPreferredModels(): string[] {
+    return Array.isArray(this.settings.preferredModels) ? [...this.settings.preferredModels] : [];
   }
 }
 
@@ -315,10 +349,12 @@ export const useSettings = () => {
     updateSelectedModel,
     updateCustomPrompt,
     updateModels,
+    updatePreferredModels: (modelIds: string[]) => settingsStorage.updatePreferredModels(modelIds),
     clearSettings,
     shouldRefreshModels,
     getModelById,
     getSelectedModel,
+    getPreferredModels: () => settingsStorage.getPreferredModels(),
     subscribe: settingsStorage.subscribe.bind(settingsStorage),
   };
 };

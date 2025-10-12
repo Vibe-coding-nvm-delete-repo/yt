@@ -3,7 +3,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { AppSettings, ImageUploadState, GenerationState } from '@/types';
 import { createOpenRouterClient } from '@/lib/openrouter';
-import { imageStateStorage } from '@/lib/storage';
+import { imageStateStorage, settingsStorage } from '@/lib/storage';
 import { Upload, X, Loader2, Copy, CheckCircle, AlertCircle, Image as ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import { Tooltip } from '@/components/common/Tooltip';
@@ -156,6 +156,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
     }
   }, [handleFileSelect]);
 
+
   // Handle click anywhere in drop zone to trigger file input
   const handleDropZoneClick = useCallback(() => {
     if (fileInputRef.current && !uploadState.isUploading) {
@@ -164,44 +165,146 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   }, [uploadState.isUploading]);
 
   const generatePrompt = useCallback(async () => {
-    if (!uploadState.preview || !settings.selectedModel || !settings.isValidApiKey) {
+    if (!uploadState.preview || !settings.isValidApiKey) {
       setGenerationState(prev => ({
         ...prev,
-        error: 'Please ensure you have a valid API key, selected a model, and uploaded an image.',
+        error: 'Please ensure you have a valid API key and uploaded an image.',
       }));
       return;
     }
 
-    setGenerationState(prev => ({
-      ...prev,
-      isGenerating: true,
-      error: null,
-    }));
+    // Build the list of models to run: always include selectedModel (if any) + checkedModels
+    const modelsToRun = new Set<string>();
+    if (settings.selectedModel) {
+      modelsToRun.add(settings.selectedModel);
+    }
+    checkedModels.forEach(id => modelsToRun.add(id));
+
+    if (modelsToRun.size === 0) {
+      setGenerationState(prev => ({
+        ...prev,
+        error: 'Please select at least one model to run generation on.',
+      }));
+      return;
+    }
+
+    // Initialize batchResults
+    const initialResults = Array.from(modelsToRun).map((id) => {
+      const modelInfo = settings.availableModels.find(m => m.id === id);
+      return {
+        modelId: id,
+        modelName: modelInfo?.name,
+        status: 'pending' as const,
+        prompt: null,
+        error: null,
+        cost: null,
+      };
+    });
+
+    setBatchResults(initialResults);
+    setGenerationState(prev => ({ ...prev, isGenerating: true, error: null }));
+
+    // Create a batch id and timestamp for persistence
+    const batchId = `batch-${Date.now()}`;
+    const batchTimestamp = Date.now();
+
+    // Concurrency control
+    const concurrency = 2;
+    let inFlight = 0;
+    let index = 0;
+
+    const results = [...initialResults];
+
+    const client = createOpenRouterClient(settings.openRouterApiKey);
+
+    const runNext = async (): Promise<void> => {
+      if (index >= results.length) return;
+      const currentIndex = index++;
+      const item = results[currentIndex];
+      const modelInfo = settings.availableModels.find(m => m.id === item.modelId);
+
+      // Update status -> processing
+      setBatchResults(prev => prev.map(r => r.modelId === item.modelId ? { ...r, status: 'processing' } : r));
+      inFlight++;
+
+      try {
+        const prompt = await client.generateImagePrompt(
+          uploadState.preview as string,
+          settings.customPrompt,
+          item.modelId
+        );
+
+        const cost = modelInfo ? client.calculateGenerationCost(modelInfo, prompt.length) : null;
+
+        // Update per-model result
+        setBatchResults(prev => prev.map(r => r.modelId === item.modelId ? {
+          ...r,
+          status: 'done',
+          prompt,
+          cost,
+          error: null,
+        } : r));
+
+        // Persist individual prompt to history (will be combined in batch below)
+        imageStateStorage.saveGeneratedPrompt(prompt);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Generation failed';
+        setBatchResults(prev => prev.map(r => r.modelId === item.modelId ? {
+          ...r,
+          status: 'error',
+          error: msg,
+        } : r));
+      } finally {
+        inFlight--;
+        // Trigger next
+        if (index < results.length) {
+          await runNext();
+        }
+      }
+    };
+
+    // Start initial workers
+    const starters: Promise<void>[] = [];
+    for (let i = 0; i < concurrency && i < results.length; i++) {
+      starters.push(runNext());
+    }
+
+    await Promise.all(starters);
+
+    // After all done, assemble batch entry and persist
+    const finalResults = (typeof window !== 'undefined') ? (Array.isArray((imageStateStorage.getImageState().batchHistory)) ? undefined : undefined) : undefined;
+    // Build batch entry from latest batchResults state
+    const latestResults = (await new Promise<typeof initialResults>(resolve => {
+      // Read current batchResults from state (we just set it incrementally)
+      // This closure simply reads the variable by capturing it — safer to read from DOM state is not possible here.
+      resolve(results);
+    })) || results;
+
+    const persistedBatch = {
+      id: batchId,
+      timestamp: batchTimestamp,
+      imagePreview: uploadState.preview,
+      items: (batchResults.length > 0 ? batchResults : latestResults).map(r => ({
+        modelId: r.modelId,
+        modelName: r.modelName,
+        prompt: r.prompt,
+        error: r.error,
+        cost: r.cost,
+        status: r.status,
+      })),
+    };
 
     try {
-      const client = createOpenRouterClient(settings.openRouterApiKey);
-      const prompt = await client.generateImagePrompt(
-        uploadState.preview,
-        settings.customPrompt,
-        settings.selectedModel
-      );
-
-      setGenerationState({
-        isGenerating: false,
-        generatedPrompt: prompt,
-        error: null,
-      });
-
-      // Persist generated prompt
-      imageStateStorage.saveGeneratedPrompt(prompt);
-    } catch (error) {
-      setGenerationState({
-        isGenerating: false,
-        generatedPrompt: null,
-        error: error instanceof Error ? error.message : 'Failed to generate prompt',
-      });
+      imageStateStorage.saveBatchEntry(persistedBatch);
+    } catch (e) {
+      // Non-fatal — batch persistence failure shouldn't block UI
+      console.warn('Failed to persist batch entry:', e);
     }
-  }, [uploadState.preview, settings]);
+
+    setGenerationState(prev => ({ ...prev, isGenerating: false }));
+  }, [uploadState.preview, settings, checkedModels]);
+
+
 
   const clearImage = useCallback(() => {
     setUploadState({
@@ -262,7 +365,27 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
     ? createOpenRouterClient(settings.openRouterApiKey).calculateGenerationCost(selectedModelInfo, generationState.generatedPrompt.length)
     : null;
 
-  // Format currency for display
+  // Multi-model batch state: checked models (user selection) and per-model results
+  const [checkedModels, setCheckedModels] = useState<string[]>(
+    (settings.preferredModels && Array.isArray(settings.preferredModels)) ? settings.preferredModels.slice(0, 5) : []
+  );
+
+  const [batchResults, setBatchResults] = useState<import('@/types').BatchItem[]>(
+    []
+  );
+
+  // Keep checkedModels in sync when availableModels or settings change
+  useEffect(() => {
+    const validIds = settings.availableModels.map(m => m.id);
+    setCheckedModels(prev => prev.filter(id => validIds.includes(id)).slice(0, 5));
+  }, [settings.availableModels]);
+
+  // Persist preferred models when user updates checkedModels
+  useEffect(() => {
+    settingsStorage.updatePreferredModels(checkedModels);
+  }, [checkedModels]);
+
+  // Helper: format currency for display
   const formatCost = (cost: number) => `$${cost.toFixed(4)}`;
 
   return (
@@ -431,8 +554,57 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
         )}
       </div>
 
-      {/* Generate Button */}
+      {/* Model Multi-Select (up to 5) */}
       <div className="space-y-4">
+        <div>
+          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Run on additional models (optional, up to 5)</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-40 overflow-auto p-2 border rounded">
+            {settings.availableModels.map((model) => {
+              const checked = checkedModels.includes(model.id);
+              const disabled = !checked && checkedModels.length >= 5;
+              return (
+                <label key={model.id} className={`flex items-center space-x-2 text-sm ${disabled ? 'opacity-50' : ''}`}>
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    disabled={disabled}
+                    onChange={() => {
+                      setCheckedModels(prev => {
+                        if (prev.includes(model.id)) {
+                          return prev.filter(id => id !== model.id);
+                        }
+                        return [...prev.slice(0,4), model.id];
+                      });
+                    }}
+                    aria-label={`Select model ${model.name}`}
+                  />
+                  <span className="truncate">{model.name}</span>
+                </label>
+              );
+            })}
+          </div>
+
+          {/* Estimated total for checked models */}
+          <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+            <span className="font-medium">Estimated total (preview):</span>{' '}
+            {checkedModels.length > 0 ? (() => {
+              try {
+                const client = settings.openRouterApiKey ? createOpenRouterClient(settings.openRouterApiKey) : null;
+                const estimate = checkedModels.reduce((acc, id) => {
+                  const m = settings.availableModels.find(x => x.id === id);
+                  if (!m || !client) return acc;
+                  // Estimate using customPrompt length as proxy for output length
+                  const est = client.calculateGenerationCost(m, settings.customPrompt?.length || 0);
+                  return acc + (est.totalCost || 0);
+                }, 0);
+                return `$${estimate.toFixed(4)}`;
+              } catch {
+                return 'N/A';
+              }
+            })() : '$0.0000'}
+          </div>
+        </div>
+
         <div className="flex items-center justify-between text-gray-900 dark:text-white">
           <h2 className="text-lg font-semibold">Generate Prompt</h2>
           <Tooltip
@@ -441,12 +613,13 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
             message="After uploading an image and selecting a model, click Generate Prompt to create a detailed prompt from the image."
           />
         </div>
+
         <button
           onClick={generatePrompt}
-          disabled={isGenerateDisabled}
+          disabled={isGenerateDisabled && checkedModels.length === 0}
           className={`
             w-full flex items-center justify-center px-6 py-3 rounded-lg font-medium transition-colors
-            ${isGenerateDisabled
+            ${isGenerateDisabled && checkedModels.length === 0
               ? 'bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-600 dark:text-gray-400'
               : 'bg-blue-600 text-white hover:bg-blue-700'
             }

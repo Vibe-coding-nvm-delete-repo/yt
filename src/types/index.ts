@@ -19,6 +19,8 @@ export interface AppSettings {
   lastApiKeyValidation: number | null;
   lastModelFetch: number | null;
   availableModels: VisionModel[];
+  // List of preferred/pinned model ids for quick access (persisted)
+  preferredModels: string[];
 }
 
 export interface ImageUploadState {
@@ -34,12 +36,39 @@ export interface GenerationState {
   error: string | null;
 }
 
+/**
+ * Batch-related types for multi-model generation
+ */
+export interface BatchItem {
+  modelId: string;
+  modelName?: string;
+  prompt?: string | null;
+  error?: string | null;
+  cost?: {
+    inputCost: number;
+    outputCost: number;
+    totalCost: number;
+  } | null;
+  status: 'pending' | 'processing' | 'done' | 'error';
+}
+
+export interface BatchEntry {
+  id: string; // uuid or timestamp-based id
+  timestamp: number;
+  imagePreview?: string | null;
+  items: BatchItem[];
+}
+
+/**
+ * Persisted image state now includes batch history for storing multi-model runs.
+ */
 export interface PersistedImageState {
   preview: string | null;
   fileName: string | null;
   fileSize: number | null;
   fileType: string | null;
   generatedPrompt: string | null;
+  batchHistory?: BatchEntry[];
 }
 
 export interface TabState {
