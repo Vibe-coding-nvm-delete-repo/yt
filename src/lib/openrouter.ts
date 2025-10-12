@@ -57,6 +57,12 @@ export class OpenRouterClient {
     return num;
   }
 
+  /**
+   * Make a fetch request and parse JSON safely.
+   * On non-2xx responses, attempt to parse error JSON and throw ApiError.
+   * On successful responses, attempt to parse JSON and return it; if JSON parsing fails,
+   * throw an ApiError that includes the raw response text for debugging.
+   */
   private async makeRequest<T>(
     endpoint: string,
     options: RequestInit = {}
@@ -77,17 +83,30 @@ export class OpenRouterClient {
     if (!response.ok) {
       let errorData: unknown;
       try {
+        // Try to parse structured error response
         errorData = await response.json();
       } catch {
-        errorData = {};
+        // Fallback to raw text if JSON can't be parsed
+        try {
+          const txt = await response.text();
+          errorData = { raw: txt };
+        } catch {
+          errorData = {};
+        }
       }
       
-      const errorMessage = typeof errorData === 'object' && errorData && 'error' in errorData && 
-        typeof errorData.error === 'object' && errorData.error && 'message' in errorData.error &&
-        typeof errorData.error.message === 'string'
-        ? errorData.error.message 
-        : `HTTP ${response.status}: ${response.statusText}`;
-        
+      // Derive a helpful error message from structured error payloads when possible
+      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      if (typeof errorData === 'object' && errorData !== null) {
+        const ed = errorData as Record<string, unknown>;
+        if ('error' in ed && typeof ed.error === 'object' && ed.error !== null) {
+          const nested = ed.error as Record<string, unknown>;
+          if ('message' in nested && typeof nested.message === 'string') {
+            errorMessage = nested.message;
+          }
+        }
+      }
+
       throw new ApiError(
         errorMessage,
         response.status.toString(),
@@ -95,7 +114,24 @@ export class OpenRouterClient {
       );
     }
 
-    return response.json();
+    // Attempt to parse JSON for successful responses, but surface a helpful ApiError if parsing fails.
+    try {
+      const parsed = await response.json();
+      return parsed as T;
+    } catch (parseErr) {
+      // Try to capture raw text for debugging
+      let raw: string | null = null;
+      try {
+        raw = await response.text();
+      } catch {
+        raw = null;
+      }
+      throw new ApiError(
+        'Failed to parse response JSON from OpenRouter API',
+        response.status.toString(),
+        { parseError: String(parseErr), raw }
+      );
+    }
   }
 
   async validateApiKey(): Promise<boolean> {
@@ -117,7 +153,7 @@ export class OpenRouterClient {
       
       if (!response?.data || !Array.isArray(response.data)) {
         console.error('Invalid response format:', response);
-        throw new ApiError('Invalid response format from OpenRouter API');
+        throw new ApiError('Invalid response format from OpenRouter API', undefined, response);
       }
 
       const models: VisionModel[] = response.data
@@ -154,7 +190,7 @@ export class OpenRouterClient {
       if (error instanceof ApiError) {
         throw error;
       }
-      throw new ApiError('Failed to fetch models from OpenRouter API');
+      throw new ApiError('Failed to fetch models from OpenRouter API', undefined, error instanceof Error ? error.toString() : String(error));
     }
   }
 
@@ -236,8 +272,9 @@ export class OpenRouterClient {
         }),
       });
 
-      if (!response.choices || !response.choices[0]?.message?.content) {
-        throw new ApiError('Invalid response format from OpenRouter API');
+      // Validate the response shape explicitly and include the raw payload in the ApiError for telemetry.
+      if (!response || !response.choices || !response.choices[0] || !response.choices[0].message || typeof response.choices[0].message.content !== 'string') {
+        throw new ApiError('Invalid response format from OpenRouter API', undefined, response);
       }
 
       return response.choices[0].message.content.trim();
@@ -245,7 +282,7 @@ export class OpenRouterClient {
       if (error instanceof ApiError) {
         throw error;
       }
-      throw new ApiError('Failed to generate prompt from image');
+      throw new ApiError('Failed to generate prompt from image', undefined, error instanceof Error ? error.toString() : String(error));
     }
   }
 }

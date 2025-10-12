@@ -88,6 +88,9 @@ describe('ImageToPromptTab - multi-image batch', () => {
     render(<ImageToPromptTab settings={settings} />);
 
     // Wait for persisted preview to be applied (image element appears with random ID)
+    // The component now uses the image's ID/filename in the alt text instead of 'Uploaded image'
+    // We check for the dynamic alt text generated from mock data.
+    // Note: The timestamp changes on every test run, so we just check for 'Preview persisted-'
     await waitFor(() => expect(screen.getByAltText(/Preview persisted-/)).toBeInTheDocument(), { timeout: 2000 });
 
     // Verify the added image appears in the grid
