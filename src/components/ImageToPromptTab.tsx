@@ -6,6 +6,7 @@ import { createOpenRouterClient } from '@/lib/openrouter';
 import { imageStateStorage } from '@/lib/storage';
 import runWithConcurrency from '@/lib/batchQueue';
 import calculateGenerationCost from '@/lib/cost';
+import { normalizeToApiError } from '@/lib/errorUtils';
 import { X, Loader2, Copy, AlertCircle, Image as ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import { Tooltip } from '@/components/common/Tooltip';
@@ -236,11 +237,11 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
             processingEndTime: Date.now(),
           };
         } catch (err) {
-          const msg = err instanceof Error ? err.message : 'Failed';
+          const apiErr = normalizeToApiError(err);
           setImages(prev => prev.map(it => it.id === img.id ? {
             ...it,
             processingStatus: 'error',
-            processingError: msg,
+            processingError: apiErr.message,
           } : it));
           return {
             imageId: img.id,
@@ -248,7 +249,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
             modelId: img.assignedModelId,
             modelName: undefined,
             prompt: null,
-            error: msg,
+            error: apiErr.message,
             cost: null,
             status: 'error' as const,
             processingStartTime: Date.now(),
@@ -334,8 +335,8 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
       imageStateStorage.saveGeneratedPrompt(prompt);
       setProcessedCount(p => p + 1);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed';
-      setImages(prev => prev.map(it => it.id === imageId ? { ...it, processingStatus: 'error', processingError: msg } : it));
+      const apiErr = normalizeToApiError(err);
+      setImages(prev => prev.map(it => it.id === imageId ? { ...it, processingStatus: 'error', processingError: apiErr.message } : it));
     }
   };
 
