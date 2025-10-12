@@ -24,6 +24,9 @@ describe('ImageToPromptTab - multi-model batch', () => {
     let genMock: jest.Mock;
     let calcMock: jest.Mock;
 
+    let genMock: jest.MockedFunction<any>;
+    let calcMock: jest.MockedFunction<any>;
+
   beforeEach(() => {
     jest.resetAllMocks();
 
