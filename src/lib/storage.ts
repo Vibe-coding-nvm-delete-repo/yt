@@ -1,4 +1,4 @@
-import { AppSettings, VisionModel, PersistedImageState, BatchEntry } from '@/types';
+import { AppSettings, VisionModel, PersistedImageState, BatchEntry, ImageBatchEntry } from '@/types';
 
 const STORAGE_KEY = 'image-to-prompt-settings';
 const IMAGE_STATE_KEY = 'image-to-prompt-image-state';
@@ -220,6 +220,7 @@ const DEFAULT_IMAGE_STATE: PersistedImageState = {
   fileSize: null,
   fileType: null,
   generatedPrompt: null,
+  schemaVersion: 1,
 };
 
 export class ImageStateStorage {

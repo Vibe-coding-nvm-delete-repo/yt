@@ -13,10 +13,16 @@ jest.mock('@/lib/storage');
 
 describe('ImageToPromptTab - multi-model batch', () => {
   const mockCreateClient = openrouter.createOpenRouterClient as jest.Mock;
-  const mockStorage = storage as any;
+  const mockStorage = storage as unknown as {
+    imageStateStorage: {
+      getImageState: jest.Mock,
+      saveGeneratedPrompt: jest.Mock,
+      saveBatchEntry: jest.Mock,
+    };
+  };
 
-    let genMock: jest.MockedFunction<typeof openrouter.createOpenRouterClient>;
-    let calcMock: jest.MockedFunction<typeof openrouter.createOpenRouterClient>;
+    let genMock: jest.Mock;
+    let calcMock: jest.Mock;
 
   beforeEach(() => {
     jest.resetAllMocks();
