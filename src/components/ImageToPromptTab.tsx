@@ -3,7 +3,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { AppSettings, ImageUploadState, GenerationState } from '@/types';
 import { createOpenRouterClient } from '@/lib/openrouter';
-import { imageStateStorage } from '@/lib/storage';
+import { imageStateStorage, settingsStorage } from '@/lib/storage';
 import { Upload, X, Loader2, Copy, CheckCircle, AlertCircle, Image as ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import { Tooltip } from '@/components/common/Tooltip';
@@ -262,7 +262,34 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
     ? createOpenRouterClient(settings.openRouterApiKey).calculateGenerationCost(selectedModelInfo, generationState.generatedPrompt.length)
     : null;
 
-  // Format currency for display
+  // Multi-model batch state: checked models (user selection) and per-model results
+  const [checkedModels, setCheckedModels] = useState<string[]>(
+    (settings.preferredModels && Array.isArray(settings.preferredModels)) ? settings.preferredModels.slice(0, 5) : []
+  );
+
+  const [batchResults, setBatchResults] = useState<
+    {
+      modelId: string;
+      modelName?: string;
+      status: 'pending' | 'processing' | 'done' | 'error';
+      prompt?: string | null;
+      error?: string | null;
+      cost?: { inputCost: number; outputCost: number; totalCost: number } | null;
+    }[]
+  >([]);
+
+  // Keep checkedModels in sync when availableModels or settings change
+  useEffect(() => {
+    const validIds = settings.availableModels.map(m => m.id);
+    setCheckedModels(prev => prev.filter(id => validIds.includes(id)).slice(0, 5));
+  }, [settings.availableModels]);
+
+  // Persist preferred models when user updates checkedModels
+  useEffect(() => {
+    settingsStorage.updatePreferredModels(checkedModels);
+  }, [checkedModels]);
+
+  // Helper: format currency for display
   const formatCost = (cost: number) => `$${cost.toFixed(4)}`;
 
   return (
@@ -431,8 +458,57 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
         )}
       </div>
 
-      {/* Generate Button */}
+      {/* Model Multi-Select (up to 5) */}
       <div className="space-y-4">
+        <div>
+          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Run on additional models (optional, up to 5)</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-40 overflow-auto p-2 border rounded">
+            {settings.availableModels.map((model) => {
+              const checked = checkedModels.includes(model.id);
+              const disabled = !checked && checkedModels.length >= 5;
+              return (
+                <label key={model.id} className={`flex items-center space-x-2 text-sm ${disabled ? 'opacity-50' : ''}`}>
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    disabled={disabled}
+                    onChange={() => {
+                      setCheckedModels(prev => {
+                        if (prev.includes(model.id)) {
+                          return prev.filter(id => id !== model.id);
+                        }
+                        return [...prev.slice(0,4), model.id];
+                      });
+                    }}
+                    aria-label={`Select model ${model.name}`}
+                  />
+                  <span className="truncate">{model.name}</span>
+                </label>
+              );
+            })}
+          </div>
+
+          {/* Estimated total for checked models */}
+          <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+            <span className="font-medium">Estimated total (preview):</span>{' '}
+            {checkedModels.length > 0 ? (() => {
+              try {
+                const client = settings.openRouterApiKey ? createOpenRouterClient(settings.openRouterApiKey) : null;
+                const estimate = checkedModels.reduce((acc, id) => {
+                  const m = settings.availableModels.find(x => x.id === id);
+                  if (!m || !client) return acc;
+                  // Estimate using customPrompt length as proxy for output length
+                  const est = client.calculateGenerationCost(m, settings.customPrompt?.length || 0);
+                  return acc + (est.totalCost || 0);
+                }, 0);
+                return `$${estimate.toFixed(4)}`;
+              } catch {
+                return 'N/A';
+              }
+            })() : '$0.0000'}
+          </div>
+        </div>
+
         <div className="flex items-center justify-between text-gray-900 dark:text-white">
           <h2 className="text-lg font-semibold">Generate Prompt</h2>
           <Tooltip
@@ -441,12 +517,13 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
             message="After uploading an image and selecting a model, click Generate Prompt to create a detailed prompt from the image."
           />
         </div>
+
         <button
           onClick={generatePrompt}
-          disabled={isGenerateDisabled}
+          disabled={isGenerateDisabled && checkedModels.length === 0}
           className={`
             w-full flex items-center justify-center px-6 py-3 rounded-lg font-medium transition-colors
-            ${isGenerateDisabled
+            ${isGenerateDisabled && checkedModels.length === 0
               ? 'bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-600 dark:text-gray-400'
               : 'bg-blue-600 text-white hover:bg-blue-700'
             }
