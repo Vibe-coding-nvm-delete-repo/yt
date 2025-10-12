@@ -5,7 +5,7 @@ import { AppSettings, ValidationState, ModelState } from '@/types';
 import { settingsStorage } from '@/lib/storage';
 import { createOpenRouterClient, isValidApiKeyFormat } from '@/lib/openrouter';
 import { Key, RefreshCw, CheckCircle, XCircle, Search, Eye, EyeOff, ChevronDown } from 'lucide-react';
-import * as Tooltip from "@radix-ui/react-tooltip";
+import { Tooltip } from '@/components/common/Tooltip';
 
 interface SettingsTabProps {
   settings: AppSettings;
@@ -262,32 +262,19 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         </div>
         
         <div className="flex items-center space-x-3">
-          <Tooltip.Provider delayDuration={200} skipDelayDuration={300}>
-            <Tooltip.Root>
-              <Tooltip.Trigger asChild>
-                <button
-                  type="button"
-                  onClick={validateApiKey}
-                  disabled={validationState.isValidating || !apiKey.trim()}
-                  className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {validationState.isValidating ? (
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                  )}
-                  Validate API Key
-                </button>
-              </Tooltip.Trigger>
-
-              <Tooltip.Portal>
-                <Tooltip.Content side="top" align="center" className="z-50 max-w-xs rounded-md px-2 py-1 text-sm bg-black text-white shadow">
-                  Validation runs locally; you can use free-tier keys. Carrier pricing is billed per minute; see Settings → API Keys for details.
-                  <Tooltip.Arrow className="fill-black" />
-                </Tooltip.Content>
-              </Tooltip.Portal>
-            </Tooltip.Root>
-          </Tooltip.Provider>
+          <button
+            type="button"
+            onClick={validateApiKey}
+            disabled={validationState.isValidating || !apiKey.trim()}
+            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {validationState.isValidating ? (
+              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <CheckCircle className="mr-2 h-4 w-4" />
+            )}
+            Validate API Key
+          </button>
           
           {validationState.isValid && (
             <div className="flex items-center text-green-600 dark:text-green-400">
