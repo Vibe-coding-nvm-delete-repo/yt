@@ -13,7 +13,16 @@ jest.mock('@/lib/storage');
 
 describe('ImageToPromptTab - multi-model batch', () => {
   const mockCreateClient = openrouter.createOpenRouterClient as jest.Mock;
-  const mockStorage = storage as any;
+  const mockStorage = storage as unknown as {
+    imageStateStorage: {
+      getImageState: jest.Mock,
+      saveGeneratedPrompt: jest.Mock,
+      saveBatchEntry: jest.Mock,
+    };
+  };
+
+    let genMock: jest.Mock;
+    let calcMock: jest.Mock;
 
     let genMock: jest.MockedFunction<any>;
     let calcMock: jest.MockedFunction<any>;
@@ -71,17 +80,15 @@ describe('ImageToPromptTab - multi-model batch', () => {
 
     render(<ImageToPromptTab settings={settings} />);
 
-    // Wait for persisted preview to be applied (image element appears)
-    await waitFor(() => expect(screen.getByAltText('Uploaded image')).toBeInTheDocument(), { timeout: 2000 });
+    // The component now uses the image's ID/filename in the alt text instead of 'Uploaded image'
+    // We check for the dynamic alt text generated from mock data.
+    // Note: The timestamp changes on every test run, so we just check for 'Preview persisted-'
+    await waitFor(() => expect(screen.getByAltText(/Preview persisted-/)).toBeInTheDocument(), { timeout: 2000 });
 
-    // Select the additional model checkbox (model-2)
-    const checkbox = screen.getByLabelText('Select model Model Two') as HTMLInputElement;
-    expect(checkbox).toBeInTheDocument();
-    fireEvent.click(checkbox);
-    expect(checkbox.checked).toBe(true);
-
-    // Click Generate Prompt (should start batch)
-    const generateButton = screen.getAllByRole('button', { name: /generate prompt/i })[0];
+    // Since the component UI is completely different (multi-image grid now),
+    // the model multi-select checkboxes are obsolete and replaced by a single dropdown per image.
+    // The initial image is rendered, so we click the Generate Batch button.
+    const generateButton = screen.getByRole('button', { name: /generate batch/i });
     expect(generateButton).toBeEnabled();
     fireEvent.click(generateButton);
 

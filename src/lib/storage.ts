@@ -1,4 +1,4 @@
-import { AppSettings, VisionModel, PersistedImageState } from '@/types';
+import { AppSettings, VisionModel, PersistedImageState, BatchEntry, ImageBatchEntry } from '@/types';
 
 const STORAGE_KEY = 'image-to-prompt-settings';
 const IMAGE_STATE_KEY = 'image-to-prompt-image-state';
@@ -220,6 +220,7 @@ const DEFAULT_IMAGE_STATE: PersistedImageState = {
   fileSize: null,
   fileType: null,
   generatedPrompt: null,
+  schemaVersion: 1,
 };
 
 export class ImageStateStorage {
@@ -319,6 +320,55 @@ export class ImageStateStorage {
     this.imageState = {
       ...this.imageState,
       generatedPrompt: null,
+    };
+    this.saveImageState();
+  }
+
+  /**
+   * Append a batch entry to the persisted batch history.
+   * batchEntry should conform to the BatchEntry type defined in types.
+   */
+  saveBatchEntry(batchEntry: BatchEntry): void {
+    const currentHistory = Array.isArray(this.imageState.batchHistory) ? this.imageState.batchHistory : [];
+    this.imageState = {
+      ...this.imageState,
+      batchHistory: [batchEntry, ...currentHistory].slice(0, 50), // keep recent 50 entries
+    };
+    this.saveImageState();
+  }
+
+  getBatchHistory(): BatchEntry[] {
+    return Array.isArray(this.imageState.batchHistory) ? [...this.imageState.batchHistory] : [];
+  }
+
+  clearBatchHistory(): void {
+    this.imageState = {
+      ...this.imageState,
+      batchHistory: [],
+    };
+    this.saveImageState();
+  }
+
+  /**
+   * Multi-image batch history methods
+   */
+  saveImageBatchEntry(entry: ImageBatchEntry): void {
+    const current = Array.isArray(this.imageState.imageBatchHistory) ? this.imageState.imageBatchHistory : [];
+    this.imageState = {
+      ...this.imageState,
+      imageBatchHistory: [entry, ...current].slice(0, 50),
+    };
+    this.saveImageState();
+  }
+
+  getImageBatchHistory(): ImageBatchEntry[] {
+    return Array.isArray(this.imageState.imageBatchHistory) ? [...this.imageState.imageBatchHistory] : [];
+  }
+
+  clearImageBatchHistory(): void {
+    this.imageState = {
+      ...this.imageState,
+      imageBatchHistory: [],
     };
     this.saveImageState();
   }
