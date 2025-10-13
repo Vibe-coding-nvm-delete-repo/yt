@@ -39,6 +39,18 @@ interface SettingsProviderProps {
   children: ReactNode;
 }
 
+export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) => {
+  const [settings, setSettings] = useState<AppSettings>({
+    openRouterApiKey: '',
+    selectedModel: '',
+    customPrompt: 'Describe this image in detail and suggest a good prompt for generating similar images.',
+    isValidApiKey: false,
+    lastApiKeyValidation: null,
+    lastModelFetch: null,
+    availableModels: [],
+    preferredModels: [],
+    pinnedModels: [],
+  });
 const DEFAULT_SETTINGS: AppSettings = {
   openRouterApiKey: "",
   selectedModel: "",
@@ -69,6 +81,15 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
       if (stored) {
         const parsed = JSON.parse(stored);
         setSettings({
+          openRouterApiKey: parsed.openRouterApiKey || '',
+          selectedModel: parsed.selectedModel || '',
+          customPrompt: parsed.customPrompt || settings.customPrompt,
+          isValidApiKey: parsed.isValidApiKey || false,
+          lastApiKeyValidation: parsed.lastApiKeyValidation ? Number(parsed.lastApiKeyValidation) : null,
+          lastModelFetch: parsed.lastModelFetch ? Number(parsed.lastModelFetch) : null,
+          availableModels: Array.isArray(parsed.availableModels) ? parsed.availableModels : [],
+          preferredModels: Array.isArray(parsed.preferredModels) ? parsed.preferredModels : [],
+          pinnedModels: Array.isArray(parsed.pinnedModels) ? parsed.pinnedModels : [],
           ...DEFAULT_SETTINGS,
           ...parsed,
           openRouterApiKey: parsed.openRouterApiKey || "",
@@ -153,6 +174,18 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
   };
 
   const clearSettings = () => {
+    const defaultSettings: AppSettings = {
+      openRouterApiKey: '',
+      selectedModel: '',
+      customPrompt: 'Describe this image in detail and suggest a good prompt for generating similar images.',
+      isValidApiKey: false,
+      lastApiKeyValidation: null,
+      lastModelFetch: null,
+      availableModels: [],
+      preferredModels: [],
+      pinnedModels: [],
+    };
+    saveSettings(defaultSettings);
     saveSettings({ ...DEFAULT_SETTINGS });
   };
 

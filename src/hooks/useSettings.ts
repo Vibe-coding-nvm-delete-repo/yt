@@ -64,6 +64,9 @@ export const useSettings = () => {
     if (newSettings.availableModels !== undefined) {
       settingsStorage.updateModels(newSettings.availableModels);
     }
+    if (newSettings.pinnedModels !== undefined) {
+      settingsStorage.updatePinnedModels(newSettings.pinnedModels);
+    }
   };
 
   return {
@@ -80,6 +83,13 @@ export const useSettings = () => {
       settingsStorage.updateCustomPrompt(prompt),
     updateModels: (models: VisionModel[]) =>
       settingsStorage.updateModels(models),
+    // Pinning APIs
+    updatePinnedModels: (modelIds: string[]) =>
+      settingsStorage.updatePinnedModels(modelIds),
+    pinModel: (modelId: string) => settingsStorage.pinModel(modelId),
+    unpinModel: (modelId: string) => settingsStorage.unpinModel(modelId),
+    togglePinnedModel: (modelId: string) => settingsStorage.togglePinnedModel(modelId),
+    getPinnedModels: () => settingsStorage.getPinnedModels(),
     clearSettings: () => settingsStorage.clearSettings(),
     shouldRefreshModels: () => settingsStorage.shouldRefreshModels(),
     getModelById: (modelId: string) => settingsStorage.getModelById(modelId),
