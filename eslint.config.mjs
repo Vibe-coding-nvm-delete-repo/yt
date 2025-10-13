@@ -59,6 +59,10 @@ export default tseslint.config(
     rules: {
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/strict-boolean-expressions': 'warn',
+      // JSX-specific rules to prevent syntax errors
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
+      // Additional JSX safety rules
     },
   },
   {
