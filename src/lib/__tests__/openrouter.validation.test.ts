@@ -26,7 +26,7 @@ describe('OpenRouter response validation', () => {
     } catch (err: unknown) {
       expect(err).toBeInstanceOf(ApiError);
       // message should be generic, raw payload available in third parameter (details)
-      expect((err as ApiError).message).toMatch(/Invalid response format/);
+      expect((err as ApiError).message).toBe('Failed to generate prompt from image');
       expect((err as ApiError).details).toBeDefined();
     }
   });

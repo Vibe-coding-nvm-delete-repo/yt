@@ -5,6 +5,7 @@ import type {
   BatchEntry,
   ImageBatchEntry,
 } from "@/types";
+import type { AppSettings, VisionModel, PersistedImageState, BatchEntry, ImageBatchEntry } from '@/types';
 
 const STORAGE_KEY = "image-to-prompt-settings";
 const IMAGE_STATE_KEY = "image-to-prompt-image-state";
@@ -38,6 +39,8 @@ export class SettingsStorage {
     // Listen for storage events from other tabs/windows
     if (typeof window !== "undefined") {
       window.addEventListener("storage", this.handleStorageEvent.bind(this));
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', this.handleStorageEvent.bind(this));
     }
   }
 
@@ -79,6 +82,13 @@ export class SettingsStorage {
         lastModelFetch: parsed.lastModelFetch
           ? Number(parsed.lastModelFetch)
           : null,
+      return {
+        ...DEFAULT_SETTINGS,
+        ...parsed,
+        availableModels: Array.isArray(parsed.availableModels) ? parsed.availableModels : [],
+        preferredModels: Array.isArray(parsed.preferredModels) ? parsed.preferredModels : [],
+        lastApiKeyValidation: parsed.lastApiKeyValidation ? Number(parsed.lastApiKeyValidation) : null,
+        lastModelFetch: parsed.lastModelFetch ? Number(parsed.lastModelFetch) : null,
       };
     } catch (error) {
       console.warn("Failed to load settings from localStorage:", error);
@@ -125,6 +135,10 @@ export class SettingsStorage {
           lastModelFetch: newSettings.lastModelFetch
             ? Number(newSettings.lastModelFetch)
             : null,
+          availableModels: Array.isArray(newSettings.availableModels) ? newSettings.availableModels : [],
+          preferredModels: Array.isArray(newSettings.preferredModels) ? newSettings.preferredModels : [],
+          lastApiKeyValidation: newSettings.lastApiKeyValidation ? Number(newSettings.lastApiKeyValidation) : null,
+          lastModelFetch: newSettings.lastModelFetch ? Number(newSettings.lastModelFetch) : null,
         };
         this.notifyListeners();
       } catch (error) {
@@ -147,6 +161,7 @@ export class SettingsStorage {
     // This helps tests that modify localStorage directly and expect the storage singleton
     // to pick up changes without recreating the instance.
     if (typeof window !== "undefined") {
+    if (typeof window !== 'undefined') {
       try {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
@@ -171,21 +186,20 @@ export class SettingsStorage {
       } catch (e) {
         // If parsing fails, fall back to the in-memory settings
         console.warn("Failed to refresh settings from localStorage:", e);
+        console.warn('Failed to refresh settings from localStorage:', e);
       }
     }
-
     return { ...this.settings };
   }
 
   updateApiKey(apiKey: string): void {
     this.settings.openRouterApiKey = apiKey;
-    this.settings.isValidApiKey = false; // Reset validation on key change
+    this.settings.isValidApiKey = false;
     this.saveSettings();
   }
 
   validateApiKey(isValid: boolean): void {
     this.settings.isValidApiKey = isValid;
-    // Set timestamp when valid, clear when invalid
     this.settings.lastApiKeyValidation = isValid ? Date.now() : null;
     this.saveSettings();
   }
@@ -219,6 +233,44 @@ export class SettingsStorage {
   }
 
   // Utility method to check if models need refreshing
+  importSettings(settingsJson: string): boolean {
+    try {
+      const imported = JSON.parse(settingsJson);
+
+      if (typeof imported !== 'object' || imported === null) {
+        throw new Error('Invalid settings format');
+      }
+
+      this.settings = {
+        ...DEFAULT_SETTINGS,
+        ...imported,
+        availableModels: Array.isArray(imported.availableModels) ? imported.availableModels : [],
+        preferredModels: Array.isArray(imported.preferredModels) ? imported.preferredModels : [],
+        lastApiKeyValidation: imported.lastApiKeyValidation ? Number(imported.lastApiKeyValidation) : null,
+        lastModelFetch: imported.lastModelFetch ? Number(imported.lastModelFetch) : null,
+      };
+
+      this.saveSettings();
+      return true;
+    } catch (error) {
+      console.error('Failed to import settings:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Export current settings as a JSON string.
+   * This is a safe-serializable snapshot suitable for download or copying.
+   */
+  exportSettings(): string {
+    try {
+      return JSON.stringify(this.settings);
+    } catch (err) {
+      console.error('Failed to export settings:', err);
+      return '{}';
+    }
+  }
+
   shouldRefreshModels(): boolean {
     if (!this.settings.lastModelFetch) {
       return true;
@@ -229,15 +281,14 @@ export class SettingsStorage {
     return Date.now() - this.settings.lastModelFetch > oneDayInMs;
   }
 
-  // Get a specific model by ID
   getModelById(modelId: string): VisionModel | null {
     return (
       this.settings.availableModels.find((model) => model.id === modelId) ||
       null
     );
+    return this.settings.availableModels.find((model) => model.id === modelId) || null;
   }
 
-  // Get the currently selected model
   getSelectedModel(): VisionModel | null {
     if (!this.settings.selectedModel) {
       return null;
@@ -402,25 +453,13 @@ export class ImageStateStorage {
     this.saveImageState();
   }
 
-  clearGeneratedPrompt(): void {
-    this.imageState = {
-      ...this.imageState,
-      generatedPrompt: null,
-    };
-    this.saveImageState();
-  }
-
-  /**
-   * Append a batch entry to the persisted batch history.
-   * batchEntry should conform to the BatchEntry type defined in types.
-   */
   saveBatchEntry(batchEntry: BatchEntry): void {
     const currentHistory = Array.isArray(this.imageState.batchHistory)
       ? this.imageState.batchHistory
       : [];
     this.imageState = {
       ...this.imageState,
-      batchHistory: [batchEntry, ...currentHistory].slice(0, 50), // keep recent 50 entries
+      batchHistory: [batchEntry, ...currentHistory].slice(0, 50),
     };
     this.saveImageState();
   }
@@ -439,9 +478,6 @@ export class ImageStateStorage {
     this.saveImageState();
   }
 
-  /**
-   * Multi-image batch history methods
-   */
   saveImageBatchEntry(entry: ImageBatchEntry): void {
     const current = Array.isArray(this.imageState.imageBatchHistory)
       ? this.imageState.imageBatchHistory
@@ -468,6 +504,33 @@ export class ImageStateStorage {
   }
 }
 
-// Export singleton instance
 export const settingsStorage = SettingsStorage.getInstance();
 export const imageStateStorage = ImageStateStorage.getInstance();
+
+export const useSettings = () => {
+  const getSettings = () => settingsStorage.getSettings();
+
+  const updateApiKey = (apiKey: string) => settingsStorage.updateApiKey(apiKey);
+  const validateApiKey = (isValid: boolean) => settingsStorage.validateApiKey(isValid);
+  const updateSelectedModel = (modelId: string) => settingsStorage.updateSelectedModel(modelId);
+  const updateCustomPrompt = (prompt: string) => settingsStorage.updateCustomPrompt(prompt);
+  const updateModels = (models: VisionModel[]) => settingsStorage.updateModels(models);
+  const clearSettings = () => settingsStorage.clearSettings();
+  const shouldRefreshModels = () => settingsStorage.shouldRefreshModels();
+  const getModelById = (modelId: string) => settingsStorage.getModelById(modelId);
+  const getSelectedModel = () => settingsStorage.getSelectedModel();
+
+  return {
+    getSettings,
+    updateApiKey,
+    validateApiKey,
+    updateSelectedModel,
+    updateCustomPrompt,
+    updateModels,
+    clearSettings,
+    shouldRefreshModels,
+    getModelById,
+    getSelectedModel,
+    subscribe: settingsStorage.subscribe.bind(settingsStorage),
+  };
+};
