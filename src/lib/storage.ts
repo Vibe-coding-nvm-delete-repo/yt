@@ -17,6 +17,7 @@ export const STORAGE_EVENTS = {
 const DEFAULT_SETTINGS: AppSettings = {
   openRouterApiKey: "",
   selectedModel: "",
+  selectedVisionModels: [],
   customPrompt:
     "Describe this image in detail and suggest a good prompt for generating similar images.",
   isValidApiKey: false,
@@ -190,6 +191,11 @@ export class SettingsStorage {
 
   updateSelectedModel(modelId: string): void {
     this.settings.selectedModel = modelId;
+    this.saveSettings();
+  }
+
+  updateSelectedVisionModels(modelIds: string[]): void {
+    this.settings.selectedVisionModels = modelIds.slice(0, 5);
     this.saveSettings();
   }
 
