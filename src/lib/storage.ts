@@ -338,6 +338,25 @@ export class SettingsStorage {
       this.settings.pinnedModels.includes(modelId)
     );
   }
+
+  updatePinnedModels(modelIds: string[]): void {
+    this.settings.pinnedModels = Array.isArray(modelIds)
+      ? Array.from(new Set(modelIds)).slice(0, 9)
+      : [];
+    this.saveSettings();
+  }
+
+  togglePinnedModel(modelId: string): void {
+    if (!modelId) return;
+    const current = Array.isArray(this.settings.pinnedModels)
+      ? this.settings.pinnedModels
+      : [];
+    if (current.includes(modelId)) {
+      this.unpinModel(modelId);
+    } else {
+      this.pinModel(modelId);
+    }
+  }
 }
 
 // Image State Storage for persisting uploaded images and generated prompts

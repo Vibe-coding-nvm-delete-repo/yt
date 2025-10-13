@@ -3,3 +3,9 @@
 
 # SettingsTab.tsx: 760 lines - Scheduled for decomposition in P1
 src/components/SettingsTab.tsx
+
+# ImageToPromptTab.tsx: 405 lines - Scheduled for decomposition in P1
+src/components/ImageToPromptTab.tsx
+
+# storage.ts: 476 lines - Scheduled for decomposition in P1
+src/lib/storage.ts

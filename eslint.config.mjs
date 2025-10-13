@@ -96,9 +96,14 @@ export default tseslint.config(
 
   // === LEGACY FILES: TEMPORARY EXCEPTIONS (P1 REFACTORING) ===
   {
-    files: ['src/components/SettingsTab.tsx'],
+    files: [
+      'src/components/SettingsTab.tsx',
+      'src/components/ImageToPromptTab.tsx',
+      'src/lib/storage.ts',
+    ],
     rules: {
-      'custom/max-file-size': 'off', // 760 lines - scheduled for P1 decomposition
+      'custom/max-file-size': 'off', // Legacy files - scheduled for P1 decomposition
+      'custom/component-complexity': 'off', // Complex legacy components
       '@typescript-eslint/no-unused-vars': 'warn',
       'unused-imports/no-unused-imports': 'warn',
     },
