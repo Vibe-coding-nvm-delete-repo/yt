@@ -108,7 +108,7 @@ export class SettingsStorage {
   /**
    * Deep equality check for preventing unnecessary updates
    */
-  private isEqual(a: any, b: any): boolean {
+  private isEqual(a: unknown, b: unknown): boolean {
     if (a === b) return true;
     if (a == null || b == null) return false;
     if (typeof a !== typeof b) return false;
@@ -122,7 +122,7 @@ export class SettingsStorage {
       const keysA = Object.keys(a);
       const keysB = Object.keys(b);
       if (keysA.length !== keysB.length) return false;
-      return keysA.every(key => this.isEqual(a[key], b[key]));
+      return keysA.every(key => this.isEqual((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key]));
     }
     
     return false;
