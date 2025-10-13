@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import type { AppSettings, ValidationState, ModelState } from "@/types";
-import { VisionModel } from "@/types";
 import { settingsStorage } from "@/lib/storage";
 import { createOpenRouterClient, isValidApiKeyFormat } from "@/lib/openrouter";
 import {
@@ -60,7 +59,6 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   const {
     updateApiKey: hookUpdateApiKey,
     validateApiKey: hookValidateApiKey,
-    updateSelectedModel: hookUpdateSelectedModel,
     updateCustomPrompt: hookUpdateCustomPrompt,
     updateModels: hookUpdateModels,
     subscribe: hookSubscribe,
@@ -134,18 +132,21 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     return () => clearTimeout(timeoutId);
   }, [selectedVisionModels, settings.selectedVisionModels, onSettingsUpdate]);
 
-  const handleApiKeyChange = (value: string) => {
-    setApiKey(value);
-    hookUpdateApiKey(value);
+  const handleApiKeyChange = useCallback(
+    (value: string) => {
+      setApiKey(value);
+      hookUpdateApiKey(value);
 
-    if (value !== settings.openRouterApiKey) {
-      setValidationState({
-        isValidating: false,
-        isValid: false,
-        error: null,
-      });
-    }
-  };
+      if (value !== settings.openRouterApiKey) {
+        setValidationState({
+          isValidating: false,
+          isValid: false,
+          error: null,
+        });
+      }
+    },
+    [hookUpdateApiKey, settings.openRouterApiKey],
+  );
 
   const validateApiKey = useCallback(async () => {
     if (!apiKey.trim()) {
@@ -270,16 +271,17 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     [],
   );
 
-  const toggleModelSelection = (modelId: string) => {
-    setSelectedVisionModels((prev) => {
-      if (prev.includes(modelId)) {
-        return prev.filter((id) => id !== modelId);
-      } else if (prev.length < 5) {
-        return [...prev, modelId];
-      }
-      return prev;
-    });
-  };
+  // Reserved for future multi-select checkbox functionality
+  // const toggleModelSelection = (modelId: string) => {
+  //   setSelectedVisionModels((prev) => {
+  //     if (prev.includes(modelId)) {
+  //       return prev.filter((id) => id !== modelId);
+  //     } else if (prev.length < 5) {
+  //       return [...prev, modelId];
+  //     }
+  //     return prev;
+  //   });
+  // };
 
   const toggleModelExpansion = (index: number) => {
     setExpandedModels((prev) => {

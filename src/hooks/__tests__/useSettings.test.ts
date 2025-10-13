@@ -1,7 +1,7 @@
-import { renderHook, act } from '@testing-library/react';
-import { useSettings } from '@/hooks/useSettings';
-import { settingsStorage } from '@/lib/storage';
-import type { AppSettings } from '@/types';
+import { renderHook, act } from "@testing-library/react";
+import { useSettings } from "@/hooks/useSettings";
+import { settingsStorage } from "@/lib/storage";
+import type { AppSettings } from "@/types";
 
 // Mock storage class
 class MockSettingsStorage {
@@ -22,64 +22,69 @@ class MockSettingsStorage {
   }
 
   unsubscribe(listener: () => void) {
-    this.listeners = this.listeners.filter(l => l !== listener);
+    this.listeners = this.listeners.filter((l) => l !== listener);
   }
 
   private notifyListeners() {
-    this.listeners.forEach(l => l());
+    this.listeners.forEach((l) => l());
   }
 }
 
 const mockStorage = new MockSettingsStorage();
 
-jest.doMock('@/lib/storage', () => ({
+jest.doMock("@/lib/storage", () => ({
   settingsStorage: mockStorage,
 }));
 
 beforeEach(() => {
   mockStorage.updateSettings({
-    openRouterApiKey: 'test-key',
-    customPrompt: '',
-    selectedModel: 'default-model',
+    openRouterApiKey: "test-key",
+    customPrompt: "",
+    selectedModel: "default-model",
     availableModels: [],
     isValidApiKey: false,
   });
 });
 
-describe('useSettings hook', () => {
-  test('returns initial settings correctly', () => {
+describe("useSettings hook", () => {
+  test("returns initial settings correctly", () => {
     const { result } = renderHook(() => useSettings());
 
     expect(result.current.settings).toEqual({
-      openRouterApiKey: 'test-key',
-      customPrompt: '',
-      selectedModel: 'default-model',
+      openRouterApiKey: "test-key",
+      customPrompt: "",
+      selectedModel: "default-model",
+      selectedVisionModels: [],
       availableModels: [],
+      preferredModels: [],
+      pinnedModels: [],
       isValidApiKey: false,
+      lastApiKeyValidation: null,
+      lastModelFetch: null,
     });
   });
 
-  test('subscribes to storage updates', async () => {
+  test("subscribes to storage updates", async () => {
     const { result } = renderHook(() => useSettings());
 
     await act(async () => {
-      mockStorage.updateSettings({ openRouterApiKey: 'new-key' });
+      mockStorage.updateSettings({ openRouterApiKey: "new-key" });
     });
 
-    expect(result.current.settings.openRouterApiKey).toBe('new-key');
+    expect(result.current.settings.openRouterApiKey).toBe("new-key");
   });
 
-  test('can update API key and validate', async () => {
+  test("can update API key and validate", async () => {
     const { result } = renderHook(() => useSettings());
 
     await act(async () => {
-      result.current.updateSettings({ openRouterApiKey: 'new-valid-key' });
+      result.current.updateSettings({ openRouterApiKey: "new-valid-key" });
     });
 
-    expect(result.current.settings.openRouterApiKey).toBe('new-valid-key');
+    expect(result.current.settings.openRouterApiKey).toBe("new-valid-key");
   });
 
-  test('handles validation state correctly', async () => {
+  test("handles validation state correctly", async () => {
     const { result } = renderHook(() => useSettings());
 
     expect(result.current.settings.isValidApiKey).toBe(false);

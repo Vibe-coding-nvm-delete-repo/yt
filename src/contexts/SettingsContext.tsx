@@ -7,7 +7,7 @@ import React, {
   useState,
   type ReactNode,
 } from "react";
-import type { AppSettings } from "@/types";
+import type { AppSettings, VisionModel } from "@/types";
 
 interface SettingsContextValue {
   settings: AppSettings;
