@@ -1,16 +1,16 @@
-import type { VisionModel } from "@/types";
-import { ApiError } from "@/types";
+import type { VisionModel } from '@/types';
+import { ApiError } from '@/types';
 
 interface OpenRouterModelResponse {
   id: string;
   name: string;
   description?: string;
   pricing?: {
-    prompt: string | number;
-    completion: string | number;
+    prompt?: string | number;
+    completion?: string | number;
     image?: string | number;
   };
-  context_length?: number;
+  context_length?: string | number;
   supports_image?: boolean;
   supports_vision?: boolean;
 }
@@ -20,8 +20,8 @@ interface OpenRouterModelsResponse {
 }
 
 interface OpenRouterChatChoice {
-  message: {
-    content: string;
+  message?: {
+    content?: string;
   };
 }
 
@@ -29,259 +29,187 @@ interface OpenRouterChatResponse {
   choices: OpenRouterChatChoice[];
 }
 
-const OPENROUTER_API_BASE = "https://openrouter.ai/api/v1";
+const OPENROUTER_API_BASE = 'https://openrouter.ai/api/v1';
 
 export class OpenRouterClient {
-  private apiKey: string;
+  private readonly apiKey: string;
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
   }
 
-  /**
-   * Safely convert a value to a number with proper validation
-   * @param value The value to convert
-   * @param defaultValue The default value if conversion fails
-   * @returns A valid number or the default value
-   */
-  private safeNumber(value: unknown, defaultValue: number = 0): number {
-    if (value === null || value === undefined || value === "") {
+  private safeNumber(value: unknown, defaultValue = 0): number {
+    if (value === null || value === undefined || value === '') {
       return defaultValue;
     }
 
-    const num = typeof value === "string" ? parseFloat(value) : Number(value);
+    const asNumber = typeof value === 'string' ? parseFloat(value) : Number(value);
 
-    if (isNaN(num) || !isFinite(num)) {
+    if (Number.isNaN(asNumber) || !Number.isFinite(asNumber)) {
       return defaultValue;
     }
 
-    return num;
+    return asNumber;
   }
 
-  /**
-   * Make a fetch request and parse JSON safely.
-   * On non-2xx responses, attempt to parse error JSON and throw ApiError.
-   * On successful responses, attempt to parse JSON and return it; if JSON parsing fails,
-   * throw an ApiError that includes the raw response text for debugging.
-   */
-  private async makeRequest<T>(
-    endpoint: string,
-    options: RequestInit = {},
-  ): Promise<T> {
+  private normaliseHeaders(headers?: HeadersInit): Record<string, string> {
+    if (!headers) {
+      return {};
+    }
+
+    if (headers instanceof Headers) {
+      return Object.fromEntries(headers.entries());
+    }
+
+    if (Array.isArray(headers)) {
+      return Object.fromEntries(headers);
+    }
+
+    return headers;
+  }
+
+  private async makeRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${OPENROUTER_API_BASE}${endpoint}`;
 
-    const response = await fetch(url, {
+    const defaultHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${this.apiKey}`,
+      'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : '',
+      'X-Title': 'Image to Prompt Generator',
+    };
+
+    const requestInit: RequestInit = {
       ...options,
       headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${this.apiKey}`,
-        "HTTP-Referer":
-          typeof window !== "undefined" ? window.location.origin : "",
-        "X-Title": "Image to Prompt Generator",
-        ...options.headers,
+        ...defaultHeaders,
+        ...this.normaliseHeaders(options.headers),
       },
-    });
+    };
+
+    const response = await fetch(url, requestInit);
+    const responseClone = response.clone();
 
     if (!response.ok) {
       let errorData: unknown;
+
       try {
-        // Try to parse structured error response
-        errorData = await response.json();
+        errorData = await responseClone.json();
       } catch {
-        // Fallback to raw text if JSON can't be parsed
         try {
-          const txt = await response.text();
-          errorData = { raw: txt };
+          errorData = await responseClone.text();
         } catch {
           errorData = {};
         }
       }
 
-      // Derive a helpful error message from structured error payloads when possible
       let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-      if (typeof errorData === "object" && errorData !== null) {
-        const ed = errorData as Record<string, unknown>;
-        if (
-          "error" in ed &&
-          typeof ed.error === "object" &&
-          ed.error !== null
-        ) {
-          const nested = ed.error as Record<string, unknown>;
-          if ("message" in nested && typeof nested.message === "string") {
-            errorMessage = nested.message;
-          }
+
+      if (
+        typeof errorData === 'object' &&
+        errorData !== null &&
+        'error' in errorData &&
+        typeof (errorData as Record<string, unknown>).error === 'object' &&
+        (errorData as Record<string, unknown>).error !== null
+      ) {
+        const nested = (errorData as Record<string, unknown>).error as Record<string, unknown>;
+        if (typeof nested.message === 'string') {
+          errorMessage = nested.message;
         }
       }
 
       throw new ApiError(errorMessage, response.status.toString(), errorData);
     }
 
-    // Attempt to parse JSON for successful responses, but surface a helpful ApiError if parsing fails.
     try {
       const parsed = await response.json();
       return parsed as T;
     } catch (parseErr) {
-      // Try to capture raw text for debugging
       let raw: string | null = null;
+
       try {
-        raw = await response.text();
+        raw = await responseClone.text();
       } catch {
         raw = null;
       }
-      throw new ApiError(
-        "Failed to parse response JSON from OpenRouter API",
-        response.status.toString(),
-        { parseError: String(parseErr), raw },
-      );
+
+      throw new ApiError('Failed to parse response JSON from OpenRouter API', response.status.toString(), {
+        parseError: String(parseErr),
+        raw,
+      });
     }
   }
 
   async validateApiKey(): Promise<boolean> {
     try {
-      await this.makeRequest("/models", { method: "GET" });
+      await this.makeRequest<OpenRouterModelsResponse>('/models', { method: 'GET' });
       return true;
     } catch (error) {
-      if (
-        error instanceof ApiError &&
-        (error.code === "401" || error.code === "403")
-      ) {
+      if (error instanceof ApiError && (error.code === '401' || error.code === '403')) {
         return false;
       }
-      console.error("validateApiKey error:", error);
+      console.error('validateApiKey error:', error);
       throw error;
-import { OpenAI } from 'openai';
-import type { VisionModel } from '@/types';
-
-/**
- * Client for OpenRouter API.
- *
- * All methods accept `settings.openRouterApiKey` from AppSettings.
- * Methods:
- * - validateApiKey(): Promise<boolean>
- * - generateImagePrompt(imageBase64: string, customPrompt: string, modelId: string): Promise<string>
- * - getVisionModels(): Promise<VisionModel[]>
- *
- * All API calls use OpenAI's SDK but with baseURL='https://openrouter.ai/api/v1'.
- * Models fetched from /api/v1/models?format=v1 (OpenAI format) with vision capability filter.
- */
-export const createOpenRouterClient = (apiKey: string) => ({
-  // Validate API key by calling /key/info
-  validateApiKey: async (): Promise<boolean> => {
-    const client = new OpenAI({
-      apiKey,
-      baseURL: 'https://openrouter.ai/api/v1',
-    });
-    try {
-      const response = await client?.chat?.completions?.create({
-        model: 'openai/gpt-4o-mini', // any model works for validation
-        messages: [{ role: 'user', content: '' }],
-        max_tokens: 1,
-        temperature: 0,
-        stream: false,
-      });
-      return response !== null; // if no error, valid
-    } catch {
-      return false;
     }
-  },
+  }
 
   async getVisionModels(): Promise<VisionModel[]> {
     try {
-      const response =
-        await this.makeRequest<OpenRouterModelsResponse>("/models");
+      const response = await this.makeRequest<OpenRouterModelsResponse>('/models', { method: 'GET' });
 
       if (!response?.data || !Array.isArray(response.data)) {
-        console.error("Invalid response format:", response);
-        throw new ApiError(
-          "Invalid response format from OpenRouter API",
-          undefined,
-          response,
-        );
+        console.error('Invalid response format:', response);
+        throw new ApiError('Invalid response format from OpenRouter API', undefined, response);
       }
 
-      const models: VisionModel[] = response.data
-        .filter(
-          (model: OpenRouterModelResponse): model is OpenRouterModelResponse =>
-            Boolean(model?.id) && Boolean(model?.name),
-        )
-        .filter((model: OpenRouterModelResponse) => {
-          // Vision models are identified by having a non-zero image pricing
-          const hasImagePricing =
-            model.pricing?.image && this.safeNumber(model.pricing.image, 0) > 0;
-          return hasImagePricing;
-        })
-        .map(
-          (model: OpenRouterModelResponse): VisionModel => ({
+      const models = response.data
+        .filter((model): model is OpenRouterModelResponse => Boolean(model?.id) && Boolean(model?.name))
+        .filter((model) => this.safeNumber(model.pricing?.image, 0) > 0)
+        .map((model) => {
+          const contextLength = this.safeNumber(model.context_length, 0);
+
+          return {
             id: model.id,
             name: model.name,
-            description: model.description || "",
+            description: model.description ?? '',
             pricing: {
               prompt: this.safeNumber(model.pricing?.prompt, 0),
               completion: this.safeNumber(model.pricing?.completion, 0),
             },
-            context_length: this.safeNumber(model.context_length)
-              ? Number(model.context_length)
-              : undefined,
-            supports_image:
-              Boolean(model.supports_image) || Boolean(model.supports_vision),
-            supports_vision:
-              Boolean(model.supports_vision) || Boolean(model.supports_image),
-          }),
-        )
-        .sort((a: VisionModel, b: VisionModel) => a.name.localeCompare(b.name));
+            context_length: contextLength > 0 ? contextLength : undefined,
+            supports_image: Boolean(model.supports_image) || Boolean(model.supports_vision),
+            supports_vision: Boolean(model.supports_vision) || Boolean(model.supports_image),
+          };
+        })
+        .sort((a, b) => a.name.localeCompare(b.name));
 
       if (models.length === 0) {
-        throw new ApiError(
-          "No vision models found. Please check your API key and try again.",
-        );
+        throw new ApiError('No vision models found. Please check your API key and try again.');
       }
 
       return models;
     } catch (error) {
-      console.error("getVisionModels error:", error);
+      console.error('getVisionModels error:', error);
       if (error instanceof ApiError) {
         throw error;
       }
       throw new ApiError(
-        "Failed to fetch models from OpenRouter API",
+        'Failed to fetch models from OpenRouter API',
         undefined,
         error instanceof Error ? error.toString() : String(error),
       );
     }
   }
 
-  /**
-   * Calculate the cost for image processing
-   * Note: Image pricing not currently tracked in VisionModel interface
-   * @param _model The vision model used (unused for now)
-   * @returns Cost estimate in USD (currently 0, can be enhanced later)
-   */
   calculateImageCost(_model: VisionModel): number {
-    // TODO: Add image pricing to VisionModel interface when needed
-    // For now, image processing costs are not tracked
     return 0;
   }
 
-  /**
-   * Estimate the cost for processing text
-   * @param textLength Character count of text
-   * @param model The model used for completion
-   * @returns Cost estimate in USD
-   */
   calculateTextCost(textLength: number, model: VisionModel): number {
-    const pricePerThousand = this.safeNumber(model.pricing?.completion, 0);
-    // Rough estimate: ~4 characters per token
+    const pricePerThousandTokens = this.safeNumber(model.pricing?.completion, 0);
     const estimatedTokens = Math.ceil(textLength / 4);
-    // pricePerThousand is USD per 1000 tokens; return proportional cost
-    return (pricePerThousand * estimatedTokens) / 1000;
+    return (pricePerThousandTokens * estimatedTokens) / 1000;
   }
 
-  /**
-   * Get combined total cost for a generation
-   * @param model The model used
-   * @param textLength Character count of generated text
-   * @returns Object with individual and total costs
-   */
   calculateGenerationCost(model: VisionModel, textLength: number) {
     const inputCost = this.calculateImageCost(model);
     const outputCost = this.calculateTextCost(textLength, model);
@@ -294,69 +222,55 @@ export const createOpenRouterClient = (apiKey: string) => ({
     };
   }
 
-  async generateImagePrompt(
-    imageData: string,
-    customPrompt: string,
-    modelId: string,
-  ): Promise<string> {
+  async generateImagePrompt(imageData: string, customPrompt: string, modelId: string): Promise<string> {
+    const messages = [
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text:
+              customPrompt ||
+              'Describe this image in detail and suggest a good prompt for generating similar images.',
+          },
+          {
+            type: 'image_url',
+            image_url: {
+              url: imageData,
+            },
+          },
+        ],
+      },
+    ];
+
     try {
-      const messages = [
-        {
-          role: "user" as const,
-          content: [
-            {
-              type: "text" as const,
-              text:
-                customPrompt ||
-                "Describe this image in detail and suggest a good prompt for generating similar images.",
-            },
-            {
-              type: "image_url" as const,
-              image_url: {
-                url: imageData,
-              },
-            },
-          ],
-        },
-      ];
+      const response = await this.makeRequest<OpenRouterChatResponse>('/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({
+          model: modelId,
+          messages,
+          max_tokens: 1000,
+          temperature: 0.7,
+        }),
+      });
 
-      const response = await this.makeRequest<OpenRouterChatResponse>(
-        "/chat/completions",
-        {
-          method: "POST",
-          body: JSON.stringify({
-            model: modelId,
-            messages,
-            max_tokens: 1000,
-            temperature: 0.7,
-          }),
-        },
-      );
-
-      // Validate the response shape explicitly and include the raw payload in the ApiError for telemetry.
       if (
         !response ||
-        !response.choices ||
         !Array.isArray(response.choices) ||
         response.choices.length === 0 ||
-        !response.choices[0] ||
-        !response.choices[0].message ||
-        typeof response.choices[0].message.content !== "string"
+        !response.choices[0]?.message?.content
       ) {
-        throw new ApiError(
-          "Invalid response format from OpenRouter API",
-          undefined,
-          response,
-        );
+        throw new ApiError('Invalid response format from OpenRouter API', undefined, response);
       }
 
       return response.choices[0].message.content.trim();
     } catch (error) {
       if (error instanceof ApiError) {
-        throw error; // Preserve specific ApiError with correct message and details
+        throw error;
       }
+
       throw new ApiError(
-        "Failed to generate prompt from image",
+        'Failed to generate prompt from image',
         undefined,
         error instanceof Error ? error.toString() : String(error),
       );
@@ -366,85 +280,13 @@ export const createOpenRouterClient = (apiKey: string) => ({
 
 export const createOpenRouterClient = (apiKey: string): OpenRouterClient => {
   if (!apiKey || apiKey.trim().length === 0) {
-    throw new ApiError("API key is required");
+    throw new ApiError('API key is required');
   }
+
   return new OpenRouterClient(apiKey.trim());
 };
 
 export const isValidApiKeyFormat = (apiKey: string): boolean => {
-  // OpenRouter API keys typically start with 'sk-or-v1-' and are at least 20 characters
   const trimmedKey = apiKey.trim();
-  return trimmedKey.length >= 20 && trimmedKey.startsWith("sk-or-v1-");
+  return trimmedKey.length >= 20 && trimmedKey.startsWith('sk-or-v1-');
 };
-  // Generate prompt from image using vision model
-  generateImagePrompt: async (imageBase64: string, customPrompt: string, modelId: string): Promise<string> => {
-    const client = new OpenAI({
-      apiKey: apiKey,
-      baseURL: 'https://openrouter.ai/api/v1',
-    });
-
-    const messages = [
-      {
-        role: 'system',
-        content: customPrompt,
-      },
-      {
-        role: 'user',
-        content: [
-          {
-            type: 'text',
-            text: 'Describe this image in detail, suggesting a good prompt for generating similar images using tools like DALL·E or Midjourney.',
-          },
-          {
-            type: 'image_url',
-            image_url: {
-              url: imageBase64,
-            },
-          },
-        ],
-      },
-    ];
-
-    const result = await client.chat.completions.create({
-      model: modelId,
-      messages,
-      max_tokens: 1000,
-      temperature: 0.7,
-    });
-
-    return result.choices[0].message.content;
-  },
-
-  // Fetch vision models from OpenRouter
-  getVisionModels: async (): Promise<VisionModel[]> => {
-    const client = new OpenAI({
-      apiKey: apiKey,
-      baseURL: 'https://openrouter.ai/api/v1',
-    });
-
-    const response = await fetch(`${new OpenAI({ baseURL: 'https://openrouter.ai/api/v1' }).baseURL}/models?format=v1`, {
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-      },
-    });
-    const data: { data: any[] } = await response.json();
-
-    return data.data.filter(
-      (model: any) => model.id !== 'openai/gpt-4o-mini' && model.requires === 'vision' || model.supports === 'vision',
-    ).map((model: any) => ({
-      id: model.id,
-      name: model.name,
-      description: model.description || '',
-      pricing: {
-        prompt: model.context2in1 || 1, // fallback
-        completion: model.completionTokenPrice || 2,
-      },
-    })) as VisionModel[];
-  },
-});
-
-/**
- * Utility to check if api key format is valid for OpenRouter.
- * OpenRouter keys start with sk-or-v1-
- */
-export const isValidApiKeyFormat = (apiKey: string) => apiKey.startsWith('sk-or-v1-');
