@@ -9,6 +9,7 @@
     "prepare": "husky install",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
+    "jsx:check": "eslint . --ext .jsx,.tsx",
     "format": "prettier --write .",
     "test": "jest",
     "typecheck": "tsc --noEmit",
