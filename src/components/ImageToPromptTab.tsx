@@ -205,7 +205,8 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
       await runWithConcurrency(tasks, { concurrency: 2, onProgress, signal: batchAbortRef.current!.signal });
       // persist results if needed
     } catch (err) {
-      if ((err as any)?.name === 'AbortError') {
+      const e = err as { name?: string } | null;
+      if (e && e.name === 'AbortError') {
         setErrorMessage('Batch cancelled.');
       } else {
         setErrorMessage('Generation failed.');
@@ -281,7 +282,15 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
                 <div className="mt-3">
                   <label className="block text-xs">Model</label>
                   <select value={img.assignedModelId} onChange={(e) => handleSelectModelForImage(img.id, e.target.value)} className="w-full p-2 border rounded">
-                    {settings.availableModels?.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                    {(() => {
+                      const list = settings.availableModels || [];
+                      const pinnedSet = new Set(settings.pinnedModels || []);
+                      const pinned = list.filter(m => pinnedSet.has(m.id));
+                      const other = list.filter(m => !pinnedSet.has(m.id));
+                      return [...pinned, ...other].map(m => (
+                        <option key={m.id} value={m.id}>{m.name}</option>
+                      ));
+                    })()}
                   </select>
                 </div>
                 <div className="mt-3">

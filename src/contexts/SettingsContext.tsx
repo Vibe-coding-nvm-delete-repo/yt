@@ -41,6 +41,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
     lastModelFetch: null,
     availableModels: [],
     preferredModels: [],
+    pinnedModels: [],
   });
 
   // Load initial settings
@@ -60,6 +61,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
           lastModelFetch: parsed.lastModelFetch ? Number(parsed.lastModelFetch) : null,
           availableModels: Array.isArray(parsed.availableModels) ? parsed.availableModels : [],
           preferredModels: Array.isArray(parsed.preferredModels) ? parsed.preferredModels : [],
+          pinnedModels: Array.isArray(parsed.pinnedModels) ? parsed.pinnedModels : [],
         });
       }
     } catch (error) {
@@ -109,7 +111,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
   };
 
   const clearSettings = () => {
-    const defaultSettings = {
+    const defaultSettings: AppSettings = {
       openRouterApiKey: '',
       selectedModel: '',
       customPrompt: 'Describe this image in detail and suggest a good prompt for generating similar images.',
@@ -118,6 +120,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
       lastModelFetch: null,
       availableModels: [],
       preferredModels: [],
+      pinnedModels: [],
     };
     saveSettings(defaultSettings);
   };

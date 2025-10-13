@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { AppSettings, ValidationState, ModelState } from '@/types';
+import type { AppSettings, ValidationState, ModelState } from '@/types';
 import { settingsStorage } from '@/lib/storage';
 import { createOpenRouterClient, isValidApiKeyFormat } from '@/lib/openrouter';
-import { RefreshCw, Search, ChevronDown, Key, CheckCircle, Eye, EyeOff, XCircle, Download, Upload } from 'lucide-react';
+import { RefreshCw, Search, ChevronDown, Key, CheckCircle, Eye, EyeOff, XCircle, Download, Upload, Pin, PinOff } from 'lucide-react';
 import { Tooltip } from '@/components/common/Tooltip';
-import { SettingsApiKeys } from '@/components/settings/SettingsApiKeys';
+/* Removed unused SettingsApiKeys import */
 import { useSettings as useSettingsHook } from '@/hooks/useSettings';
 
 interface SettingsTabProps {
@@ -47,6 +47,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     updateCustomPrompt: hookUpdateCustomPrompt,
     updateModels: hookUpdateModels,
     subscribe: hookSubscribe,
+    togglePinnedModel: hookTogglePinnedModel,
   } = settingsHook;
 
   const [activeSubTab, setActiveSubTab] = useState<SettingsSubTab>('api-keys');
@@ -135,6 +136,34 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       searchInputRef.current.focus();
     }
   }, [isDropdownOpen]);
+
+  // Keyboard shortcuts for quick selecting pinned models (1-9) when dropdown is open
+  useEffect(() => {
+    if (!isDropdownOpen) return;
+    const handler = (e: KeyboardEvent) => {
+      // digits 1-9 map to pinned models order
+      if (e.key >= '1' && e.key <= '9') {
+        const idx = Number(e.key) - 1;
+        const query = dropdownSearch.toLowerCase();
+        const filtered = modelState.models.filter(
+          (m) =>
+            m.name.toLowerCase().includes(query) ||
+            m.id.toLowerCase().includes(query),
+        );
+        const pinnedSet = new Set(settings.pinnedModels || []);
+        const pinnedList = filtered.filter((m) => pinnedSet.has(m.id));
+        const target = pinnedList[idx];
+        if (target) {
+          e.preventDefault();
+          setSelectedModel(target.id);
+          setIsDropdownOpen(false);
+          setDropdownSearch('');
+        }
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [isDropdownOpen, dropdownSearch, modelState.models, settings.pinnedModels]);
 
   const handleApiKeyChange = (value: string) => {
     setApiKey(value);
@@ -502,17 +531,18 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                 </div>
 
                 <div className="overflow-y-auto flex-1">
-                  {modelState.models
-                    .filter(
-                      (model) =>
-                        model.name
-                          .toLowerCase()
-                          .includes(dropdownSearch.toLowerCase()) ||
-                        model.id
-                          .toLowerCase()
-                          .includes(dropdownSearch.toLowerCase()),
-                    )
-                    .map((model) => (
+                  {(() => {
+                    const query = dropdownSearch.toLowerCase();
+                    const filtered = modelState.models.filter(
+                      (m) =>
+                        m.name.toLowerCase().includes(query) ||
+                        m.id.toLowerCase().includes(query),
+                    );
+                    const pinnedSet = new Set(settings.pinnedModels || []);
+                    const pinnedList = filtered.filter((m) => pinnedSet.has(m.id));
+                    const otherList = filtered.filter((m) => !pinnedSet.has(m.id));
+
+                    const renderRow = (model: typeof filtered[number]) => (
                       <button
                         key={model.id}
                         type="button"
@@ -527,15 +557,47 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                             : 'text-gray-900 dark:text-white'
                         }`}
                       >
-                        <div className="text-sm font-medium">{model.name}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                          {formatPrice(
-                            model.pricing.prompt + model.pricing.completion,
-                          )}
-                          /token
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="text-sm font-medium">{model.name}</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              {formatPrice(model.pricing.prompt + model.pricing.completion)}/token
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            aria-label={pinnedSet.has(model.id) ? 'Unpin model' : 'Pin model'}
+                            className="ml-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              hookTogglePinnedModel(model.id);
+                            }}
+                          >
+                            {pinnedSet.has(model.id) ? (
+                              <Pin className="h-4 w-4 text-blue-600" />
+                            ) : (
+                              <PinOff className="h-4 w-4" />
+                            )}
+                          </button>
                         </div>
                       </button>
-                    ))}
+                    );
+
+                    return (
+                      <>
+                        {pinnedList.length > 0 && (
+                          <>
+                            <div className="px-4 py-1 text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                              Pinned
+                            </div>
+                            {pinnedList.map((m) => renderRow(m))}
+                            <div className="my-1 border-t border-gray-200 dark:border-gray-600" />
+                          </>
+                        )}
+                        {otherList.map((m) => renderRow(m))}
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             )}

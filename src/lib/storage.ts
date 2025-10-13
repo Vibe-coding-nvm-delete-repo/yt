@@ -61,6 +61,7 @@ export class SettingsStorage {
         // Ensure arrays are properly initialized
         availableModels: Array.isArray(parsed.availableModels) ? parsed.availableModels : [],
         preferredModels: Array.isArray(parsed.preferredModels) ? parsed.preferredModels : [],
+        pinnedModels: Array.isArray(parsed.pinnedModels) ? parsed.pinnedModels : [],
         // Ensure numeric values are correct
         lastApiKeyValidation: parsed.lastApiKeyValidation ? Number(parsed.lastApiKeyValidation) : null,
         lastModelFetch: parsed.lastModelFetch ? Number(parsed.lastModelFetch) : null,
@@ -98,6 +99,7 @@ export class SettingsStorage {
             ...newSettings,
             availableModels: Array.isArray(newSettings.availableModels) ? newSettings.availableModels : [],
             preferredModels: Array.isArray(newSettings.preferredModels) ? newSettings.preferredModels : [],
+            pinnedModels: Array.isArray(newSettings.pinnedModels) ? newSettings.pinnedModels : [],
             lastApiKeyValidation: newSettings.lastApiKeyValidation ? Number(newSettings.lastApiKeyValidation) : null,
             lastModelFetch: newSettings.lastModelFetch ? Number(newSettings.lastModelFetch) : null,
           };
@@ -131,6 +133,7 @@ export class SettingsStorage {
             ...parsed,
             availableModels: Array.isArray(parsed.availableModels) ? parsed.availableModels : [],
             preferredModels: Array.isArray(parsed.preferredModels) ? parsed.preferredModels : [],
+            pinnedModels: Array.isArray(parsed.pinnedModels) ? parsed.pinnedModels : [],
             lastApiKeyValidation: parsed.lastApiKeyValidation ? Number(parsed.lastApiKeyValidation) : null,
             lastModelFetch: parsed.lastModelFetch ? Number(parsed.lastModelFetch) : null,
           };
@@ -178,6 +181,37 @@ export class SettingsStorage {
     this.saveSettings();
   }
 
+  // Pinned models management
+  updatePinnedModels(modelIds: string[]): void {
+    this.settings.pinnedModels = Array.isArray(modelIds) ? Array.from(new Set(modelIds)).slice(0, 9) : [];
+    this.saveSettings();
+  }
+
+  pinModel(modelId: string): void {
+    if (!modelId) return;
+    const current = Array.isArray(this.settings.pinnedModels) ? this.settings.pinnedModels : [];
+    if (!current.includes(modelId)) {
+      this.settings.pinnedModels = [modelId, ...current].slice(0, 9);
+      this.saveSettings();
+    }
+  }
+
+  unpinModel(modelId: string): void {
+    if (!modelId || !Array.isArray(this.settings.pinnedModels)) return;
+    this.settings.pinnedModels = this.settings.pinnedModels.filter(id => id !== modelId);
+    this.saveSettings();
+  }
+
+  togglePinnedModel(modelId: string): void {
+    if (!modelId) return;
+    const current = Array.isArray(this.settings.pinnedModels) ? this.settings.pinnedModels : [];
+    if (current.includes(modelId)) {
+      this.unpinModel(modelId);
+    } else {
+      this.pinModel(modelId);
+    }
+  }
+
   clearSettings(): void {
     this.settings = { ...DEFAULT_SETTINGS };
     this.saveSettings();
@@ -196,6 +230,7 @@ export class SettingsStorage {
         ...imported,
         availableModels: Array.isArray(imported.availableModels) ? imported.availableModels : [],
         preferredModels: Array.isArray(imported.preferredModels) ? imported.preferredModels : [],
+        pinnedModels: Array.isArray(imported.pinnedModels) ? imported.pinnedModels : [],
         lastApiKeyValidation: imported.lastApiKeyValidation ? Number(imported.lastApiKeyValidation) : null,
         lastModelFetch: imported.lastModelFetch ? Number(imported.lastModelFetch) : null,
       };
@@ -243,6 +278,10 @@ export class SettingsStorage {
 
   getPreferredModels(): string[] {
     return Array.isArray(this.settings.preferredModels) ? [...this.settings.preferredModels] : [];
+  }
+
+  getPinnedModels(): string[] {
+    return Array.isArray(this.settings.pinnedModels) ? [...this.settings.pinnedModels] : [];
   }
 }
 
