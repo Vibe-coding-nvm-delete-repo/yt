@@ -85,7 +85,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     });
 
     return unsubscribe;
-  }, [onSettingsUpdate]);
+  }, [onSettingsUpdate, hookSubscribe]);
 
   // Auto-save custom prompt
   useEffect(() => {
@@ -96,14 +96,14 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [customPrompt, settings.customPrompt]);
+  }, [customPrompt, settings.customPrompt, hookUpdateCustomPrompt]);
 
   // Auto-save selected model
   useEffect(() => {
     if (selectedModel !== settings.selectedModel) {
       hookUpdateSelectedModel(selectedModel);
     }
-  }, [selectedModel, settings.selectedModel]);
+  }, [selectedModel, settings.selectedModel, hookUpdateSelectedModel]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -185,7 +185,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         error: error instanceof Error ? error.message : 'Failed to validate API key',
       });
     }
-  }, [apiKey]);
+  }, [apiKey, hookValidateApiKey]);
 
   const fetchModels = useCallback(async () => {
     // Use the most recent validation state instead of props
@@ -228,7 +228,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         error: error instanceof Error ? error.message : 'Failed to fetch models',
       }));
     }
-  }, [apiKey, validationState.isValid, selectedModel]);
+  }, [apiKey, validationState.isValid, selectedModel, hookUpdateModels]);
 
 
 
