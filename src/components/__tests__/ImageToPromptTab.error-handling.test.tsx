@@ -76,16 +76,12 @@ describe("ImageToPromptTab error handling", () => {
     // TODO: Update test to match current ImageToPromptTab implementation
     return;
 
-    // Wait for the mocked client to have been called
-    await waitFor(() => expect(genMock).toHaveBeenCalled(), { timeout: 3000 });
-
-    // The image should be marked as error in the UI
-    await waitFor(
-      () => expect(screen.getByText(/Status: error/i)).toBeInTheDocument(),
-      { timeout: 3000 },
-    );
-
-    // Error message should be shown for the image
-    expect(screen.getByText(/Error:/)).toBeInTheDocument();
+    // NOTE: Code below is commented out - needs updating for new UI
+    // await waitFor(() => expect(genMock).toHaveBeenCalled(), { timeout: 3000 });
+    // await waitFor(
+    //   () => expect(screen.getByText(/Status: error/i)).toBeInTheDocument(),
+    //   { timeout: 3000 },
+    // );
+    // expect(screen.getByText(/Error:/)).toBeInTheDocument();
   }, 10000);
 });
