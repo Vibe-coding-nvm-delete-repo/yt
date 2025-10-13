@@ -1,7 +1,7 @@
 import { renderHook, act } from '@testing-library/react';
 import { useSettings } from '@/hooks/useSettings';
 import { settingsStorage } from '@/lib/storage';
-import { AppSettings } from '@/types';
+import type { AppSettings } from '@/types';
 
 // Mock storage class
 class MockSettingsStorage {

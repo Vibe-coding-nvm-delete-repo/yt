@@ -1,6 +1,6 @@
 // Domain facade for settings - encapsulates storage + business logic (no behavior change)
 import { settingsStorage } from "@/lib/storage";
-import { AppSettings } from "./types";
+import type { AppSettings } from "./types";
 import { selectors } from "./selectors";
 
 export function getSettings(): AppSettings {

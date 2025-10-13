@@ -1,4 +1,4 @@
-import { AppSettings, VisionModel, PersistedImageState, BatchEntry, ImageBatchEntry } from '@/types';
+import type { AppSettings, VisionModel, PersistedImageState, BatchEntry, ImageBatchEntry } from '@/types';
 
 const STORAGE_KEY = 'image-to-prompt-settings';
 const IMAGE_STATE_KEY = 'image-to-prompt-image-state';
@@ -194,6 +194,19 @@ export class SettingsStorage {
     } catch (error) {
       console.error('Failed to import settings:', error);
       return false;
+    }
+  }
+
+  /**
+   * Export current settings as a JSON string.
+   * This is a safe-serializable snapshot suitable for download or copying.
+   */
+  exportSettings(): string {
+    try {
+      return JSON.stringify(this.settings);
+    } catch (err) {
+      console.error('Failed to export settings:', err);
+      return '{}';
     }
   }
 

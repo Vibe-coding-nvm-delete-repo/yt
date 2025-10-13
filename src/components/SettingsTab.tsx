@@ -4,7 +4,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { AppSettings, ValidationState, ModelState } from '@/types';
 import { settingsStorage } from '@/lib/storage';
 import { createOpenRouterClient, isValidApiKeyFormat } from '@/lib/openrouter';
-import { RefreshCw, Search, ChevronDown } from 'lucide-react';
+import { RefreshCw, Search, ChevronDown, Key, CheckCircle, Eye, EyeOff, Download, Upload, XCircle } from 'lucide-react';
+import { Tooltip } from '@/components/common/Tooltip';
 import { SettingsApiKeys } from '@/components/settings/SettingsApiKeys';
 import { useSettings as useSettingsHook } from '@/hooks/useSettings';
 
@@ -452,8 +453,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
               <ChevronDown
                 className={`h-4 w-4 text-gray-500 transition-transform ${isDropdownOpen ? 'transform rotate-180' : ''}`}
               />
-            </button>
->>>>>>> origin/main
+              </button>
             {isDropdownOpen && (
               <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-80 overflow-hidden flex flex-col">
                 <div className="p-2 border-b border-gray-200 dark:border-gray-600">

@@ -1,5 +1,5 @@
 // Pure readonly helpers for settings (no behavior change)
-import { AppSettings } from "./types";
+import type { AppSettings } from "./types";
 
 export const selectors = {
   hasApiKey: (settings: AppSettings): boolean => Boolean(settings.openRouterApiKey?.trim()),

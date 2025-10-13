@@ -1,5 +1,5 @@
 import calculateGenerationCost from '@/lib/cost';
-import { VisionModel } from '@/types';
+import type { VisionModel } from '@/types';
 
 describe('cost calculation', () => {
   const mockModel: VisionModel = {

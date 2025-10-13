@@ -1,6 +1,6 @@
 // Pure validation functions (no behavior change)
 import { isValidApiKeyFormat } from "@/lib/openrouter";
-import { ValidationResult } from "./types";
+import type { ValidationResult } from "./types";
 
 export function validateApiKey(key: string): ValidationResult {
   if (!key?.trim()) {

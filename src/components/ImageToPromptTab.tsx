@@ -1,27 +1,21 @@
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import type { AppSettings, VisionModel } from '@/types';
+import type { AppSettings } from '@/types';
 import { createOpenRouterClient } from '@/lib/openrouter';
 import { imageStateStorage } from '@/lib/storage';
 import runWithConcurrency from '@/lib/batchQueue';
 import calculateGenerationCost from '@/lib/cost';
 import { normalizeToApiError } from '@/lib/errorUtils';
-import { Upload, X, Loader2, Copy, CheckCircle, AlertCircle, Image as ImageIcon } from 'lucide-react';
+import { X, Copy, AlertCircle, Image as ImageIcon } from 'lucide-react';
 import Image from 'next/image';
-import { Tooltip } from '@/components/common/Tooltip';
 
 interface ImageToPromptTabProps {
   settings: AppSettings;
 }
 
-interface GenerationState {
-  isGenerating: boolean;
-  generatedPrompt: string | null;
-  error: string | null;
-}
 
-type MultiImageUploadState = {
+  type MultiImageUploadState = {
   id: string;
   file: File | null;
   preview: string | null;
@@ -30,23 +24,11 @@ type MultiImageUploadState = {
   assignedModelId: string;
   processingStatus: 'idle' | 'uploading' | 'processing' | 'done' | 'error';
   generatedPrompt: string | null;
-  cost: { inputCost: number; outputCost: number; totalCost: number } | null;
+  cost: number | null;
   processingError: string | null;
   uploadTimestamp: Date;
 };
 
-type ImageBatchItem = {
-  imageId: string;
-  fileName: string;
-  modelId: string;
-  modelName?: string;
-  prompt: string | null;
-  error: string | null;
-  cost: { inputCost: number; outputCost: number; totalCost: number } | null;
-  status: 'done' | 'error';
-  processingStartTime: number;
-  processingEndTime: number;
-};
 
 export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   settings,
@@ -55,8 +37,6 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [processedCount, setProcessedCount] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [copiedToClipboard, setCopiedToClipboard] = useState(false);
-  const [uploadTimestamp, setUploadTimestamp] = useState<Date | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const dropZoneRef = useRef<HTMLDivElement | null>(null);
   const batchAbortRef = useRef<AbortController | null>(null);
@@ -96,8 +76,10 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   const readFileAsDataURL = useCallback((file: File): Promise<string> =>
     new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = (e) => if (e.target?.result) resolve(e.target.result as string);
-      else reject(new Error('Failed to read file'));
+      reader.onload = (e) => {
+        if (e.target?.result) resolve(e.target.result as string);
+        else reject(new Error('Failed to read file'));
+      };
       reader.onerror = () => reject(new Error('Failed to read file'));
       reader.readAsDataURL(file);
     }), []);
@@ -149,7 +131,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files;
     if (file && file.length > 0) {
-      addFiles(file);
+      void addFiles(file);
       e.target.value = '';
     }
   }, [addFiles]);
@@ -158,7 +140,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
     e.preventDefault();
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
-      addFiles(files);
+      void addFiles(files);
     }
   }, [addFiles]);
 
@@ -189,16 +171,17 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
 
     batchAbortRef.current = new AbortController();
 
-    const tasks: Array<() => Promise<{ prompt: string; cost: number | null; }>> = images.map((img) => async () => {
+    const tasks: Array<() => Promise<{ prompt: string | null; cost: number | null; }>> = images.map((img) => async () => {
       const client = createOpenRouterClient(settings.openRouterApiKey);
       try {
         const prompt = await client.generateImagePrompt(
-          img.preview,
+          img.preview ?? '',
           settings.customPrompt,
           img.assignedModelId
         );
         const modelInfo = settings.availableModels.find(m => m.id === img.assignedModelId);
-        const cost = modelInfo ? calculateGenerationCost(modelInfo, prompt.length) : null;
+        const costObj = modelInfo ? calculateGenerationCost(modelInfo, prompt.length) : null;
+        const cost = costObj ? costObj.totalCost : null;
 
         setImages(prev => prev.map(it => it.id === img.id ? {
           ...it,
@@ -219,10 +202,10 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
       const onProgress = (completed: number) => {
         setProcessedCount(completed);
       };
-      const results = await runWithConcurrency(tasks, { concurrency: 2, onProgress, signal: batchAbortRef.current!.signal });
+      await runWithConcurrency(tasks, { concurrency: 2, onProgress, signal: batchAbortRef.current!.signal });
       // persist results if needed
     } catch (err) {
-      if (err.name === 'AbortError') {
+      if ((err as any)?.name === 'AbortError') {
         setErrorMessage('Batch cancelled.');
       } else {
         setErrorMessage('Generation failed.');
@@ -233,11 +216,16 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
     }
   }, [images, settings]);
 
-  const formatBytes = useCallback((bytes: number) => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
-    return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+  const copyPrompt = useCallback(async (text: string | null) => {
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      setErrorMessage('Failed to copy to clipboard.');
+    }
   }, []);
+
+  // formatBytes removed (unused)
 
   return (
     <div className="space-y-6">
@@ -283,9 +271,9 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
             {images.map(img => (
               <div key={img.id} className="p-3 border rounded-lg">
                 <div className="flex items-start justify-between">
-                  <div className="w-24 h-24 bg-gray-100 rounded overflow-hidden">
-                    <Image src={img.preview} alt="Preview" width={96} height={96} className="object-contain" />
-                  </div>
+                    <div className="w-24 h-24 bg-gray-100 rounded overflow-hidden">
+                      <Image src={img.preview ?? ''} alt="Preview" width={96} height={96} className="object-contain" />
+                    </div>
                   <div className="flex space-x-2">
                     <button onClick={() => removeImage(img.id)}><X className="h-4 w-4" /></button>
                   </div>

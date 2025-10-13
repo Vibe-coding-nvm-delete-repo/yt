@@ -8,11 +8,15 @@
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import globals from 'globals';
+import reactHooks from 'eslint-plugin-react-hooks';
 
 export default tseslint.config(
   { languageOptions: { globals: globals.browser } },
   js.configs.recommended,
   ...tseslint.configs.recommended,
+  {
+    plugins: { 'react-hooks': reactHooks },
+  },
   {
     ignores: ['next-env.d.ts'],
   },
@@ -38,8 +42,9 @@ export default tseslint.config(
     },
   },
   {
-    // Disable type-aware rules for config/generated JS files
+    // Disable type-aware rules for config/generated JS files and enable node globals there
     files: ["**/*.config.*", "eslint.config.mjs", "jest.config.js", "coverage/**"],
+    languageOptions: { globals: globals.node },
     rules: {
       "@typescript-eslint/no-floating-promises": "off",
       "@typescript-eslint/strict-boolean-expressions": "off"
