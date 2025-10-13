@@ -139,7 +139,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   const handleApiKeyChange = (value: string) => {
     setApiKey(value);
     hookUpdateApiKey(value);
-    
+
     // Reset validation when API key changes
     if (value !== settings.openRouterApiKey) {
       setValidationState({
@@ -184,7 +184,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         isValid,
         error: null,
       });
-      
+
       hookValidateApiKey(isValid);
     } catch (error) {
       console.error('API validation error:', error);
@@ -223,9 +223,9 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         models,
         error: null,
       }));
-      
+
       hookUpdateModels(models);
-      
+
       // Auto-select first model if none selected
       if (!selectedModel && models.length > 0) {
         setSelectedModel(models[0].id);
@@ -396,6 +396,36 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     </div>
   ), [apiKey, showApiKey, validationState, settings.lastApiKeyValidation, customPrompt, selectedModel, modelState]);
 
+  const renderCustomPromptsTab = useCallback(() => (
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+        Custom Prompt Templates
+      </h3>
+      <textarea
+        value={customPrompt}
+        onChange={(e) => setCustomPrompt(e.target.value)}
+        rows={4}
+        placeholder="Enter your custom prompt template..."
+        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none"
+      />
+      <p className="text-sm text-gray-500 dark:text-gray-400">
+        This prompt will be used when generating prompts from images. Changes
+        are saved automatically.
+      </p>
+    </div>
+  ), [customPrompt]);
+
+  const renderCategoriesTab = useCallback(() => (
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold text-gray-500 dark:text-gray-400">
+        Categories
+      </h3>
+      <p className="text-sm text-gray-400 dark:text-gray-500 italic">
+        This feature is coming soon.
+      </p>
+    </div>
+  ), []);
+
   const renderModelSelectionTab = useCallback(() => (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -453,7 +483,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
               <ChevronDown
                 className={`h-4 w-4 text-gray-500 transition-transform ${isDropdownOpen ? 'transform rotate-180' : ''}`}
               />
-              </button>
+            </button>
             {isDropdownOpen && (
               <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-80 overflow-hidden flex flex-col">
                 <div className="p-2 border-b border-gray-200 dark:border-gray-600">
@@ -575,35 +605,28 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     </div>
   );
 
-  const renderCustomPromptsTab = useCallback(() => (
-    <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-        Custom Prompt Templates
-      </h3>
-      <textarea
-        value={customPrompt}
-        onChange={(e) => setCustomPrompt(e.target.value)}
-        rows={4}
-        placeholder="Enter your custom prompt template..."
-        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none"
-      />
-      <p className="text-sm text-gray-500 dark:text-gray-400">
-        This prompt will be used when generating prompts from images. Changes
-        are saved automatically.
-      </p>
-    </div>
-  ), [customPrompt]);
+      {/* Import/Export Section */}
+      <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+          Import/Export Settings
+        </h3>
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={exportSettings}
+            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Export Settings
+          </button>
 
-  const renderCategoriesTab = useCallback(() => (
-    <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-gray-500 dark:text-gray-400">
-        Categories
-      </h3>
-      <p className="text-sm text-gray-400 dark:text-gray-500 italic">
-        This feature is coming soon.
-      </p>
+          <label className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer">
+            <Upload className="mr-2 h-4 w-4" />
+            Import Settings
+          </label>
+        </div>
+      </div>
     </div>
-  ), []);
+  ), [apiKey, showApiKey, validationState, settings.lastApiKeyValidation, customPrompt, selectedModel, modelState]);
 
   return (
     <div className="space-y-6">
