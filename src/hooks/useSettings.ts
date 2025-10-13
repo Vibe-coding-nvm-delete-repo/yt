@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { AppSettings, VisionModel } from '@/types';
-import { settingsStorage } from '@/lib/storage';
+import { useState, useEffect } from "react";
+import type { AppSettings, VisionModel } from "@/types";
+import { settingsStorage } from "@/lib/storage";
 
 /**
  * SSR-safe settings hook that prevents hydration mismatches
@@ -13,17 +13,19 @@ export const useSettings = () => {
     // Use default settings during SSR and initial client render
     // This ensures hydration consistency
     return {
-      openRouterApiKey: '',
-      selectedModel: '',
-      customPrompt: 'Describe this image in detail and suggest a good prompt for generating similar images.',
+      openRouterApiKey: "",
+      selectedModel: "",
+      customPrompt:
+        "Describe this image in detail and suggest a good prompt for generating similar images.",
       isValidApiKey: false,
       lastApiKeyValidation: null,
       lastModelFetch: null,
       availableModels: [],
       preferredModels: [],
+      pinnedModels: [],
     };
   });
-  
+
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
@@ -69,10 +71,14 @@ export const useSettings = () => {
     updateSettings,
     // Expose individual update methods for convenience
     updateApiKey: (apiKey: string) => settingsStorage.updateApiKey(apiKey),
-    validateApiKey: (isValid: boolean) => settingsStorage.validateApiKey(isValid),
-    updateSelectedModel: (modelId: string) => settingsStorage.updateSelectedModel(modelId),
-    updateCustomPrompt: (prompt: string) => settingsStorage.updateCustomPrompt(prompt),
-    updateModels: (models: VisionModel[]) => settingsStorage.updateModels(models),
+    validateApiKey: (isValid: boolean) =>
+      settingsStorage.validateApiKey(isValid),
+    updateSelectedModel: (modelId: string) =>
+      settingsStorage.updateSelectedModel(modelId),
+    updateCustomPrompt: (prompt: string) =>
+      settingsStorage.updateCustomPrompt(prompt),
+    updateModels: (models: VisionModel[]) =>
+      settingsStorage.updateModels(models),
     clearSettings: () => settingsStorage.clearSettings(),
     shouldRefreshModels: () => settingsStorage.shouldRefreshModels(),
     getModelById: (modelId: string) => settingsStorage.getModelById(modelId),

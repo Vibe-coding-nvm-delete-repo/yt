@@ -1,4 +1,5 @@
-import { VisionModel, ApiError } from '@/types';
+import type { VisionModel } from "@/types";
+import { ApiError } from "@/types";
 
 interface OpenRouterModelResponse {
   id: string;
@@ -28,7 +29,7 @@ interface OpenRouterChatResponse {
   choices: OpenRouterChatChoice[];
 }
 
-const OPENROUTER_API_BASE = 'https://openrouter.ai/api/v1';
+const OPENROUTER_API_BASE = "https://openrouter.ai/api/v1";
 
 export class OpenRouterClient {
   private apiKey: string;
@@ -44,16 +45,16 @@ export class OpenRouterClient {
    * @returns A valid number or the default value
    */
   private safeNumber(value: unknown, defaultValue: number = 0): number {
-    if (value === null || value === undefined || value === '') {
+    if (value === null || value === undefined || value === "") {
       return defaultValue;
     }
-    
-    const num = typeof value === 'string' ? parseFloat(value) : Number(value);
-    
+
+    const num = typeof value === "string" ? parseFloat(value) : Number(value);
+
     if (isNaN(num) || !isFinite(num)) {
       return defaultValue;
     }
-    
+
     return num;
   }
 
@@ -65,17 +66,18 @@ export class OpenRouterClient {
    */
   private async makeRequest<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
   ): Promise<T> {
     const url = `${OPENROUTER_API_BASE}${endpoint}`;
-    
+
     const response = await fetch(url, {
       ...options,
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`,
-        'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : '',
-        'X-Title': 'Image to Prompt Generator',
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${this.apiKey}`,
+        "HTTP-Referer":
+          typeof window !== "undefined" ? window.location.origin : "",
+        "X-Title": "Image to Prompt Generator",
         ...options.headers,
       },
     });
@@ -94,24 +96,24 @@ export class OpenRouterClient {
           errorData = {};
         }
       }
-      
+
       // Derive a helpful error message from structured error payloads when possible
       let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-      if (typeof errorData === 'object' && errorData !== null) {
+      if (typeof errorData === "object" && errorData !== null) {
         const ed = errorData as Record<string, unknown>;
-        if ('error' in ed && typeof ed.error === 'object' && ed.error !== null) {
+        if (
+          "error" in ed &&
+          typeof ed.error === "object" &&
+          ed.error !== null
+        ) {
           const nested = ed.error as Record<string, unknown>;
-          if ('message' in nested && typeof nested.message === 'string') {
+          if ("message" in nested && typeof nested.message === "string") {
             errorMessage = nested.message;
           }
         }
       }
 
-      throw new ApiError(
-        errorMessage,
-        response.status.toString(),
-        errorData
-      );
+      throw new ApiError(errorMessage, response.status.toString(), errorData);
     }
 
     // Attempt to parse JSON for successful responses, but surface a helpful ApiError if parsing fails.
@@ -127,70 +129,91 @@ export class OpenRouterClient {
         raw = null;
       }
       throw new ApiError(
-        'Failed to parse response JSON from OpenRouter API',
+        "Failed to parse response JSON from OpenRouter API",
         response.status.toString(),
-        { parseError: String(parseErr), raw }
+        { parseError: String(parseErr), raw },
       );
     }
   }
 
   async validateApiKey(): Promise<boolean> {
     try {
-      await this.makeRequest('/models', { method: 'GET' });
+      await this.makeRequest("/models", { method: "GET" });
       return true;
     } catch (error) {
-      if (error instanceof ApiError && (error.code === '401' || error.code === '403')) {
+      if (
+        error instanceof ApiError &&
+        (error.code === "401" || error.code === "403")
+      ) {
         return false;
       }
-      console.error('validateApiKey error:', error);
+      console.error("validateApiKey error:", error);
       throw error;
     }
   }
 
   async getVisionModels(): Promise<VisionModel[]> {
     try {
-      const response = await this.makeRequest<OpenRouterModelsResponse>('/models');
-      
+      const response =
+        await this.makeRequest<OpenRouterModelsResponse>("/models");
+
       if (!response?.data || !Array.isArray(response.data)) {
-        console.error('Invalid response format:', response);
-        throw new ApiError('Invalid response format from OpenRouter API', undefined, response);
+        console.error("Invalid response format:", response);
+        throw new ApiError(
+          "Invalid response format from OpenRouter API",
+          undefined,
+          response,
+        );
       }
 
       const models: VisionModel[] = response.data
-        .filter((model: OpenRouterModelResponse): model is OpenRouterModelResponse =>
-          Boolean(model?.id) &&
-          Boolean(model?.name)
+        .filter(
+          (model: OpenRouterModelResponse): model is OpenRouterModelResponse =>
+            Boolean(model?.id) && Boolean(model?.name),
         )
         .filter((model: OpenRouterModelResponse) => {
           // Vision models are identified by having a non-zero image pricing
-          const hasImagePricing = model.pricing?.image && this.safeNumber(model.pricing.image, 0) > 0;
+          const hasImagePricing =
+            model.pricing?.image && this.safeNumber(model.pricing.image, 0) > 0;
           return hasImagePricing;
         })
-        .map((model: OpenRouterModelResponse): VisionModel => ({
-          id: model.id,
-          name: model.name,
-          description: model.description || '',
-          pricing: {
-            prompt: this.safeNumber(model.pricing?.prompt, 0),
-            completion: this.safeNumber(model.pricing?.completion, 0),
-          },
-          context_length: this.safeNumber(model.context_length) ? Number(model.context_length) : undefined,
-          supports_image: Boolean(model.supports_image) || Boolean(model.supports_vision),
-          supports_vision: Boolean(model.supports_vision) || Boolean(model.supports_image),
-        }))
+        .map(
+          (model: OpenRouterModelResponse): VisionModel => ({
+            id: model.id,
+            name: model.name,
+            description: model.description || "",
+            pricing: {
+              prompt: this.safeNumber(model.pricing?.prompt, 0),
+              completion: this.safeNumber(model.pricing?.completion, 0),
+            },
+            context_length: this.safeNumber(model.context_length)
+              ? Number(model.context_length)
+              : undefined,
+            supports_image:
+              Boolean(model.supports_image) || Boolean(model.supports_vision),
+            supports_vision:
+              Boolean(model.supports_vision) || Boolean(model.supports_image),
+          }),
+        )
         .sort((a: VisionModel, b: VisionModel) => a.name.localeCompare(b.name));
 
       if (models.length === 0) {
-        throw new ApiError('No vision models found. Please check your API key and try again.');
+        throw new ApiError(
+          "No vision models found. Please check your API key and try again.",
+        );
       }
 
       return models;
     } catch (error) {
-      console.error('getVisionModels error:', error);
+      console.error("getVisionModels error:", error);
       if (error instanceof ApiError) {
         throw error;
       }
-      throw new ApiError('Failed to fetch models from OpenRouter API', undefined, error instanceof Error ? error.toString() : String(error));
+      throw new ApiError(
+        "Failed to fetch models from OpenRouter API",
+        undefined,
+        error instanceof Error ? error.toString() : String(error),
+      );
     }
   }
 
@@ -200,7 +223,7 @@ export class OpenRouterClient {
    * @param _model The vision model used (unused for now)
    * @returns Cost estimate in USD (currently 0, can be enhanced later)
    */
-  calculateImageCost(model: VisionModel): number {
+  calculateImageCost(_model: VisionModel): number {
     // TODO: Add image pricing to VisionModel interface when needed
     // For now, image processing costs are not tracked
     return 0;
@@ -241,19 +264,21 @@ export class OpenRouterClient {
   async generateImagePrompt(
     imageData: string,
     customPrompt: string,
-    modelId: string
+    modelId: string,
   ): Promise<string> {
     try {
       const messages = [
         {
-          role: 'user' as const,
+          role: "user" as const,
           content: [
             {
-              type: 'text' as const,
-              text: customPrompt || 'Describe this image in detail and suggest a good prompt for generating similar images.',
+              type: "text" as const,
+              text:
+                customPrompt ||
+                "Describe this image in detail and suggest a good prompt for generating similar images.",
             },
             {
-              type: 'image_url' as const,
+              type: "image_url" as const,
               image_url: {
                 url: imageData,
               },
@@ -262,35 +287,53 @@ export class OpenRouterClient {
         },
       ];
 
-      const response = await this.makeRequest<OpenRouterChatResponse>('/chat/completions', {
-        method: 'POST',
-        body: JSON.stringify({
-          model: modelId,
-          messages,
-          max_tokens: 1000,
-          temperature: 0.7,
-        }),
-      });
+      const response = await this.makeRequest<OpenRouterChatResponse>(
+        "/chat/completions",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            model: modelId,
+            messages,
+            max_tokens: 1000,
+            temperature: 0.7,
+          }),
+        },
+      );
 
       // Validate the response shape explicitly and include the raw payload in the ApiError for telemetry.
-      if (!response || !response.choices || !Array.isArray(response.choices) || response.choices.length === 0 ||
-          !response.choices[0] || !response.choices[0].message || typeof response.choices[0].message.content !== 'string') {
-        throw new ApiError('Invalid response format from OpenRouter API', undefined, response);
+      if (
+        !response ||
+        !response.choices ||
+        !Array.isArray(response.choices) ||
+        response.choices.length === 0 ||
+        !response.choices[0] ||
+        !response.choices[0].message ||
+        typeof response.choices[0].message.content !== "string"
+      ) {
+        throw new ApiError(
+          "Invalid response format from OpenRouter API",
+          undefined,
+          response,
+        );
       }
 
       return response.choices[0].message.content.trim();
     } catch (error) {
       if (error instanceof ApiError) {
-        throw error;  // Preserve specific ApiError with correct message and details
+        throw error; // Preserve specific ApiError with correct message and details
       }
-      throw new ApiError('Failed to generate prompt from image', undefined, error instanceof Error ? error.toString() : String(error));
+      throw new ApiError(
+        "Failed to generate prompt from image",
+        undefined,
+        error instanceof Error ? error.toString() : String(error),
+      );
     }
   }
 }
 
 export const createOpenRouterClient = (apiKey: string): OpenRouterClient => {
   if (!apiKey || apiKey.trim().length === 0) {
-    throw new ApiError('API key is required');
+    throw new ApiError("API key is required");
   }
   return new OpenRouterClient(apiKey.trim());
 };
@@ -298,5 +341,5 @@ export const createOpenRouterClient = (apiKey: string): OpenRouterClient => {
 export const isValidApiKeyFormat = (apiKey: string): boolean => {
   // OpenRouter API keys typically start with 'sk-or-v1-' and are at least 20 characters
   const trimmedKey = apiKey.trim();
-  return trimmedKey.length >= 20 && trimmedKey.startsWith('sk-or-v1-');
+  return trimmedKey.length >= 20 && trimmedKey.startsWith("sk-or-v1-");
 };
