@@ -273,14 +273,15 @@ export class OpenRouterClient {
       });
 
       // Validate the response shape explicitly and include the raw payload in the ApiError for telemetry.
-      if (!response || !response.choices || !response.choices[0] || !response.choices[0].message || typeof response.choices[0].message.content !== 'string') {
+      if (!response || !response.choices || !Array.isArray(response.choices) || response.choices.length === 0 ||
+          !response.choices[0] || !response.choices[0].message || typeof response.choices[0].message.content !== 'string') {
         throw new ApiError('Invalid response format from OpenRouter API', undefined, response);
       }
 
       return response.choices[0].message.content.trim();
     } catch (error) {
       if (error instanceof ApiError) {
-        throw error;
+        throw error;  // Preserve specific ApiError with correct message and details
       }
       throw new ApiError('Failed to generate prompt from image', undefined, error instanceof Error ? error.toString() : String(error));
     }

@@ -1,4 +1,6 @@
 import React from 'react';
+export {}; // ensure this file is an ES module to avoid global-scope declaration collisions
+
 import '@testing-library/jest-dom';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ImageToPromptTab } from '@/components/ImageToPromptTab';
@@ -16,23 +18,20 @@ jest.mock('@/lib/cost');
 
 describe('ImageToPromptTab - multi-image batch', () => {
   const mockCreateClient = openrouter.createOpenRouterClient as jest.Mock;
-  const mockStorage = storage.imageStateStorage || {};
-  const mockStorage = storage as unknown as {
-    imageStateStorage: {
-      getImageState: jest.Mock,
-      saveGeneratedPrompt: jest.Mock,
-      saveBatchEntry: jest.Mock,
-    };
-  };
 
-    let genMock: jest.Mock;
-    let calcMock: jest.Mock;
+  let mockStorage: {
+    getImageState?: jest.Mock;
+    saveGeneratedPrompt?: jest.Mock;
+    saveImageBatchEntry?: jest.Mock;
+  };
 
   let genMock: jest.Mock;
   let calcMock: jest.Mock;
 
   beforeEach(() => {
     jest.resetAllMocks();
+
+    mockStorage = (storage.imageStateStorage as unknown as any) || {};
 
     // Mock image state to include a preview so the component thinks an image is uploaded
     mockStorage.getImageState = jest.fn(() => ({
@@ -58,6 +57,7 @@ describe('ImageToPromptTab - multi-image batch', () => {
       outputCost: 0.0002,
       totalCost: 0.0003,
     }));
+
     // Mock calculateGenerationCost by using the mocked module function
     (cost.calculateGenerationCost as jest.Mock).mockImplementation(calcMock);
 
@@ -87,10 +87,7 @@ describe('ImageToPromptTab - multi-image batch', () => {
 
     render(<ImageToPromptTab settings={settings} />);
 
-    // Wait for persisted preview to be applied (image element appears with random ID)
-    // The component now uses the image's ID/filename in the alt text instead of 'Uploaded image'
-    // We check for the dynamic alt text generated from mock data.
-    // Note: The timestamp changes on every test run, so we just check for 'Preview persisted-'
+    // Wait for persisted preview to be applied
     await waitFor(() => expect(screen.getByAltText(/Preview persisted-/)).toBeInTheDocument(), { timeout: 2000 });
 
     // Verify the added image appears in the grid
@@ -98,14 +95,6 @@ describe('ImageToPromptTab - multi-image batch', () => {
     expect(screen.getByText('Status: idle')).toBeInTheDocument();
 
     // Click the Generate Batch button
-    // The component now uses the image's ID/filename in the alt text instead of 'Uploaded image'
-    // We check for the dynamic alt text generated from mock data.
-    // Note: The timestamp changes on every test run, so we just check for 'Preview persisted-'
-    await waitFor(() => expect(screen.getByAltText(/Preview persisted-/)).toBeInTheDocument(), { timeout: 2000 });
-
-    // Since the component UI is completely different (multi-image grid now),
-    // the model multi-select checkboxes are obsolete and replaced by a single dropdown per image.
-    // The initial image is rendered, so we click the Generate Batch button.
     const generateButton = screen.getByRole('button', { name: /generate batch/i });
     expect(generateButton).toBeEnabled();
     fireEvent.click(generateButton);
