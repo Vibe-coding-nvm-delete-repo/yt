@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { AppSettings, ValidationState, ModelState } from '@/types';
 import { settingsStorage } from '@/lib/storage';
 import { createOpenRouterClient, isValidApiKeyFormat } from '@/lib/openrouter';
-import { RefreshCw, Search, ChevronDown } from 'lucide-react';
+import { RefreshCw, Search, ChevronDown, Key, CheckCircle, EyeOff, XCircle, Download, Upload } from 'lucide-react';
 import { Tooltip } from '@/components/common/Tooltip';
 import { SettingsApiKeys } from '@/components/settings/SettingsApiKeys';
 import { useSettings as useSettingsHook } from '@/hooks/useSettings';
@@ -509,40 +509,42 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                 </div>
               </div>
 
-              {/* Model Info */}
-              {selectedModel && (
-                <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm">
-                  {(() => {
-                    const model = modelState.models.find(m => m.id === selectedModel);
-                    if (!model) return null;
-
-                    return (
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="font-medium text-gray-700 dark:text-gray-300">Model:</span>
-                          <span className="text-gray-900 dark:text-white">{model.name}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="font-medium text-gray-700 dark:text-gray-300">Prompt Price:</span>
-                          <span className="text-gray-900 dark:text-white">{formatPrice(model.pricing.prompt)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="font-medium text-gray-700 dark:text-gray-300">Completion Price:</span>
-                          <span className="text-gray-900 dark:text-white">{formatPrice(model.pricing.completion)}</span>
-                        </div>
-                        {model.description && (
-                          <div>
-                            <span className="font-medium text-gray-700 dark:text-gray-300">Description:</span>
-                            <p className="text-gray-600 dark:text-gray-400 mt-1">{model.description}</p>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })()}
-                </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
+
+          {/* Model Info */}
+          {selectedModel && (
+            <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm">
+              {(() => {
+                const model = modelState.models.find(m => m.id === selectedModel);
+                if (!model) return null;
+
+                return (
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-700 dark:text-gray-300">Model:</span>
+                      <span className="text-gray-900 dark:text-white">{model.name}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-700 dark:text-gray-300">Prompt Price:</span>
+                      <span className="text-gray-900 dark:text-white">{formatPrice(model.pricing.prompt)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-700 dark:text-gray-300">Completion Price:</span>
+                      <span className="text-gray-900 dark:text-white">{formatPrice(model.pricing.completion)}</span>
+                    </div>
+                    {model.description && (
+                      <div>
+                        <span className="font-medium text-gray-700 dark:text-gray-300">Description:</span>
+                        <p className="text-gray-600 dark:text-gray-400 mt-1">{model.description}</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
 
           {/* Import/Export Section */}
           <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -570,10 +572,9 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
               </label>
             </div>
           </div>
-        </div>
       </div>
     </div>
-  );
+  ), [apiKey, showApiKey, validationState, settings.lastApiKeyValidation, customPrompt, selectedModel, modelState]);
 
   const renderCustomPromptsTab = useCallback(() => (
     <div className="space-y-4">
