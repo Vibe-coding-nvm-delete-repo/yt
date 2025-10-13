@@ -5,22 +5,75 @@ const createJestConfig = nextJest({
   dir: "./",
 });
 
-// Add any custom config to be passed to Jest
+// Enhanced Jest config for stability and proper coverage
 const customJestConfig = {
   testEnvironment: "jsdom",
-  testMatch: ["**/__tests__/**/*.test.ts", "**/__tests__/**/*.test.tsx"],
-  // Ignore legacy/manual test scripts that are not Jest-compatible.
-  // These should be migrated to proper Jest tests in follow-up work.
-  testPathIgnorePatterns: [
-    "<rootDir>/src/components/layout/__tests__/layoutWidth.test.ts",
-    "<rootDir>/src/lib/__tests__/tooltip.test.ts",
-    "<rootDir>/src/lib/__tests__/characterCounter.test.ts",
-    "<rootDir>/src/components/__tests__/SettingsTab.test.tsx",
-  ],
   setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
+  
+  // Test file patterns
+  testMatch: [
+    "**/__tests__/**/*.test.{ts,tsx}",
+    "**/*.test.{ts,tsx}"
+  ],
+  
+  // Coverage configuration matching CI requirements
+  coverageThreshold: {
+    global: {
+      branches: 60,
+      functions: 60,
+      lines: 60,
+      statements: 60,
+    },
+  },
+  
+  // Coverage collection patterns
+  collectCoverageFrom: [
+    "src/**/*.{js,jsx,ts,tsx}",
+    "!src/**/*.d.ts",
+    "!src/**/*.stories.{js,jsx,ts,tsx}",
+    "!src/**/__tests__/**",
+    "!src/**/index.ts", // Usually just re-exports
+  ],
+  
+  // Module name mapping
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",
+    // Handle CSS modules
+    "\\.(css|less|scss|sass)$": "identity-obj-proxy",
   },
+  
+  // Test environment setup
+  testEnvironmentOptions: {
+    customExportConditions: ["node", "node-addons"],
+  },
+  
+  // Increase timeout for stability
+  testTimeout: 10000,
+  
+  // Better error reporting
+  verbose: false,
+  silent: false,
+  
+  // Transform configuration
+  transform: {
+    "^.+\\.(ts|tsx)$": ["ts-jest", {
+      useESM: true,
+    }],
+  },
+  
+  // File extensions Jest will process
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
+  
+  // Ignore patterns for faster test runs
+  testPathIgnorePatterns: [
+    "<rootDir>/.next/",
+    "<rootDir>/node_modules/",
+    "<rootDir>/coverage/",
+  ],
+  
+  // Clear mocks between tests for isolation
+  clearMocks: true,
+  restoreMocks: true,
 };
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async
