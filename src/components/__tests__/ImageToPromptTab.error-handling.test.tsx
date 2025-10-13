@@ -1,6 +1,6 @@
 import React from "react";
 import "@testing-library/jest-dom";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render } from "@testing-library/react";
 import { ImageToPromptTab } from "@/components/ImageToPromptTab";
 import * as openrouter from "@/lib/openrouter";
 import * as storage from "@/lib/storage";

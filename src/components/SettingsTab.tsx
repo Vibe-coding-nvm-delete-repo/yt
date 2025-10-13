@@ -283,7 +283,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   //   });
   // };
 
-  const toggleModelExpansion = (index: number) => {
+  const toggleModelExpansion = useCallback((index: number) => {
     setExpandedModels((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(index)) {
@@ -293,7 +293,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       }
       return newSet;
     });
-  };
+  }, []);
 
   const renderApiKeysTab = useCallback(
     () => (

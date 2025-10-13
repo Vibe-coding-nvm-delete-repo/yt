@@ -1,12 +1,11 @@
 import { renderHook, act } from "@testing-library/react";
 import { useSettings } from "@/hooks/useSettings";
-import { settingsStorage } from "@/lib/storage";
 import type { AppSettings } from "@/types";
 
 // Mock storage class
 class MockSettingsStorage {
   private settings = {} as AppSettings;
-  private listeners = [] as Function[];
+  private listeners = [] as Array<() => void>;
 
   getSettings() {
     return this.settings;
