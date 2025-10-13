@@ -304,11 +304,12 @@ export class SettingsStorage {
       this.settings.pinnedModels = [];
     }
 
-    if (
-      !this.settings.pinnedModels.includes(modelId) &&
-      this.settings.pinnedModels.length < 5
-    ) {
-      this.settings.pinnedModels.push(modelId);
+    if (!this.settings.pinnedModels.includes(modelId)) {
+      // Add to front and cap at 9
+      this.settings.pinnedModels = [
+        modelId,
+        ...this.settings.pinnedModels,
+      ].slice(0, 9);
       this.saveSettings();
     }
   }
