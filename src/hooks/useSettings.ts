@@ -53,7 +53,7 @@ export const useSettings = (subscribeToKeys?: (keyof AppSettings)[]) => {
     setSettings(storedSettings);
     setIsInitialized(true);
 
-    // Subscribe with selective updates
+    // Subscribe with selective updates - FIX: Add proper callback function
     const unsubscribe = settingsStorage.subscribe(
       (newSettings, oldSettings, changedKeys) => {
         // Only update if settings actually changed and we care about the keys
@@ -140,6 +140,11 @@ export const useSettings = (subscribeToKeys?: (keyof AppSettings)[]) => {
     return settingsStorage.getPinnedModels();
   }, []);
 
+  // Simple subscribe function that matches the expected signature
+  const subscribe = useCallback((callback: () => void) => {
+    return settingsStorage.subscribe(callback);
+  }, []);
+
   // Return memoized values and functions
   return useMemo(() => ({
     settings: memoizedSettings,
@@ -159,7 +164,7 @@ export const useSettings = (subscribeToKeys?: (keyof AppSettings)[]) => {
     getModelById,
     getSelectedModel,
     getPinnedModels,
-    subscribe: settingsStorage.subscribe.bind(settingsStorage),
+    subscribe,
   }), [
     memoizedSettings, 
     isInitialized, 
@@ -177,7 +182,8 @@ export const useSettings = (subscribeToKeys?: (keyof AppSettings)[]) => {
     shouldRefreshModels,
     getModelById,
     getSelectedModel,
-    getPinnedModels
+    getPinnedModels,
+    subscribe
   ]);
 };
 
