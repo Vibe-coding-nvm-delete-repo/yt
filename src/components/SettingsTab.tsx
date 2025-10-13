@@ -6,6 +6,7 @@ import { settingsStorage } from '@/lib/storage';
 import { createOpenRouterClient, isValidApiKeyFormat } from '@/lib/openrouter';
 import { RefreshCw, Search, ChevronDown } from 'lucide-react';
 import { SettingsApiKeys } from '@/components/settings/SettingsApiKeys';
+import { useSettings as useSettingsHook } from '@/hooks/useSettings';
 
 interface SettingsTabProps {
   settings: AppSettings;
@@ -31,6 +32,18 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   settings,
   onSettingsUpdate,
 }) => {
+  // Use the canonical settings hook for update operations and subscription.
+  // We keep the existing props-based settings for backwards compatibility with parent components.
+  const settingsHook = useSettingsHook();
+  const {
+    updateApiKey: hookUpdateApiKey,
+    validateApiKey: hookValidateApiKey,
+    updateSelectedModel: hookUpdateSelectedModel,
+    updateCustomPrompt: hookUpdateCustomPrompt,
+    updateModels: hookUpdateModels,
+    subscribe: hookSubscribe,
+  } = settingsHook;
+
   const [activeSubTab, setActiveSubTab] = useState<SettingsSubTab>('api-keys');
   const [apiKey, setApiKey] = useState(settings.openRouterApiKey);
   const [customPrompt, setCustomPrompt] = useState(settings.customPrompt);
@@ -54,7 +67,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
 
   // Handle settings updates from storage
   useEffect(() => {
-    const unsubscribe = settingsStorage.subscribe(() => {
+    const unsubscribe = hookSubscribe(() => {
       const updatedSettings = settingsStorage.getSettings();
       onSettingsUpdate(updatedSettings);
       
@@ -78,7 +91,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (customPrompt !== settings.customPrompt) {
-        settingsStorage.updateCustomPrompt(customPrompt);
+        hookUpdateCustomPrompt(customPrompt);
       }
     }, 500);
 
@@ -88,7 +101,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   // Auto-save selected model
   useEffect(() => {
     if (selectedModel !== settings.selectedModel) {
-      settingsStorage.updateSelectedModel(selectedModel);
+      hookUpdateSelectedModel(selectedModel);
     }
   }, [selectedModel, settings.selectedModel]);
 
@@ -116,7 +129,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
 
   const handleApiKeyChange = (value: string) => {
     setApiKey(value);
-    settingsStorage.updateApiKey(value);
+    hookUpdateApiKey(value);
     
     // Reset validation when API key changes
     if (value !== settings.openRouterApiKey) {
@@ -163,7 +176,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         error: null,
       });
       
-      settingsStorage.validateApiKey(isValid);
+      hookValidateApiKey(isValid);
     } catch (error) {
       console.error('API validation error:', error);
       setValidationState({
@@ -201,7 +214,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         error: null,
       }));
       
-      settingsStorage.updateModels(models);
+      hookUpdateModels(models);
       
       // Auto-select first model if none selected
       if (!selectedModel && models.length > 0) {

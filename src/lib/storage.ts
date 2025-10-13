@@ -377,34 +377,3 @@ export class ImageStateStorage {
 // Export singleton instance
 export const settingsStorage = SettingsStorage.getInstance();
 export const imageStateStorage = ImageStateStorage.getInstance();
-
-// React hook for using settings
-export const useSettings = () => {
-  const getSettings = () => settingsStorage.getSettings();
-  
-  const updateApiKey = (apiKey: string) => settingsStorage.updateApiKey(apiKey);
-  const validateApiKey = (isValid: boolean) => settingsStorage.validateApiKey(isValid);
-  const updateSelectedModel = (modelId: string) => settingsStorage.updateSelectedModel(modelId);
-  const updateCustomPrompt = (prompt: string) => settingsStorage.updateCustomPrompt(prompt);
-  const updateModels = (models: VisionModel[]) => settingsStorage.updateModels(models);
-  const clearSettings = () => settingsStorage.clearSettings();
-  const shouldRefreshModels = () => settingsStorage.shouldRefreshModels();
-  const getModelById = (modelId: string) => settingsStorage.getModelById(modelId);
-  const getSelectedModel = () => settingsStorage.getSelectedModel();
-
-  return {
-    getSettings,
-    updateApiKey,
-    validateApiKey,
-    updateSelectedModel,
-    updateCustomPrompt,
-    updateModels,
-    updatePreferredModels: (modelIds: string[]) => settingsStorage.updatePreferredModels(modelIds),
-    clearSettings,
-    shouldRefreshModels,
-    getModelById,
-    getSelectedModel,
-    getPreferredModels: () => settingsStorage.getPreferredModels(),
-    subscribe: settingsStorage.subscribe.bind(settingsStorage),
-  };
-};
