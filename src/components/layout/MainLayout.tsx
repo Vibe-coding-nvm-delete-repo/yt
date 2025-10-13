@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { TabNavigation } from './TabNavigation';
-import { TabState } from '@/types';
+import React from "react";
+import { TabNavigation } from "./TabNavigation";
+import type { TabState } from "@/types";
 
 interface MainLayoutProps {
   children: React.ReactNode;
-  activeTab: TabState['activeTab'];
-  onTabChange: (tab: TabState['activeTab']) => void;
+  activeTab: TabState["activeTab"];
+  onTabChange: (tab: TabState["activeTab"]) => void;
 }
 
 export const MainLayout: React.FC<MainLayoutProps> = ({
@@ -54,9 +54,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
-            <div>
-              © 2025 Image to Prompt Generator. All rights reserved.
-            </div>
+            <div>© 2025 Image to Prompt Generator. All rights reserved.</div>
             <div className="flex items-center space-x-4">
               <a
                 href="https://openrouter.ai"

@@ -1,12 +1,20 @@
-'use client';
+"use client";
 
-import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { AppSettings, ImageUploadState, GenerationState } from '@/types';
-import { createOpenRouterClient } from '@/lib/openrouter';
-import { imageStateStorage } from '@/lib/storage';
-import { Upload, X, Loader2, Copy, CheckCircle, AlertCircle, Image as ImageIcon } from 'lucide-react';
-import Image from 'next/image';
-import { Tooltip } from '@/components/common/Tooltip';
+import React, { useState, useRef, useCallback, useEffect } from "react";
+import type { AppSettings, ImageUploadState, GenerationState } from "@/types";
+import { createOpenRouterClient } from "@/lib/openrouter";
+import { imageStateStorage } from "@/lib/storage";
+import {
+  Upload,
+  X,
+  Loader2,
+  Copy,
+  CheckCircle,
+  AlertCircle,
+  Image as ImageIcon,
+} from "lucide-react";
+import Image from "next/image";
+import { Tooltip } from "@/components/common/Tooltip";
 
 interface ImageToPromptTabProps {
   settings: AppSettings;
@@ -28,16 +36,16 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   });
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
   const [uploadTimestamp, setUploadTimestamp] = useState<Date | null>(null);
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
 
   // Load persisted image state on mount
   useEffect(() => {
     const persistedState = imageStateStorage.getImageState();
-    
+
     if (persistedState.preview) {
-      setUploadState(prev => ({
+      setUploadState((prev) => ({
         ...prev,
         preview: persistedState.preview,
         file: null, // File object can't be persisted, but we have the preview
@@ -45,7 +53,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
     }
 
     if (persistedState.generatedPrompt) {
-      setGenerationState(prev => ({
+      setGenerationState((prev) => ({
         ...prev,
         generatedPrompt: persistedState.generatedPrompt,
       }));
@@ -54,15 +62,21 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
 
   const validateFile = (file: File): string | null => {
     // Check file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    const allowedTypes = [
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/webp",
+      "image/gif",
+    ];
     if (!allowedTypes.includes(file.type)) {
-      return 'Invalid file type. Please upload a JPEG, PNG, WebP, or GIF image.';
+      return "Invalid file type. Please upload a JPEG, PNG, WebP, or GIF image.";
     }
 
     // Check file size (max 10MB)
     const maxSize = 10 * 1024 * 1024; // 10MB in bytes
     if (file.size > maxSize) {
-      return 'File size too large. Please upload an image smaller than 10MB.';
+      return "File size too large. Please upload an image smaller than 10MB.";
     }
 
     return null;
@@ -75,10 +89,10 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
         if (e.target?.result) {
           resolve(e.target.result as string);
         } else {
-          reject(new Error('Failed to read file'));
+          reject(new Error("Failed to read file"));
         }
       };
-      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.onerror = () => reject(new Error("Failed to read file"));
       reader.readAsDataURL(file);
     });
   };
@@ -86,14 +100,14 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   const handleFileSelect = useCallback(async (file: File) => {
     const validationError = validateFile(file);
     if (validationError) {
-      setUploadState(prev => ({
+      setUploadState((prev) => ({
         ...prev,
         error: validationError,
       }));
       return;
     }
 
-    setUploadState(prev => ({
+    setUploadState((prev) => ({
       ...prev,
       isUploading: true,
       error: null,
@@ -101,7 +115,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
 
     try {
       const dataUrl = await readFileAsDataURL(file);
-      
+
       // Save to state
       setUploadState({
         file,
@@ -118,43 +132,56 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
         dataUrl,
         file.name,
         file.size,
-        file.type
+        file.type,
       );
     } catch (error) {
-      setUploadState(prev => ({
+      setUploadState((prev) => ({
         ...prev,
         isUploading: false,
-        error: error instanceof Error ? error.message : 'Failed to process image',
+        error:
+          error instanceof Error ? error.message : "Failed to process image",
       }));
     }
   }, []);
 
-  const handleFileInput = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      handleFileSelect(file);
-    }
-  }, [handleFileSelect]);
+  const handleFileInput = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (file) {
+        handleFileSelect(file);
+      }
+    },
+    [handleFileSelect],
+  );
 
-  const handleDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-  }, []);
+  const handleDragOver = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      event.stopPropagation();
+    },
+    [],
+  );
 
-  const handleDragLeave = useCallback((event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-  }, []);
+  const handleDragLeave = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      event.stopPropagation();
+    },
+    [],
+  );
 
-  const handleDrop = useCallback((event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
+  const handleDrop = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      event.stopPropagation();
 
-    const files = event.dataTransfer.files;
-    if (files.length > 0) {
-      handleFileSelect(files[0]);
-    }
-  }, [handleFileSelect]);
+      const files = event.dataTransfer.files;
+      if (files.length > 0) {
+        handleFileSelect(files[0]);
+      }
+    },
+    [handleFileSelect],
+  );
 
   // Handle click anywhere in drop zone to trigger file input
   const handleDropZoneClick = useCallback(() => {
@@ -164,15 +191,20 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   }, [uploadState.isUploading]);
 
   const generatePrompt = useCallback(async () => {
-    if (!uploadState.preview || !settings.selectedModel || !settings.isValidApiKey) {
-      setGenerationState(prev => ({
+    if (
+      !uploadState.preview ||
+      !settings.selectedModel ||
+      !settings.isValidApiKey
+    ) {
+      setGenerationState((prev) => ({
         ...prev,
-        error: 'Please ensure you have a valid API key, selected a model, and uploaded an image.',
+        error:
+          "Please ensure you have a valid API key, selected a model, and uploaded an image.",
       }));
       return;
     }
 
-    setGenerationState(prev => ({
+    setGenerationState((prev) => ({
       ...prev,
       isGenerating: true,
       error: null,
@@ -183,7 +215,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
       const prompt = await client.generateImagePrompt(
         uploadState.preview,
         settings.customPrompt,
-        settings.selectedModel
+        settings.selectedModel,
       );
 
       setGenerationState({
@@ -198,7 +230,8 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
       setGenerationState({
         isGenerating: false,
         generatedPrompt: null,
-        error: error instanceof Error ? error.message : 'Failed to generate prompt',
+        error:
+          error instanceof Error ? error.message : "Failed to generate prompt",
       });
     }
   }, [uploadState.preview, settings]);
@@ -216,13 +249,13 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
       error: null,
     });
     setUploadTimestamp(null);
-    
+
     // Clear from localStorage
     imageStateStorage.clearImageState();
-    
+
     // Reset file input
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = "";
     }
   }, []);
 
@@ -234,22 +267,26 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
       setCopiedToClipboard(true);
       setTimeout(() => setCopiedToClipboard(false), 2000);
     } catch (error) {
-      console.error('Failed to copy to clipboard:', error);
+      console.error("Failed to copy to clipboard:", error);
     }
   }, [generationState.generatedPrompt]);
 
   const formatTimestamp = (date: Date): string => {
-    return date.toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
+    return date.toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
       hour12: true,
     });
   };
 
-  const isGenerateDisabled = !uploadState.preview || !settings.selectedModel || !settings.isValidApiKey || generationState.isGenerating;
+  const isGenerateDisabled =
+    !uploadState.preview ||
+    !settings.selectedModel ||
+    !settings.isValidApiKey ||
+    generationState.isGenerating;
 
   // Calculate character count
   const charCount = generationState.generatedPrompt?.length || 0;
@@ -272,7 +309,8 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
                 API Key Required
               </h2>
               <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
-                Please add and validate your OpenRouter API key in the Settings tab to start generating prompts.
+                Please add and validate your OpenRouter API key in the Settings
+                tab to start generating prompts.
               </p>
             </div>
           </div>
@@ -288,7 +326,8 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
                 Model Selection Required
               </h2>
               <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
-                Please select a vision model in the Settings tab to start generating prompts.
+                Please select a vision model in the Settings tab to start
+                generating prompts.
               </p>
             </div>
           </div>
@@ -322,16 +361,17 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
             onClick={handleDropZoneClick}
             className={`
               border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer
-              ${uploadState.isUploading
-                ? 'border-gray-300 bg-gray-50 dark:border-gray-600 dark:bg-gray-800'
-                : 'border-gray-300 hover:border-gray-400 dark:border-gray-600 dark:hover:border-gray-500 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750'
+              ${
+                uploadState.isUploading
+                  ? "border-gray-300 bg-gray-50 dark:border-gray-600 dark:bg-gray-800"
+                  : "border-gray-300 hover:border-gray-400 dark:border-gray-600 dark:hover:border-gray-500 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750"
               }
             `}
             role="button"
             tabIndex={0}
             aria-label="Upload image - Click to browse or drag and drop"
             onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
+              if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
                 handleDropZoneClick();
               }
@@ -340,7 +380,9 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
             {uploadState.isUploading ? (
               <div className="flex flex-col items-center space-y-3">
                 <Loader2 className="h-12 w-12 text-gray-400 animate-spin" />
-                <p className="text-gray-600 dark:text-gray-400">Processing image...</p>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Processing image...
+                </p>
               </div>
             ) : (
               <div className="flex flex-col items-center space-y-3">
@@ -376,7 +418,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
                   width={800}
                   height={600}
                   className="max-w-full h-auto object-contain"
-                  style={{ maxHeight: '600px' }}
+                  style={{ maxHeight: "600px" }}
                 />
               </div>
               <button
@@ -392,22 +434,37 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
             {uploadState.file && (
               <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm space-y-1">
                 <div className="text-gray-900 dark:text-white">
-                  <span className="font-medium text-gray-700 dark:text-gray-300">File:</span> {uploadState.file.name}
+                  <span className="font-medium text-gray-700 dark:text-gray-300">
+                    File:
+                  </span>{" "}
+                  {uploadState.file.name}
                 </div>
                 <div className="text-gray-900 dark:text-white">
-                  <span className="font-medium text-gray-700 dark:text-gray-300">Size:</span> {(uploadState.file.size / 1024 / 1024).toFixed(2)} MB
+                  <span className="font-medium text-gray-700 dark:text-gray-300">
+                    Size:
+                  </span>{" "}
+                  {(uploadState.file.size / 1024 / 1024).toFixed(2)} MB
                 </div>
                 <div className="text-gray-900 dark:text-white">
-                  <span className="font-medium text-gray-700 dark:text-gray-300">Type:</span> {uploadState.file.type}
+                  <span className="font-medium text-gray-700 dark:text-gray-300">
+                    Type:
+                  </span>{" "}
+                  {uploadState.file.type}
                 </div>
                 {uploadTimestamp && (
                   <div className="text-gray-900 dark:text-white">
-                    <span className="font-medium text-gray-700 dark:text-gray-300">Uploaded:</span> {formatTimestamp(uploadTimestamp)}
+                    <span className="font-medium text-gray-700 dark:text-gray-300">
+                      Uploaded:
+                    </span>{" "}
+                    {formatTimestamp(uploadTimestamp)}
                   </div>
                 )}
                 {generationState.generatedPrompt && (
                   <div className="text-gray-900 dark:text-white">
-                    <span className="font-medium text-gray-700 dark:text-gray-300">Length:</span> {charCount}/1500
+                    <span className="font-medium text-gray-700 dark:text-gray-300">
+                      Length:
+                    </span>{" "}
+                    {charCount}/1500
                   </div>
                 )}
               </div>
@@ -417,7 +474,9 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
 
         {uploadState.error && (
           <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-            <p className="text-sm text-red-600 dark:text-red-400">{uploadState.error}</p>
+            <p className="text-sm text-red-600 dark:text-red-400">
+              {uploadState.error}
+            </p>
           </div>
         )}
       </div>
@@ -437,9 +496,10 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
           disabled={isGenerateDisabled}
           className={`
             w-full flex items-center justify-center px-6 py-3 rounded-lg font-medium transition-colors
-            ${isGenerateDisabled
-              ? 'bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-600 dark:text-gray-400'
-              : 'bg-blue-600 text-white hover:bg-blue-700'
+            ${
+              isGenerateDisabled
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-600 dark:text-gray-400"
+                : "bg-blue-600 text-white hover:bg-blue-700"
             }
           `}
         >
@@ -449,13 +509,15 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
               Generating Prompt...
             </>
           ) : (
-            'Generate Prompt'
+            "Generate Prompt"
           )}
         </button>
 
         {generationState.error && (
           <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-            <p className="text-sm text-red-600 dark:text-red-400">{generationState.error}</p>
+            <p className="text-sm text-red-600 dark:text-red-400">
+              {generationState.error}
+            </p>
           </div>
         )}
       </div>
@@ -467,15 +529,15 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
             <CheckCircle className="mr-2 h-5 w-5 text-green-600" />
             Generated Prompt
           </h2>
-          
+
           <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
             {/* Character Counter */}
             <div className="mb-3">
-              <span 
+              <span
                 className={`text-lg font-semibold ${
-                  isOverLimit 
-                    ? 'text-red-600 dark:text-red-400' 
-                    : 'text-green-600 dark:text-green-400'
+                  isOverLimit
+                    ? "text-red-600 dark:text-red-400"
+                    : "text-green-600 dark:text-green-400"
                 }`}
               >
                 {charCount}/{charLimit}
