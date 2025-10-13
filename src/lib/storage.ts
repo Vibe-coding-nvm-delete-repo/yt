@@ -88,6 +88,12 @@ export class SettingsStorage {
         preferredModels: Array.isArray(parsed.preferredModels)
           ? parsed.preferredModels
           : [],
+        selectedVisionModels: Array.isArray(parsed.selectedVisionModels)
+          ? parsed.selectedVisionModels
+          : [],
+        pinnedModels: Array.isArray(parsed.pinnedModels)
+          ? parsed.pinnedModels
+          : [],
         // Ensure numeric values are correct
         lastApiKeyValidation: parsed.lastApiKeyValidation
           ? Number(parsed.lastApiKeyValidation)
@@ -141,6 +147,12 @@ export class SettingsStorage {
             : [],
           preferredModels: Array.isArray(newSettings.preferredModels)
             ? newSettings.preferredModels
+            : [],
+          selectedVisionModels: Array.isArray(newSettings.selectedVisionModels)
+            ? newSettings.selectedVisionModels
+            : [],
+          pinnedModels: Array.isArray(newSettings.pinnedModels)
+            ? newSettings.pinnedModels
             : [],
           lastApiKeyValidation: newSettings.lastApiKeyValidation
             ? Number(newSettings.lastApiKeyValidation)
@@ -291,6 +303,12 @@ export class SettingsStorage {
           : [],
         preferredModels: Array.isArray(imported.preferredModels)
           ? imported.preferredModels
+          : [],
+        selectedVisionModels: Array.isArray(imported.selectedVisionModels)
+          ? imported.selectedVisionModels
+          : [],
+        pinnedModels: Array.isArray(imported.pinnedModels)
+          ? imported.pinnedModels
           : [],
         lastApiKeyValidation: imported.lastApiKeyValidation
           ? Number(imported.lastApiKeyValidation)

@@ -10,7 +10,6 @@ import { Tooltip } from '@/components/common/Tooltip';
 import { useSettings as useSettingsHook } from '@/hooks/useSettings';
 import React, { useState, useEffect, useCallback } from "react";
 import type { AppSettings, ValidationState, ModelState } from "@/types";
-import { VisionModel } from "@/types";
 import { settingsStorage } from "@/lib/storage";
 import { createOpenRouterClient, isValidApiKeyFormat } from "@/lib/openrouter";
 import {
@@ -68,7 +67,6 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   const {
     updateApiKey: hookUpdateApiKey,
     validateApiKey: hookValidateApiKey,
-    updateSelectedModel: hookUpdateSelectedModel,
     updateCustomPrompt: hookUpdateCustomPrompt,
     updateModels: hookUpdateModels,
     subscribe: hookSubscribe,
@@ -307,18 +305,19 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     [],
   );
 
-  const toggleModelSelection = (modelId: string) => {
-    setSelectedVisionModels((prev) => {
-      if (prev.includes(modelId)) {
-        return prev.filter((id) => id !== modelId);
-      } else if (prev.length < 5) {
-        return [...prev, modelId];
-      }
-      return prev;
-    });
-  };
+  // Reserved for future multi-select checkbox functionality
+  // const toggleModelSelection = (modelId: string) => {
+  //   setSelectedVisionModels((prev) => {
+  //     if (prev.includes(modelId)) {
+  //       return prev.filter((id) => id !== modelId);
+  //     } else if (prev.length < 5) {
+  //       return [...prev, modelId];
+  //     }
+  //     return prev;
+  //   });
+  // };
 
-  const toggleModelExpansion = (index: number) => {
+  const toggleModelExpansion = useCallback((index: number) => {
     setExpandedModels((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(index)) {
@@ -328,7 +327,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       }
       return newSet;
     });
-  };
+  }, []);
 
   const renderApiKeysTab = useCallback(
     () => (

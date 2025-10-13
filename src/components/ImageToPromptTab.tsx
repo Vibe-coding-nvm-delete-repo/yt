@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect } from "react";
-import type { AppSettings, VisionModel } from "@/types";
+import type { AppSettings } from "@/types";
 import { createOpenRouterClient } from "@/lib/openrouter";
 import { imageStateStorage } from "@/lib/storage";
 import calculateGenerationCost from "@/lib/cost";
@@ -26,7 +26,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   settings,
 }) => {
   const [uploadedImage, setUploadedImage] = useState<{
-    file: File;
+    file: File | null;
     preview: string;
   } | null>(null);
   const [modelResults, setModelResults] = useState<ModelResult[]>([]);
@@ -63,7 +63,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
     const persisted = imageStateStorage.getImageState();
     if (persisted && persisted.preview) {
       setUploadedImage({
-        file: null as any, // We don't have the file object from storage
+        file: null, // We don't have the file object from storage
         preview: persisted.preview,
       });
     }
@@ -426,7 +426,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
       {/* Model Results */}
       {modelResults.length > 0 && (
         <div className="space-y-4">
-          {modelResults.map((result, index) => (
+          {modelResults.map((result) => (
             <div
               key={result.modelId}
               className="p-4 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"

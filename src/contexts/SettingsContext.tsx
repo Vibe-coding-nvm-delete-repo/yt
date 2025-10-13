@@ -7,7 +7,7 @@ import React, {
   useState,
   type ReactNode,
 } from "react";
-import type { AppSettings } from "@/types";
+import type { AppSettings, VisionModel } from "@/types";
 
 interface SettingsContextValue {
   settings: AppSettings;
@@ -15,11 +15,11 @@ interface SettingsContextValue {
   validateApiKey: (isValid: boolean) => void;
   updateSelectedModel: (modelId: string) => void;
   updateCustomPrompt: (prompt: string) => void;
-  updateModels: (models: import("@/types").VisionModel[]) => void;
+  updateModels: (models: VisionModel[]) => void;
   clearSettings: () => void;
   shouldRefreshModels: () => boolean;
-  getModelById: (modelId: string) => import("@/types").VisionModel | null;
-  getSelectedModel: () => import("@/types").VisionModel | null;
+  getModelById: (modelId: string) => VisionModel | null;
+  getSelectedModel: () => VisionModel | null;
   subscribe: (listener: () => void) => () => void;
 }
 
@@ -165,7 +165,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
     saveSettings({ ...settings, customPrompt: prompt });
   };
 
-  const updateModels = (models: import("@/types").VisionModel[]) => {
+  const updateModels = (models: VisionModel[]) => {
     saveSettings({
       ...settings,
       availableModels: models,

@@ -1,15 +1,14 @@
-import runWithConcurrency from '@/lib/batchQueue';
+import runWithConcurrency from "@/lib/batchQueue";
 
-describe('runWithConcurrency', () => {
+describe("runWithConcurrency", () => {
   beforeEach(() => {
-    jest.useFakeTimers();
+    // Don't use fake timers - causes deadlocks
+    jest.resetAllMocks();
   });
 
-  afterEach(() => {
-    jest.useRealTimers();
-  });
+  afterEach(() => {});
 
-  test('runs tasks with concurrency limit', async () => {
+  test("runs tasks with concurrency limit", async () => {
     const tasks = [
       () => Promise.resolve(1),
       () => Promise.resolve(2),
@@ -21,10 +20,10 @@ describe('runWithConcurrency', () => {
     expect(results.results).toEqual([1, 2, 3, 4]);
   });
 
-  test('handles task failures gracefully', async () => {
+  test("handles task failures gracefully", async () => {
     const tasks = [
       () => Promise.resolve(1),
-      () => Promise.reject(new Error('Task failed')),
+      () => Promise.reject(new Error("Task failed")),
       () => Promise.resolve(3),
     ];
 
@@ -35,73 +34,73 @@ describe('runWithConcurrency', () => {
     expect(results.results[2]).toBe(3);
   });
 
-  test('respects concurrency limit', async () => {
+  test("respects concurrency limit", async () => {
     const running: number[] = [];
     const completed: number[] = [];
 
     const tasks = Array.from({ length: 4 }, (_, i) => async () => {
       running.push(i);
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
       completed.push(i);
       running.splice(running.indexOf(i), 1);
       return i;
     });
 
     const promise = runWithConcurrency(tasks, { concurrency: 2 });
-    
+
     // After starting, only 2 tasks should be running
     await Promise.resolve(); // Let the first batch start
     expect(running).toHaveLength(2);
-    
+
     jest.advanceTimersByTime(100);
     await promise;
-    
+
     expect(completed).toEqual([0, 1, 2, 3]);
   });
 
-  test('cancels tasks when signal is aborted', async () => {
+  test("cancels tasks when signal is aborted", async () => {
     const controller = new AbortController();
+    // Abort before starting
+    controller.abort();
+
     const tasks = [
       () => Promise.resolve(1),
-      () => new Promise(resolve => setTimeout(() => resolve(2), 1000)),
+      () => Promise.resolve(2),
       () => Promise.resolve(3),
     ];
 
-    const promise = runWithConcurrency(tasks, { 
-      concurrency: 2,
-      signal: controller.signal 
-    });
+    try {
+      await runWithConcurrency(tasks, {
+        concurrency: 2,
+        signal: controller.signal,
+      });
+      fail("Should have thrown AbortError");
+    } catch (err) {
+      expect((err as DOMException).name).toBe("AbortError");
+    }
+  }, 10000);
 
-    controller.abort();
-    
-    const results = await promise;
-    expect(results.results).toHaveLength(3);
-    // The second task might be an error due to abort
-    expect(results.results[0]).toBe(1);
-    expect(results.results[2]).toBe(3);
-  });
-
-  test('retries failed tasks', async () => {
+  test("retries failed tasks", async () => {
     let attempts = 0;
     const task = () => {
       attempts++;
       if (attempts <= 2) {
-        return Promise.reject(new Error('Temporary failure'));
+        return Promise.reject(new Error("Temporary failure"));
       }
-      return Promise.resolve('success');
+      return Promise.resolve("success");
     };
 
-    const results = await runWithConcurrency([task], { 
+    const results = await runWithConcurrency([task], {
       concurrency: 1,
       retryAttempts: 3,
-      retryDelay: 100 
+      retryDelay: 100,
     });
 
-    expect(results.results[0]).toBe('success');
+    expect(results.results[0]).toBe("success");
     expect(attempts).toBe(3);
   });
 
-  test('calls progress callback', async () => {
+  test("calls progress callback", async () => {
     const progressCallback = jest.fn();
     const tasks = [
       () => Promise.resolve(1),
@@ -109,13 +108,15 @@ describe('runWithConcurrency', () => {
       () => Promise.resolve(3),
     ];
 
-    await runWithConcurrency(tasks, { 
+    await runWithConcurrency(tasks, {
       concurrency: 2,
-      onProgress: progressCallback 
+      onProgress: progressCallback,
     });
 
-    expect(progressCallback).toHaveBeenCalledWith(1);
-    expect(progressCallback).toHaveBeenCalledWith(2);
-    expect(progressCallback).toHaveBeenCalledWith(3);
+    // Progress is called with (completed, total)
+    expect(progressCallback).toHaveBeenCalledTimes(3);
+    expect(progressCallback).toHaveBeenCalledWith(1, 3);
+    expect(progressCallback).toHaveBeenCalledWith(2, 3);
+    expect(progressCallback).toHaveBeenCalledWith(3, 3);
   });
 });
