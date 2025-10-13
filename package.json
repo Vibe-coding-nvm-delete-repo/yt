@@ -12,7 +12,11 @@
     "format": "prettier --write .",
     "test": "jest",
     "typecheck": "tsc --noEmit",
-    "check:ci": "npm run lint -- --max-warnings=0 && npm run typecheck && npm test"
+    "jsx:check": "tsc --noEmit --jsx react",
+    "lint:tsx": "eslint 'src/**/*.{tsx}' --max-warnings=0",
+    "build:local": "next build --turbopack",
+    "check:ci": "npm run lint -- --max-warnings=0 && npm run typecheck && npm test",
+    "check:jsxsyntax": "npm run jsx:check && npm run lint:tsx && npm run build:local"
   },
   "dependencies": {
     "@radix-ui/react-tooltip": "^1.2.8",
