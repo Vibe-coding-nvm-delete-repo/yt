@@ -1,0 +1,6 @@
+# Dependency Review configuration
+# Use a single policy (deny-licenses) to avoid conflicts with allow-licenses.
+# Ref: https://github.com/actions/dependency-review-action
+version: 3
+deny-licenses:
+  - MS-PL
