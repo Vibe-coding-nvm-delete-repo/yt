@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { Play, Settings } from "lucide-react";
 import type { TabState } from "@/types";
 import { Image, Settings } from "lucide-react";
 

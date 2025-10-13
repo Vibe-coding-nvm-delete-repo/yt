@@ -16,20 +16,15 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   onTabChange,
 }) => {
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       {/* Header */}
-      <header className="bg-white dark:bg-gray-800 shadow-sm">
+      <header className="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center">
               <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
-                Image to Prompt Generator
+                YouTube Tools
               </h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="text-sm text-gray-500 dark:text-gray-400">
-                Powered by OpenRouter
-              </div>
             </div>
           </div>
         </div>
@@ -51,20 +46,10 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       </main>
 
       {/* Footer */}
-      <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
+      <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto sticky bottom-0">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
-            <div>© 2025 Image to Prompt Generator. All rights reserved.</div>
-            <div className="flex items-center space-x-4">
-              <a
-                href="https://openrouter.ai"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
-              >
-                OpenRouter API
-              </a>
-            </div>
+          <div className="flex items-center justify-center text-sm text-gray-500 dark:text-gray-400">
+            <div>© 2025 YouTube Tools. All rights reserved.</div>
           </div>
         </div>
       </footer>

@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { AppSettings, ValidationState, ModelState } from '@/types';
 import { settingsStorage } from '@/lib/storage';
 import { createOpenRouterClient, isValidApiKeyFormat } from '@/lib/openrouter';
-import { RefreshCw, Search, ChevronDown, Key, CheckCircle, Eye, EyeOff, Download, Upload, XCircle } from 'lucide-react';
+import { RefreshCw, Search, ChevronDown } from 'lucide-react';
 import { Tooltip } from '@/components/common/Tooltip';
 import { SettingsApiKeys } from '@/components/settings/SettingsApiKeys';
 import { useSettings as useSettingsHook } from '@/hooks/useSettings';
