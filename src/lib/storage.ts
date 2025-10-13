@@ -32,7 +32,7 @@ export class SettingsStorage {
     }
   }
 
-  static getInstance(): SettingsStorage {
+  static getInstance() {
     if (!SettingsStorage.instance) {
       SettingsStorage.instance = new SettingsStorage();
     }
