@@ -21,6 +21,8 @@ export interface AppSettings {
   availableModels: VisionModel[];
   // List of preferred/pinned model ids for quick access (persisted)
   preferredModels: string[];
+  // List of user-pinned favorite models for quick access in dropdown
+  pinnedModels: string[];
 }
 
 export interface ImageUploadState {
@@ -47,7 +49,7 @@ export interface MultiImageUploadState {
   isUploading: boolean;
   error: string | null;
   assignedModelId: string; // Model assigned to this specific image
-  processingStatus: 'idle' | 'queued' | 'processing' | 'done' | 'error';
+  processingStatus: "idle" | "queued" | "processing" | "done" | "error";
   generatedPrompt: string | null;
   cost: {
     inputCost: number;
@@ -70,7 +72,7 @@ export interface ImageBatchItem {
     outputCost: number;
     totalCost: number;
   } | null;
-  status: 'queued' | 'processing' | 'done' | 'error';
+  status: "queued" | "processing" | "done" | "error";
   processingStartTime?: number;
   processingEndTime?: number;
 }
@@ -82,7 +84,7 @@ export interface ImageBatchEntry {
   items: ImageBatchItem[];
   totalCost?: number;
   schemaVersion: 1; // For future migrations
-  processingMode: 'single' | 'multi'; // Track processing mode
+  processingMode: "single" | "multi"; // Track processing mode
 }
 
 /**
@@ -98,7 +100,7 @@ export interface BatchItem {
     outputCost: number;
     totalCost: number;
   } | null;
-  status: 'pending' | 'processing' | 'done' | 'error';
+  status: "pending" | "processing" | "done" | "error";
 }
 
 export interface BatchEntry {
@@ -123,7 +125,7 @@ export interface PersistedImageState {
 }
 
 export interface TabState {
-  activeTab: 'image-to-prompt' | 'settings';
+  activeTab: "image-to-prompt" | "settings";
 }
 
 export class ApiError extends Error {
@@ -132,10 +134,10 @@ export class ApiError extends Error {
 
   constructor(message: string, code?: string, details?: unknown) {
     super(message);
-    this.name = 'ApiError';
+    this.name = "ApiError";
     this.code = code;
     this.details = details;
-    
+
     // Maintain proper stack trace (only available on V8)
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, ApiError);
