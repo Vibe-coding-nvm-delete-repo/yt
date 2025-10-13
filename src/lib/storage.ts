@@ -15,12 +15,12 @@ export const STORAGE_EVENTS = {
 } as const;
 
 type SettingsKey = keyof AppSettings;
-type SubscriptionCallback<T = AppSettings> = (newValue: T, oldValue: T, changedKeys?: SettingsKey[]) => void;
+type SubscriptionCallback = (newValue: AppSettings, oldValue: AppSettings, changedKeys?: SettingsKey[]) => void;
 type UnsubscribeFunction = () => void;
 
-interface Subscription<T = AppSettings> {
+interface Subscription {
   id: string;
-  callback: SubscriptionCallback<T>;
+  callback: SubscriptionCallback;
   keys?: SettingsKey[]; // If undefined, subscribe to all changes
   immediate?: boolean; // Call immediately with current value
 }
@@ -171,8 +171,8 @@ export class SettingsStorage {
   /**
    * Subscribe to specific settings changes with selective updates
    */
-  public subscribe<T = AppSettings>(
-    callback: SubscriptionCallback<T>,
+  public subscribe(
+    callback: SubscriptionCallback,
     options: {
       keys?: SettingsKey[];
       immediate?: boolean;
@@ -181,9 +181,9 @@ export class SettingsStorage {
     const { keys, immediate = false } = options;
     const id = `sub_${++this.subscriptionCounter}`;
     
-    const subscription: Subscription<T> = {
+    const subscription: Subscription = {
       id,
-      callback: callback as SubscriptionCallback,
+      callback,
       keys,
       immediate
     };
@@ -194,7 +194,7 @@ export class SettingsStorage {
     if (immediate) {
       const currentSettings = { ...this.settings };
       try {
-        (callback as SubscriptionCallback)(currentSettings, currentSettings, []);
+        callback(currentSettings, currentSettings, []);
       } catch (error) {
         console.error("Error in immediate subscription callback:", error);
       }
