@@ -1,164 +1,200 @@
-"use client";
+'use client';
 
-import type { ErrorInfo, ReactNode } from "react";
-import React, { Component } from "react";
-import { AlertTriangle, RefreshCw } from "lucide-react";
+import React, { Component, ReactNode, ErrorInfo } from 'react';
+import { AppError, ErrorType, createErrorFromException, ErrorSeverity } from '../types/errors';
 
 interface Props {
   children: ReactNode;
-  fallback?: ReactNode;
-  onError?: (error: Error, errorInfo: ErrorInfo) => void;
+  fallback?: (error: AppError, retry: () => void, reset: () => void) => ReactNode;
+  onError?: (error: AppError, errorInfo: ErrorInfo) => void;
+  isolate?: boolean;
+  level?: 'app' | 'page' | 'component';
 }
 
 interface State {
   hasError: boolean;
-  error: Error | null;
-  errorInfo: ErrorInfo | null;
+  error: AppError | null;
+  errorId: string | null;
+  retryCount: number;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
+  private retryTimeoutId: NodeJS.Timeout | null = null;
+  private readonly maxRetries = 3;
+  private readonly retryDelay = 1000;
+
   constructor(props: Props) {
     super(props);
     this.state = {
       hasError: false,
       error: null,
-      errorInfo: null,
+      errorId: null,
+      retryCount: 0
     };
   }
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): Partial<State> {
+    const appError = createErrorFromException(error, {
+      component: 'ErrorBoundary',
+      operation: 'render'
+    });
+
     return {
       hasError: true,
-      error,
-      errorInfo: null,
+      error: appError,
+      errorId: `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    this.setState({
-      error,
-      errorInfo,
+    const appError = createErrorFromException(error, {
+      component: errorInfo.componentStack?.split('\n')[1]?.trim(),
+      operation: 'render',
+      stackTrace: errorInfo.componentStack
     });
 
-    // Call the onError callback if provided
-    this.props.onError?.(error, errorInfo);
+    console.error('ErrorBoundary caught an error:', appError.toJSON(), errorInfo);
 
-    // Log the error to console in development
-    if (process.env.NODE_ENV === "development") {
-      console.error("ErrorBoundary caught an error:", error, errorInfo);
+    if (this.props.onError) {
+      this.props.onError(appError, errorInfo);
+    }
+
+    this.reportError(appError, errorInfo);
+  }
+
+  componentWillUnmount() {
+    if (this.retryTimeoutId) {
+      clearTimeout(this.retryTimeoutId);
     }
   }
 
-  handleReset = () => {
+  private reportError = (error: AppError, errorInfo: ErrorInfo) => {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('Error reported:', error.toJSON());
+    }
+  };
+
+  private retry = () => {
+    const { retryCount } = this.state;
+    
+    if (retryCount >= this.maxRetries) {
+      console.warn('Max retry attempts reached');
+      return;
+    }
+
+    this.setState(prevState => ({
+      retryCount: prevState.retryCount + 1
+    }));
+
+    this.retryTimeoutId = setTimeout(() => {
+      this.setState({
+        hasError: false,
+        error: null,
+        errorId: null
+      });
+    }, this.retryDelay * (retryCount + 1));
+  };
+
+  private reset = () => {
+    if (this.retryTimeoutId) {
+      clearTimeout(this.retryTimeoutId);
+    }
+
     this.setState({
       hasError: false,
       error: null,
-      errorInfo: null,
+      errorId: null,
+      retryCount: 0
     });
   };
 
-  render() {
-    if (this.state.hasError) {
-      // If a custom fallback is provided, use it
-      if (this.props.fallback) {
-        return this.props.fallback;
-      }
-
-      // Default error UI
-      return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
-          <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-            <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-red-100 dark:bg-red-900/20 rounded-full">
-              <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
-            </div>
-
-            <h2 className="text-xl font-semibold text-center text-gray-900 dark:text-white mb-2">
-              Something went wrong
-            </h2>
-
-            <p className="text-gray-600 dark:text-gray-400 text-center mb-6">
-              We&#39;re sorry, but something unexpected happened. Please try
-              refreshing the page.
-            </p>
-
-            {process.env.NODE_ENV === "development" && this.state.error && (
-              <div className="mb-6">
-                <details className="cursor-pointer">
-                  <summary className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 hover:text-gray-900 dark:hover:text-white">
-                    Error Details (Development Only)
-                  </summary>
-                  <div className="mt-2 p-3 bg-gray-100 dark:bg-gray-700 rounded-md overflow-x-auto">
-                    <p className="text-sm font-mono text-red-600 dark:text-red-400 mb-2">
-                      {this.state.error.message}
-                    </p>
-                    {this.state.errorInfo && (
-                      <pre className="text-xs text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
-                        {this.state.errorInfo.componentStack}
-                      </pre>
-                    )}
-                  </div>
-                </details>
-              </div>
-            )}
-
-            <div className="flex flex-col sm:flex-row gap-3">
-              <button
-                onClick={this.handleReset}
-                className="flex-1 flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Try Again
-              </button>
-
-              <button
-                onClick={() => window.location.reload()}
-                className="flex-1 flex items-center justify-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                Refresh Page
-              </button>
-            </div>
-          </div>
-        </div>
-      );
+  private getErrorIcon = (severity: ErrorSeverity): string => {
+    switch (severity) {
+      case ErrorSeverity.CRITICAL: return '🚨';
+      case ErrorSeverity.HIGH: return '⚠️';
+      case ErrorSeverity.MEDIUM: return '⚡';
+      case ErrorSeverity.LOW: return 'ℹ️';
+      default: return '❌';
     }
+  };
 
+  private renderDefaultFallback = (error: AppError): ReactNode => {
+    const { level = 'component' } = this.props;
+    const { retryCount } = this.state;
+    const canRetry = retryCount < this.maxRetries && error.retryable;
+
+    return (
+      <div style={{
+        padding: level === 'app' ? '2rem' : '1rem',
+        margin: '1rem',
+        borderRadius: '8px',
+        border: '1px solid #ef4444',
+        backgroundColor: '#fee2e2',
+        color: '#dc2626'
+      }} role="alert">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+          <span style={{ fontSize: '1.5rem' }}>
+            {this.getErrorIcon(error.severity)}
+          </span>
+          <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '600' }}>
+            {level === 'app' ? 'Application Error' : 'Something went wrong'}
+          </h3>
+        </div>
+
+        <p style={{ margin: '0 0 1rem 0', lineHeight: '1.5' }}>
+          {error.userMessage}
+        </p>
+
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          {canRetry && (
+            <button
+              onClick={this.retry}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              Try Again {retryCount > 0 && `(${retryCount}/${this.maxRetries})`}
+            </button>
+          )}
+
+          <button
+            onClick={this.reset}
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: '#6b7280',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            Reset
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  render() {
+    if (this.state.hasError && this.state.error) {
+      if (this.props.fallback) {
+        return this.props.fallback(this.state.error, this.retry, this.reset);
+      }
+      return this.renderDefaultFallback(this.state.error);
+    }
     return this.props.children;
   }
 }
 
-// Hook-based error boundary for functional components
-export const useErrorHandler = () => {
-  const [error, setError] = React.useState<Error | null>(null);
+export const AppErrorBoundary: React.FC<{ children: ReactNode; onError?: Props['onError'] }> = ({ children, onError }) => (
+  <ErrorBoundary level="app" onError={onError}>
+    {children}
+  </ErrorBoundary>
+);
 
-  React.useEffect(() => {
-    if (error) {
-      throw error;
-    }
-  }, [error]);
-
-  const handleError = React.useCallback((error: Error) => {
-    setError(error);
-  }, []);
-
-  const resetError = React.useCallback(() => {
-    setError(null);
-  }, []);
-
-  return { handleError, resetError };
-};
-
-// Higher-order component for error boundaries
-export const withErrorBoundary = <P extends object>(
-  Component: React.ComponentType<P>,
-  errorBoundaryProps?: Omit<Props, "children">,
-) => {
-  const WithErrorBoundary = (props: P) => (
-    <ErrorBoundary {...errorBoundaryProps}>
-      <Component {...props} />
-    </ErrorBoundary>
-  );
-
-  WithErrorBoundary.displayName = `WithErrorBoundary(${Component.displayName || Component.name})`;
-
-  return WithErrorBoundary;
-};
+export default ErrorBoundary;
