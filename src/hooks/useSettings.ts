@@ -22,6 +22,7 @@ export const useSettings = () => {
       lastModelFetch: null,
       availableModels: [],
       preferredModels: [],
+      pinnedModels: [],
     };
   });
 
