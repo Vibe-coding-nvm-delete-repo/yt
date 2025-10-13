@@ -10,6 +10,7 @@
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
     "jsx:check": "eslint . --ext .jsx,.tsx",
+    "lint:tsx": "eslint 'src/**/*.{tsx}' --max-warnings=0",
     "format": "prettier --write .",
     "test": "jest",
     "typecheck": "tsc --noEmit",
