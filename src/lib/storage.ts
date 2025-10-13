@@ -438,6 +438,14 @@ export class ImageStateStorage {
     this.saveImageState();
   }
 
+  clearGeneratedPrompt(): void {
+    this.imageState = {
+      ...this.imageState,
+      generatedPrompt: null,
+    };
+    this.saveImageState();
+  }
+
   clearImageState(): void {
     this.imageState = { ...DEFAULT_IMAGE_STATE };
     this.saveImageState();
