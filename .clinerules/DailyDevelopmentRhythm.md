@@ -4,6 +4,13 @@
 
 - Build feature → run Bug Sweep → add 1–2 tests → tiny refactor → merge.
 
+## CI/CD Fixes Implemented:
+- ✅ Fixed corrupted ESLint configuration (FlatCompat → Next.js extends)
+- ✅ Restored JSX linting rules for React safety
+- ✅ Adjusted CI to allow warnings for stability
+- ✅ Fixed TypeScript compilation errors
+- ✅ Updated CI pipeline to respect linting rules
+
 ## End of day (optional):
 
 - If you spot bigger structural pain, open tech debt issues titled “Refactor: <module>” with 3 bullets (why, scope, acceptance).
