@@ -2,6 +2,16 @@ import { AppSettings, VisionModel, PersistedImageState, BatchEntry, ImageBatchEn
 
 const STORAGE_KEY = 'image-to-prompt-settings';
 const IMAGE_STATE_KEY = 'image-to-prompt-image-state';
+import type {
+  AppSettings,
+  VisionModel,
+  PersistedImageState,
+  BatchEntry,
+  ImageBatchEntry,
+} from "@/types";
+
+const STORAGE_KEY = "image-to-prompt-settings";
+const IMAGE_STATE_KEY = "image-to-prompt-image-state";
 
 export const STORAGE_EVENTS = {
   SETTINGS_UPDATED: 'image-to-prompt-settings-updated',
@@ -12,6 +22,11 @@ const DEFAULT_SETTINGS: AppSettings = {
   openRouterApiKey: '',
   selectedModel: '',
   customPrompt: 'Describe this image in detail and suggest a good prompt for generating similar images.',
+  openRouterApiKey: "",
+  selectedModel: "",
+  selectedVisionModels: [],
+  customPrompt:
+    "Describe this image in detail and suggest a good prompt for generating similar images.",
   isValidApiKey: false,
   lastApiKeyValidation: null,
   lastModelFetch: null,
@@ -31,6 +46,8 @@ export class SettingsStorage {
     // Listen for storage events from other tabs/windows
     if (typeof window !== 'undefined') {
       window.addEventListener('storage', this.handleStorageEvent.bind(this));
+    if (typeof window !== "undefined") {
+      window.addEventListener("storage", this.handleStorageEvent.bind(this));
     }
   }
 
@@ -65,6 +82,19 @@ export class SettingsStorage {
         // Ensure numeric values are correct
         lastApiKeyValidation: parsed.lastApiKeyValidation ? Number(parsed.lastApiKeyValidation) : null,
         lastModelFetch: parsed.lastModelFetch ? Number(parsed.lastModelFetch) : null,
+        availableModels: Array.isArray(parsed.availableModels)
+          ? parsed.availableModels
+          : [],
+        preferredModels: Array.isArray(parsed.preferredModels)
+          ? parsed.preferredModels
+          : [],
+        // Ensure numeric values are correct
+        lastApiKeyValidation: parsed.lastApiKeyValidation
+          ? Number(parsed.lastApiKeyValidation)
+          : null,
+        lastModelFetch: parsed.lastModelFetch
+          ? Number(parsed.lastModelFetch)
+          : null,
       };
     } catch (error) {
       console.warn('Failed to load settings from localStorage:', error);
@@ -103,6 +133,22 @@ export class SettingsStorage {
             lastApiKeyValidation: newSettings.lastApiKeyValidation ? Number(newSettings.lastApiKeyValidation) : null,
             lastModelFetch: newSettings.lastModelFetch ? Number(newSettings.lastModelFetch) : null,
           };
+        this.settings = {
+          ...DEFAULT_SETTINGS,
+          ...newSettings,
+          availableModels: Array.isArray(newSettings.availableModels)
+            ? newSettings.availableModels
+            : [],
+          preferredModels: Array.isArray(newSettings.preferredModels)
+            ? newSettings.preferredModels
+            : [],
+          lastApiKeyValidation: newSettings.lastApiKeyValidation
+            ? Number(newSettings.lastApiKeyValidation)
+            : null,
+          lastModelFetch: newSettings.lastModelFetch
+            ? Number(newSettings.lastModelFetch)
+            : null,
+        };
         this.notifyListeners();
       } catch (error) {
         console.warn('Failed to handle storage event:', error);
@@ -124,6 +170,7 @@ export class SettingsStorage {
     // This helps tests that modify localStorage directly and expect the storage singleton
     // to pick up changes without recreating the instance.
     if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       try {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
@@ -141,6 +188,7 @@ export class SettingsStorage {
       } catch (e) {
         // If parsing fails, fall back to the in-memory settings
         console.warn('Failed to refresh settings from localStorage:', e);
+        console.warn("Failed to refresh settings from localStorage:", e);
       }
     }
 
@@ -162,6 +210,11 @@ export class SettingsStorage {
 
   updateSelectedModel(modelId: string): void {
     this.settings.selectedModel = modelId;
+    this.saveSettings();
+  }
+
+  updateSelectedVisionModels(modelIds: string[]): void {
+    this.settings.selectedVisionModels = modelIds.slice(0, 5);
     this.saveSettings();
   }
 
@@ -221,8 +274,8 @@ export class SettingsStorage {
     try {
       const imported = JSON.parse(settingsJson);
 
-      if (typeof imported !== 'object' || imported === null) {
-        throw new Error('Invalid settings format');
+      if (typeof imported !== "object" || imported === null) {
+        throw new Error("Invalid settings format");
       }
 
       this.settings = {
@@ -233,12 +286,24 @@ export class SettingsStorage {
         pinnedModels: Array.isArray(imported.pinnedModels) ? imported.pinnedModels : [],
         lastApiKeyValidation: imported.lastApiKeyValidation ? Number(imported.lastApiKeyValidation) : null,
         lastModelFetch: imported.lastModelFetch ? Number(imported.lastModelFetch) : null,
+        availableModels: Array.isArray(imported.availableModels)
+          ? imported.availableModels
+          : [],
+        preferredModels: Array.isArray(imported.preferredModels)
+          ? imported.preferredModels
+          : [],
+        lastApiKeyValidation: imported.lastApiKeyValidation
+          ? Number(imported.lastApiKeyValidation)
+          : null,
+        lastModelFetch: imported.lastModelFetch
+          ? Number(imported.lastModelFetch)
+          : null,
       };
 
       this.saveSettings();
       return true;
     } catch (error) {
-      console.error('Failed to import settings:', error);
+      console.error("Failed to import settings:", error);
       return false;
     }
   }
@@ -247,8 +312,8 @@ export class SettingsStorage {
     try {
       return JSON.stringify(this.settings);
     } catch (err) {
-      console.error('Failed to export settings:', err);
-      return '{}';
+      console.error("Failed to export settings:", err);
+      return "{}";
     }
   }
 
@@ -266,6 +331,10 @@ export class SettingsStorage {
   // Get a specific model by ID
   getModelById(modelId: string): VisionModel | null {
     return this.settings.availableModels.find(model => model.id === modelId) || null;
+    return (
+      this.settings.availableModels.find((model) => model.id === modelId) ||
+      null
+    );
   }
 
   // Get the currently selected model
@@ -383,6 +452,14 @@ export class ImageStateStorage {
     this.saveImageState();
   }
 
+  clearGeneratedPrompt(): void {
+    this.imageState = {
+      ...this.imageState,
+      generatedPrompt: null,
+    };
+    this.saveImageState();
+  }
+
   clearImageState(): void {
     this.imageState = { ...DEFAULT_IMAGE_STATE };
     this.saveImageState();
@@ -449,3 +526,36 @@ export class ImageStateStorage {
 // Export singleton instance
 export const settingsStorage = SettingsStorage.getInstance();
 export const imageStateStorage = ImageStateStorage.getInstance();
+
+export const useSettings = () => {
+  const getSettings = () => settingsStorage.getSettings();
+
+  const updateApiKey = (apiKey: string) => settingsStorage.updateApiKey(apiKey);
+  const validateApiKey = (isValid: boolean) =>
+    settingsStorage.validateApiKey(isValid);
+  const updateSelectedModel = (modelId: string) =>
+    settingsStorage.updateSelectedModel(modelId);
+  const updateCustomPrompt = (prompt: string) =>
+    settingsStorage.updateCustomPrompt(prompt);
+  const updateModels = (models: VisionModel[]) =>
+    settingsStorage.updateModels(models);
+  const clearSettings = () => settingsStorage.clearSettings();
+  const shouldRefreshModels = () => settingsStorage.shouldRefreshModels();
+  const getModelById = (modelId: string) =>
+    settingsStorage.getModelById(modelId);
+  const getSelectedModel = () => settingsStorage.getSelectedModel();
+
+  return {
+    getSettings,
+    updateApiKey,
+    validateApiKey,
+    updateSelectedModel,
+    updateCustomPrompt,
+    updateModels,
+    clearSettings,
+    shouldRefreshModels,
+    getModelById,
+    getSelectedModel,
+    subscribe: settingsStorage.subscribe.bind(settingsStorage),
+  };
+};

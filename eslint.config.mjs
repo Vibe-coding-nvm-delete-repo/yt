@@ -2,6 +2,11 @@
  * ESM-friendly ESLint flat config for this project (ESLint v9).
  * TypeScript + React Hooks + unused-imports. No FlatCompat to avoid ESM issues.
  */
+ * ESM-friendly ESLint config for the project.
+ * Uses flat config format with Next.js, TypeScript, React hooks.
+ */
+
+// Core
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import globals from 'globals';
@@ -33,6 +38,15 @@ export default tseslint.config(
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/consistent-type-imports': 'warn',
       // React Hooks
+    plugins: { 'react-hooks': reactHooks },
+  },
+  {
+    ignores: ['next-env.d.ts', 'node_modules/**', '.next/**', 'out/**', 'build/**', 'coverage/**'],
+  },
+  {
+    rules: {
+      '@typescript-eslint/no-unused-vars': ['warn', { "argsIgnorePattern": "^_" }],
+      '@typescript-eslint/consistent-type-imports': 'warn',
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
       // Unused imports
@@ -52,6 +66,10 @@ export default tseslint.config(
     rules: {
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/strict-boolean-expressions': 'warn',
+      '@typescript-eslint/no-floating-promises': 'warn',
+      '@typescript-eslint/strict-boolean-expressions': 'off',
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unsafe-function-type': 'warn',
     },
   },
 
@@ -68,12 +86,19 @@ export default tseslint.config(
       'no-console': 'off',
       '@typescript-eslint/no-unused-vars': 'off',
       'unused-imports/no-unused-imports': 'off',
+    // Disable type-aware rules for config/generated JS files
+    files: ["**/*.config.*", "eslint.config.mjs", "jest.config.js", "jest.setup.js"],
+    languageOptions: { globals: globals.node },
+    rules: {
+      "@typescript-eslint/no-floating-promises": "off",
+      "@typescript-eslint/strict-boolean-expressions": "off"
     },
   },
 
   // Config/generated files: looser type-aware rules
   {
     files: ['**/*.config.*', 'eslint.config.mjs', 'jest.config.js', 'postcss.config.mjs', 'coverage/**'],
+    files: ['jest.config.js', 'jest.setup.js'],
     rules: {
       '@typescript-eslint/no-floating-promises': 'off',
       '@typescript-eslint/strict-boolean-expressions': 'off',

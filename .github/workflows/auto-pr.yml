@@ -1,0 +1,112 @@
+name: Auto PR for task branches
+
+on:
+  push:
+    branches:
+      - "ai/**"
+      - "feat/**"
+      - "fix/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: auto-pr-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint (zero warnings)
+        run: npm run lint -- --max-warnings=0
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Tests (coverage)
+        run: npm test -- --coverage --runInBand
+
+  create_pr:
+    needs: checks
+    if: ${{ needs.checks.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create or update PR to main
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const headRef = context.ref.replace('refs/heads/', '');
+            if (headRef === 'main') {
+              core.info('Head is main; skipping PR creation.');
+              return;
+            }
+            const { owner, repo } = context.repo;
+
+            // Check if an open PR already exists for this branch
+            const existing = await github.rest.pulls.list({
+              owner,
+              repo,
+              state: 'open',
+              head: `${owner}:${headRef}`
+            });
+
+            const title = `feat: ${headRef} (auto-PR)`;
+            const body = [
+              `Auto-created from \`${headRef}\` after passing checks:`,
+              '- ✅ Lint (zero warnings)',
+              '- ✅ Typecheck',
+              '- ✅ Tests (coverage)',
+              '',
+              'Merge remains manual. Owner approval required (CODEOWNERS).'
+            ].join('\n');
+
+            let prNumber;
+            if (existing.data.length === 0) {
+              const pr = await github.rest.pulls.create({
+                owner,
+                repo,
+                head: headRef,
+                base: 'main',
+                title,
+                body,
+                draft: false
+              });
+              prNumber = pr.data.number;
+              core.info(`Created PR #${prNumber}`);
+            } else {
+              prNumber = existing.data[0].number;
+              core.info(`PR already exists #${prNumber}; updating labels and body.`);
+              // Optionally update title/body to keep consistent
+              await github.rest.pulls.update({
+                owner, repo, pull_number: prNumber, title, body
+              });
+            }
+
+            // Ensure labels exist
+            try {
+              await github.rest.issues.addLabels({
+                owner,
+                repo,
+                issue_number: prNumber,
+                labels: ['auto-pr', 'needs-review']
+              });
+            } catch (e) {
+              core.warning(`Failed to add labels: ${e.message}`);
+            }
