@@ -37,9 +37,10 @@ jest.doMock("@/lib/storage", () => ({
 
 beforeEach(() => {
   mockStorage.updateSettings({
-    openRouterApiKey: "test-key",
-    customPrompt: "",
-    selectedModel: "default-model",
+    openRouterApiKey: "",
+    customPrompt:
+      "Describe this image in detail and suggest a good prompt for generating similar images.",
+    selectedModel: "",
     availableModels: [],
     isValidApiKey: false,
   });
@@ -50,9 +51,10 @@ describe("useSettings hook", () => {
     const { result } = renderHook(() => useSettings());
 
     expect(result.current.settings).toEqual({
-      openRouterApiKey: "test-key",
-      customPrompt: "",
-      selectedModel: "default-model",
+      openRouterApiKey: "",
+      customPrompt:
+        "Describe this image in detail and suggest a good prompt for generating similar images.",
+      selectedModel: "",
       selectedVisionModels: [],
       availableModels: [],
       preferredModels: [],
@@ -67,7 +69,7 @@ describe("useSettings hook", () => {
     const { result } = renderHook(() => useSettings());
 
     await act(async () => {
-      mockStorage.updateSettings({ openRouterApiKey: "new-key" });
+      result.current.updateSettings({ openRouterApiKey: "new-key" });
     });
 
     expect(result.current.settings.openRouterApiKey).toBe("new-key");
@@ -89,7 +91,7 @@ describe("useSettings hook", () => {
     expect(result.current.settings.isValidApiKey).toBe(false);
 
     await act(async () => {
-      mockStorage.updateSettings({ isValidApiKey: true });
+      result.current.updateSettings({ isValidApiKey: true });
     });
 
     expect(result.current.settings.isValidApiKey).toBe(true);

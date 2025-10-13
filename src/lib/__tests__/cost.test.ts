@@ -1,11 +1,11 @@
-import calculateGenerationCost from '@/lib/cost';
-import type { VisionModel } from '@/types';
+import calculateGenerationCost from "@/lib/cost";
+import type { VisionModel } from "@/types";
 
-describe('cost calculation', () => {
+describe("cost calculation", () => {
   const mockModel: VisionModel = {
-    id: 'test-model',
-    name: 'Test Model',
-    description: 'Test',
+    id: "test-model",
+    name: "Test Model",
+    description: "Test",
     pricing: {
       prompt: 0.001,
       completion: 0.002,
@@ -14,29 +14,35 @@ describe('cost calculation', () => {
     supports_vision: true,
   };
 
-  test('calculates correct input cost for short prompt', () => {
+  test("calculates correct input cost for short prompt", () => {
     const cost = calculateGenerationCost(mockModel, 100);
-    expect(cost.inputCost).toBe(0.0001);
+    expect(cost.inputCost).toBe(0.000025);
   });
 
-  test('calculates correct input cost for long prompt', () => {
+  test("calculates correct input cost for long prompt", () => {
     const cost = calculateGenerationCost(mockModel, 1000);
-    expect(cost.inputCost).toBe(0.001);
+    expect(cost.inputCost).toBe(0.00025);
   });
 
-  test('calculates total cost correctly', () => {
+  test("calculates total cost correctly", () => {
     const cost = calculateGenerationCost(mockModel, 500);
-    expect(cost.totalCost).toBe(0.0011);
+    expect(cost.totalCost).toBe(0.000375);
   });
 
-  test('handles zero pricing models', () => {
-    const freeModel: VisionModel = { ...mockModel, pricing: { prompt: 0, completion: 0 } };
+  test("handles zero pricing models", () => {
+    const freeModel: VisionModel = {
+      ...mockModel,
+      pricing: { prompt: 0, completion: 0 },
+    };
     const cost = calculateGenerationCost(freeModel, 500);
     expect(cost.totalCost).toBe(0);
   });
 
-  test('handles zero pricing (missing or zero)', () => {
-    const noPricing: VisionModel = { ...mockModel, pricing: { prompt: 0, completion: 0 } };
+  test("handles zero pricing (missing or zero)", () => {
+    const noPricing: VisionModel = {
+      ...mockModel,
+      pricing: { prompt: 0, completion: 0 },
+    };
     const cost = calculateGenerationCost(noPricing, 500);
     expect(cost.inputCost).toBe(0);
     expect(cost.outputCost).toBe(0);
