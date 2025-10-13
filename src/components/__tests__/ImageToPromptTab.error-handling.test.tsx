@@ -52,6 +52,7 @@ describe("ImageToPromptTab error handling", () => {
     const settings = {
       openRouterApiKey: "sk-or-v1-testkey",
       selectedModel: "model-1",
+      selectedVisionModels: [],
       customPrompt: "Describe this image in detail.",
       isValidApiKey: true,
       lastApiKeyValidation: null,
