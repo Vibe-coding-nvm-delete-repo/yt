@@ -21,6 +21,7 @@ export const useSettings = () => {
       lastApiKeyValidation: null,
       lastModelFetch: null,
       availableModels: [],
+      preferredModels: [],
     };
   });
 

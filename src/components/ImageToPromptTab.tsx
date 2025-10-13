@@ -1,580 +1,323 @@
 "use client";
 
-import React, { useState, useRef, useCallback, useEffect } from "react";
-import type { AppSettings, ImageUploadState, GenerationState } from "@/types";
-import { createOpenRouterClient } from "@/lib/openrouter";
-import { imageStateStorage } from "@/lib/storage";
-import {
-  Upload,
-  X,
-  Loader2,
-  Copy,
-  CheckCircle,
-  AlertCircle,
-  Image as ImageIcon,
-} from "lucide-react";
-import Image from "next/image";
-import { Tooltip } from "@/components/common/Tooltip";
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import type { AppSettings, VisionModel } from '@/types';
+import { createOpenRouterClient } from '@/lib/openrouter';
+import { imageStateStorage } from '@/lib/storage';
+import runWithConcurrency from '@/lib/batchQueue';
+import calculateGenerationCost from '@/lib/cost';
+import { normalizeToApiError } from '@/lib/errorUtils';
+import { Upload, X, Loader2, Copy, CheckCircle, AlertCircle, Image as ImageIcon } from 'lucide-react';
+import Image from 'next/image';
+import { Tooltip } from '@/components/common/Tooltip';
 
 interface ImageToPromptTabProps {
   settings: AppSettings;
 }
 
+interface GenerationState {
+  isGenerating: boolean;
+  generatedPrompt: string | null;
+  error: string | null;
+}
+
+type MultiImageUploadState = {
+  id: string;
+  file: File | null;
+  preview: string | null;
+  isUploading: boolean;
+  error: string | null;
+  assignedModelId: string;
+  processingStatus: 'idle' | 'uploading' | 'processing' | 'done' | 'error';
+  generatedPrompt: string | null;
+  cost: { inputCost: number; outputCost: number; totalCost: number } | null;
+  processingError: string | null;
+  uploadTimestamp: Date;
+};
+
+type ImageBatchItem = {
+  imageId: string;
+  fileName: string;
+  modelId: string;
+  modelName?: string;
+  prompt: string | null;
+  error: string | null;
+  cost: { inputCost: number; outputCost: number; totalCost: number } | null;
+  status: 'done' | 'error';
+  processingStartTime: number;
+  processingEndTime: number;
+};
+
 export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   settings,
 }) => {
-  const [uploadState, setUploadState] = useState<ImageUploadState>({
-    file: null,
-    preview: null,
-    isUploading: false,
-    error: null,
-  });
-  const [generationState, setGenerationState] = useState<GenerationState>({
-    isGenerating: false,
-    generatedPrompt: null,
-    error: null,
-  });
+  const [images, setImages] = useState<MultiImageUploadState[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processedCount, setProcessedCount] = useState(0);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
   const [uploadTimestamp, setUploadTimestamp] = useState<Date | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const dropZoneRef = useRef<HTMLDivElement | null>(null);
+  const batchAbortRef = useRef<AbortController | null>(null);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const dropZoneRef = useRef<HTMLDivElement>(null);
-
-  // Load persisted image state on mount
   useEffect(() => {
-    const persistedState = imageStateStorage.getImageState();
-
-    if (persistedState.preview) {
-      setUploadState((prev) => ({
-        ...prev,
-        preview: persistedState.preview,
-        file: null, // File object can't be persisted, but we have the preview
-      }));
-    }
-
-    if (persistedState.generatedPrompt) {
-      setGenerationState((prev) => ({
-        ...prev,
-        generatedPrompt: persistedState.generatedPrompt,
-      }));
-    }
-  }, []);
-
-  const validateFile = (file: File): string | null => {
-    // Check file type
-    const allowedTypes = [
-      "image/jpeg",
-      "image/jpg",
-      "image/png",
-      "image/webp",
-      "image/gif",
-    ];
-    if (!allowedTypes.includes(file.type)) {
-      return "Invalid file type. Please upload a JPEG, PNG, WebP, or GIF image.";
-    }
-
-    // Check file size (max 10MB)
-    const maxSize = 10 * 1024 * 1024; // 10MB in bytes
-    if (file.size > maxSize) {
-      return "File size too large. Please upload an image smaller than 10MB.";
-    }
-
-    return null;
-  };
-
-  const readFileAsDataURL = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        if (e.target?.result) {
-          resolve(e.target.result as string);
-        } else {
-          reject(new Error("Failed to read file"));
-        }
+    const persisted = imageStateStorage.getImageState();
+    if (persisted && persisted.preview && images.length === 0) {
+      const fallback: MultiImageUploadState = {
+        id: `persisted-${Date.now()}`,
+        file: null,
+        preview: persisted.preview as string,
+        isUploading: false,
+        error: null,
+        assignedModelId: settings.selectedModel || settings.availableModels?.[0]?.id || '',
+        processingStatus: 'idle',
+        generatedPrompt: persisted.generatedPrompt || null,
+        cost: null,
+        processingError: null,
+        uploadTimestamp: new Date(),
       };
-      reader.onerror = () => reject(new Error("Failed to read file"));
+      setImages([fallback]);
+    }
+  }, []);
+
+  const validateFile = useCallback((file: File): string | null => {
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      return 'Invalid file type. Please upload a JPEG, PNG, WebP, or GIF image.';
+    }
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      return 'File size too large. Please upload an image smaller than 10MB.';
+    }
+    return null;
+  }, []);
+
+  const readFileAsDataURL = useCallback((file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => if (e.target?.result) resolve(e.target.result as string);
+      else reject(new Error('Failed to read file'));
+      reader.onerror = () => reject(new Error('Failed to read file'));
       reader.readAsDataURL(file);
-    });
-  };
+    }), []);
 
-  const handleFileSelect = useCallback(async (file: File) => {
-    const validationError = validateFile(file);
-    if (validationError) {
-      setUploadState((prev) => ({
-        ...prev,
-        error: validationError,
-      }));
+  const addFiles = useCallback(async (files: FileList | File[]) => {
+    setErrorMessage(null);
+    const arr = Array.from(files);
+    if (arr.length === 0) return;
+
+    if (images.length + arr.length > 5) {
+      setErrorMessage('You can upload up to 5 images total.');
       return;
     }
 
-    setUploadState((prev) => ({
-      ...prev,
-      isUploading: true,
-      error: null,
-    }));
+    const newItems: MultiImageUploadState[] = [];
+    for (const f of arr) {
+      const validationError = validateFile(f);
+      if (validationError) {
+        setErrorMessage(validationError);
+        continue;
+      }
+      try {
+        const preview = await readFileAsDataURL(f);
+        const id = `img-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const assignedModelId = settings.selectedModel || settings.availableModels?.[0]?.id || '';
+        newItems.push({
+          id,
+          file: f,
+          preview,
+          isUploading: false,
+          error: null,
+          assignedModelId,
+          processingStatus: 'idle',
+          generatedPrompt: null,
+          cost: null,
+          processingError: null,
+          uploadTimestamp: new Date(),
+        });
+      } catch (e) {
+        console.error('readFile error', e);
+      }
+    }
 
-    try {
-      const dataUrl = await readFileAsDataURL(file);
-
-      // Save to state
-      setUploadState({
-        file,
-        preview: dataUrl,
-        isUploading: false,
-        error: null,
-      });
-
-      // Set upload timestamp
-      setUploadTimestamp(new Date());
-
-      // Persist to localStorage
-      imageStateStorage.saveUploadedImage(
-        dataUrl,
-        file.name,
-        file.size,
-        file.type,
-      );
-    } catch (error) {
-      setUploadState((prev) => ({
-        ...prev,
-        isUploading: false,
-        error:
-          error instanceof Error ? error.message : "Failed to process image",
-      }));
+    if (newItems.length > 0) {
+      setImages(prev => [...prev, ...newItems]);
     }
   }, []);
 
-  const handleFileInput = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (file) {
-        handleFileSelect(file);
-      }
-    },
-    [handleFileSelect],
-  );
-
-  const handleDragOver = useCallback(
-    (event: React.DragEvent<HTMLDivElement>) => {
-      event.preventDefault();
-      event.stopPropagation();
-    },
-    [],
-  );
-
-  const handleDragLeave = useCallback(
-    (event: React.DragEvent<HTMLDivElement>) => {
-      event.preventDefault();
-      event.stopPropagation();
-    },
-    [],
-  );
-
-  const handleDrop = useCallback(
-    (event: React.DragEvent<HTMLDivElement>) => {
-      event.preventDefault();
-      event.stopPropagation();
-
-      const files = event.dataTransfer.files;
-      if (files.length > 0) {
-        handleFileSelect(files[0]);
-      }
-    },
-    [handleFileSelect],
-  );
-
-  // Handle click anywhere in drop zone to trigger file input
-  const handleDropZoneClick = useCallback(() => {
-    if (fileInputRef.current && !uploadState.isUploading) {
-      fileInputRef.current.click();
+  const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files;
+    if (file && file.length > 0) {
+      addFiles(file);
+      e.target.value = '';
     }
-  }, [uploadState.isUploading]);
+  }, [addFiles]);
 
-  const generatePrompt = useCallback(async () => {
-    if (
-      !uploadState.preview ||
-      !settings.selectedModel ||
-      !settings.isValidApiKey
-    ) {
-      setGenerationState((prev) => ({
-        ...prev,
-        error:
-          "Please ensure you have a valid API key, selected a model, and uploaded an image.",
-      }));
+  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      addFiles(files);
+    }
+  }, [addFiles]);
+
+  const handleSelectModelForImage = useCallback((imageId: string, modelId: string) => {
+    setImages(prev => prev.map(img => img.id === imageId ? { ...img, assignedModelId: modelId } : img));
+  }, []);
+
+  const removeImage = useCallback((imageId: string) => {
+    setImages(prev => prev.filter(i => i.id !== imageId));
+  }, []);
+
+  const clearAll = useCallback(() => {
+    setImages([]);
+  }, []);
+
+  const generateBatch = useCallback(async () => {
+    if (!settings.isValidApiKey) {
+      setErrorMessage('Please set a valid API key in Settings.');
+      return;
+    }
+    if (images.length === 0) {
+      setErrorMessage('Please upload at least one image.');
       return;
     }
 
-    setGenerationState((prev) => ({
-      ...prev,
-      isGenerating: true,
-      error: null,
-    }));
+    setIsProcessing(true);
+    setProcessedCount(0);
 
-    try {
+    batchAbortRef.current = new AbortController();
+
+    const tasks: Array<() => Promise<{ prompt: string; cost: number | null; }>> = images.map((img) => async () => {
       const client = createOpenRouterClient(settings.openRouterApiKey);
-      const prompt = await client.generateImagePrompt(
-        uploadState.preview,
-        settings.customPrompt,
-        settings.selectedModel,
-      );
+      try {
+        const prompt = await client.generateImagePrompt(
+          img.preview,
+          settings.customPrompt,
+          img.assignedModelId
+        );
+        const modelInfo = settings.availableModels.find(m => m.id === img.assignedModelId);
+        const cost = modelInfo ? calculateGenerationCost(modelInfo, prompt.length) : null;
 
-      setGenerationState({
-        isGenerating: false,
-        generatedPrompt: prompt,
-        error: null,
-      });
+        setImages(prev => prev.map(it => it.id === img.id ? {
+          ...it,
+          processingStatus: 'done',
+          generatedPrompt: prompt,
+          cost,
+        } : it));
 
-      // Persist generated prompt
-      imageStateStorage.saveGeneratedPrompt(prompt);
-    } catch (error) {
-      setGenerationState({
-        isGenerating: false,
-        generatedPrompt: null,
-        error:
-          error instanceof Error ? error.message : "Failed to generate prompt",
-      });
-    }
-  }, [uploadState.preview, settings]);
-
-  const clearImage = useCallback(() => {
-    setUploadState({
-      file: null,
-      preview: null,
-      isUploading: false,
-      error: null,
+        return { prompt, cost };
+      } catch (err) {
+        const apiErr = normalizeToApiError(err);
+        setErrorMessage(apiErr.message);
+        return { prompt: null, cost: null };
+      }
     });
-    setGenerationState({
-      isGenerating: false,
-      generatedPrompt: null,
-      error: null,
-    });
-    setUploadTimestamp(null);
-
-    // Clear from localStorage
-    imageStateStorage.clearImageState();
-
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  }, []);
-
-  const copyToClipboard = useCallback(async () => {
-    if (!generationState.generatedPrompt) return;
 
     try {
-      await navigator.clipboard.writeText(generationState.generatedPrompt);
-      setCopiedToClipboard(true);
-      setTimeout(() => setCopiedToClipboard(false), 2000);
-    } catch (error) {
-      console.error("Failed to copy to clipboard:", error);
+      const onProgress = (completed: number) => {
+        setProcessedCount(completed);
+      };
+      const results = await runWithConcurrency(tasks, { concurrency: 2, onProgress, signal: batchAbortRef.current!.signal });
+      // persist results if needed
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        setErrorMessage('Batch cancelled.');
+      } else {
+        setErrorMessage('Generation failed.');
+      }
+    } finally {
+      setIsProcessing(false);
+      batchAbortRef.current = null;
     }
-  }, [generationState.generatedPrompt]);
+  }, [images, settings]);
 
-  const formatTimestamp = (date: Date): string => {
-    return date.toLocaleString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    });
-  };
-
-  const isGenerateDisabled =
-    !uploadState.preview ||
-    !settings.selectedModel ||
-    !settings.isValidApiKey ||
-    generationState.isGenerating;
-
-  // Calculate character count
-  const charCount = generationState.generatedPrompt?.length || 0;
-  const charLimit = 1500;
-  const isOverLimit = charCount > charLimit;
+  const formatBytes = useCallback((bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
+    return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+  }, []);
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-        Image to Prompt
-      </h1>
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Image to Prompt</h1>
 
-      {/* Status Messages */}
       {!settings.isValidApiKey && (
-        <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+        <div className="p-4 bg-yellow-50 border rounded-lg">
           <div className="flex items-center">
-            <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mr-3" />
+            <AlertCircle className="h-5 w-5 text-yellow-600 mr-3" />
             <div>
-              <h2 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                API Key Required
-              </h2>
-              <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
-                Please add and validate your OpenRouter API key in the Settings
-                tab to start generating prompts.
-              </p>
+              <h2 className="text-sm font-medium text-yellow-800">API Key Required</h2>
+              <p className="text-sm text-yellow-700 mt-1">Please add and validate your OpenRouter API key in the Settings tab.</p>
             </div>
           </div>
         </div>
       )}
 
-      {settings.isValidApiKey && !settings.selectedModel && (
-        <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-          <div className="flex items-center">
-            <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mr-3" />
-            <div>
-              <h2 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                Model Selection Required
-              </h2>
-              <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
-                Please select a vision model in the Settings tab to start
-                generating prompts.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Upload Area */}
-      <div className="space-y-4">
-        <div className="flex items-center text-gray-900 dark:text-white">
+      <div>
+        <div className="flex items-center mb-2">
           <ImageIcon className="mr-2 h-5 w-5" />
-          <h2 className="text-lg font-semibold">Upload Image</h2>
-          <Tooltip
-            id="upload-image"
-            label="More information about uploading images"
-            message="Upload a JPEG, PNG, WebP, or GIF image up to 10MB. You can drag and drop or click the area to browse."
-          />
-          {uploadState.preview && (
-            <CheckCircle
-              className="ml-2 h-4 w-4 text-green-600"
-              aria-hidden="true"
-            />
-          )}
+          <h2 className="text-lg font-semibold">Upload Images (up to 5)</h2>
         </div>
 
-        {!uploadState.preview ? (
-          <div
-            ref={dropZoneRef}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onClick={handleDropZoneClick}
-            className={`
-              border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer
-              ${
-                uploadState.isUploading
-                  ? "border-gray-300 bg-gray-50 dark:border-gray-600 dark:bg-gray-800"
-                  : "border-gray-300 hover:border-gray-400 dark:border-gray-600 dark:hover:border-gray-500 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750"
-              }
-            `}
-            role="button"
-            tabIndex={0}
-            aria-label="Upload image - Click to browse or drag and drop"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                handleDropZoneClick();
-              }
-            }}
-          >
-            {uploadState.isUploading ? (
-              <div className="flex flex-col items-center space-y-3">
-                <Loader2 className="h-12 w-12 text-gray-400 animate-spin" />
-                <p className="text-gray-600 dark:text-gray-400">
-                  Processing image...
-                </p>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center space-y-3">
-                <Upload className="h-12 w-12 text-gray-400" />
-                <div>
-                  <p className="text-lg font-medium text-gray-900 dark:text-white">
-                    Drop your image here, or click to browse
-                  </p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    Supports JPEG, PNG, WebP, and GIF up to 10MB
-                  </p>
-                </div>
-                <input
-                  ref={fileInputRef}
-                  id="file-upload"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileInput}
-                  className="hidden"
-                  aria-label="File upload input"
-                />
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {/* Image Preview - Full image display with object-contain */}
-            <div className="relative group">
-              <div className="rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center min-h-64">
-                <Image
-                  src={uploadState.preview}
-                  alt="Uploaded image"
-                  width={800}
-                  height={600}
-                  className="max-w-full h-auto object-contain"
-                  style={{ maxHeight: "600px" }}
-                />
-              </div>
-              <button
-                onClick={clearImage}
-                className="absolute top-2 right-2 p-2 bg-red-600 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700"
-                aria-label="Remove image"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* File Info - Left aligned with single space after labels */}
-            {uploadState.file && (
-              <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm space-y-1">
-                <div className="text-gray-900 dark:text-white">
-                  <span className="font-medium text-gray-700 dark:text-gray-300">
-                    File:
-                  </span>{" "}
-                  {uploadState.file.name}
-                </div>
-                <div className="text-gray-900 dark:text-white">
-                  <span className="font-medium text-gray-700 dark:text-gray-300">
-                    Size:
-                  </span>{" "}
-                  {(uploadState.file.size / 1024 / 1024).toFixed(2)} MB
-                </div>
-                <div className="text-gray-900 dark:text-white">
-                  <span className="font-medium text-gray-700 dark:text-gray-300">
-                    Type:
-                  </span>{" "}
-                  {uploadState.file.type}
-                </div>
-                {uploadTimestamp && (
-                  <div className="text-gray-900 dark:text-white">
-                    <span className="font-medium text-gray-700 dark:text-gray-300">
-                      Uploaded:
-                    </span>{" "}
-                    {formatTimestamp(uploadTimestamp)}
-                  </div>
-                )}
-                {generationState.generatedPrompt && (
-                  <div className="text-gray-900 dark:text-white">
-                    <span className="font-medium text-gray-700 dark:text-gray-300">
-                      Length:
-                    </span>{" "}
-                    {charCount}/1500
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {uploadState.error && (
-          <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-            <p className="text-sm text-red-600 dark:text-red-400">
-              {uploadState.error}
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Generate Button */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between text-gray-900 dark:text-white">
-          <h2 className="text-lg font-semibold">Generate Prompt</h2>
-          <Tooltip
-            id="generate-prompt"
-            label="More information about generating prompts"
-            message="After uploading an image and selecting a model, click Generate Prompt to create a detailed prompt from the image."
-          />
-        </div>
-        <button
-          onClick={generatePrompt}
-          disabled={isGenerateDisabled}
-          className={`
-            w-full flex items-center justify-center px-6 py-3 rounded-lg font-medium transition-colors
-            ${
-              isGenerateDisabled
-                ? "bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-600 dark:text-gray-400"
-                : "bg-blue-600 text-white hover:bg-blue-700"
-            }
-          `}
+        <div
+          ref={dropZoneRef}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={handleDrop}
+          onClick={() => fileInputRef.current?.click()}
+          className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer"
+          role="button"
+          tabIndex={0}
         >
-          {generationState.isGenerating ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Generating Prompt...
-            </>
-          ) : (
-            "Generate Prompt"
-          )}
-        </button>
+          <p className="text-gray-700">Drop images here or click to browse</p>
+          <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFileInput} />
+        </div>
 
-        {generationState.error && (
-          <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-            <p className="text-sm text-red-600 dark:text-red-400">
-              {generationState.error}
-            </p>
+        {errorMessage && (
+          <div className="mt-3 text-sm text-red-600">{errorMessage}</div>
+        )}
+
+        {images.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            {images.map(img => (
+              <div key={img.id} className="p-3 border rounded-lg">
+                <div className="flex items-start justify-between">
+                  <div className="w-24 h-24 bg-gray-100 rounded overflow-hidden">
+                    <Image src={img.preview} alt="Preview" width={96} height={96} className="object-contain" />
+                  </div>
+                  <div className="flex space-x-2">
+                    <button onClick={() => removeImage(img.id)}><X className="h-4 w-4" /></button>
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <label className="block text-xs">Model</label>
+                  <select value={img.assignedModelId} onChange={(e) => handleSelectModelForImage(img.id, e.target.value)} className="w-full p-2 border rounded">
+                    {settings.availableModels?.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                  </select>
+                </div>
+                <div className="mt-3">
+                  <p>{img.processingStatus}</p>
+                  {img.generatedPrompt && <p>{img.generatedPrompt}</p>}
+                  {img.processingStatus === 'done' && (
+                    <button onClick={() => copyPrompt(img.generatedPrompt)}><Copy className="h-4 w-4" /></button>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         )}
-      </div>
 
-      {/* Generated Prompt */}
-      {generationState.generatedPrompt && (
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-            <CheckCircle className="mr-2 h-5 w-5 text-green-600" />
-            Generated Prompt
-          </h2>
-
-          <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            {/* Character Counter */}
-            <div className="mb-3">
-              <span
-                className={`text-lg font-semibold ${
-                  isOverLimit
-                    ? "text-red-600 dark:text-red-400"
-                    : "text-green-600 dark:text-green-400"
-                }`}
-              >
-                {charCount}/{charLimit}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Your generated prompt:
-              </span>
-              {/* Bigger Copy Button - 50% larger */}
-              <button
-                onClick={copyToClipboard}
-                className="flex items-center px-5 py-2 text-base bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
-                aria-label="Copy prompt to clipboard"
-              >
-                {copiedToClipboard ? (
-                  <>
-                    <CheckCircle className="mr-2 h-5 w-5" />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="mr-2 h-5 w-5" />
-                    Copy
-                  </>
-                )}
-              </button>
-            </div>
-            <div className="bg-white dark:bg-gray-900 p-4 rounded border border-gray-200 dark:border-gray-700">
-              <p className="text-gray-900 dark:text-white whitespace-pre-wrap">
-                {generationState.generatedPrompt}
-              </p>
-            </div>
-          </div>
+        <div className="flex space-x-3 mt-4">
+          <button onClick={generateBatch} disabled={isProcessing || images.length === 0} className="px-4 py-2 rounded bg-blue-600 text-white">
+            {isProcessing ? 'Processing...' : 'Generate Batch'}
+          </button>
+          <button onClick={clearAll} className="px-4 py-2 rounded border">Clear All</button>
+          <div className="ml-auto text-sm">{processedCount}/{images.length} processed</div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
+
+export default ImageToPromptTab;

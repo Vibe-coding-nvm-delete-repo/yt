@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import { settingsStorage } from "../storage";
+=======
+import { settingsStorage } from '../storage';
+>>>>>>> origin/main
 
 describe("SettingsStorage", () => {
   beforeEach(() => {
@@ -56,6 +60,7 @@ describe("SettingsStorage", () => {
     });
   });
 
+<<<<<<< HEAD
   describe("importSettings", () => {
     it("should preserve timestamp fields when importing settings", () => {
       const mockSettings = {
@@ -78,6 +83,9 @@ describe("SettingsStorage", () => {
       expect(settings.lastModelFetch).toBe(9876543210);
     });
   });
+=======
+
+>>>>>>> origin/main
 
   describe("loadSettings", () => {
     it("should handle missing timestamp fields in stored settings", () => {
