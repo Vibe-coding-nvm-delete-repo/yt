@@ -16,8 +16,9 @@ describe("App component", () => {
   test("renders ImageToPromptTab by default", () => {
     render(<App />);
 
-    // Check if ImageToPromptTab content is visible
-    expect(screen.getByText(/Image to Prompt/i)).toBeInTheDocument();
+    // Check if ImageToPromptTab content is visible (multiple occurrences due to tab + heading)
+    const elements = screen.getAllByText(/Image to Prompt/i);
+    expect(elements.length).toBeGreaterThan(0);
   });
 
   test("renders with ErrorBoundary fallback", () => {
