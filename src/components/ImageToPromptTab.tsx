@@ -252,6 +252,37 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
               : r,
           ),
         );
+        const modelInfo = settings.availableModels.find(m => m.id === img.assignedModelId);
+        const costObj = modelInfo ? calculateGenerationCost(modelInfo, prompt.length) : null;
+        const cost = costObj ? costObj.totalCost : null;
+
+        setImages(prev => prev.map(it => it.id === img.id ? {
+          ...it,
+          processingStatus: 'done',
+          generatedPrompt: prompt,
+          cost,
+        } : it));
+
+        return { prompt, cost };
+      } catch (err) {
+        const apiErr = normalizeToApiError(err);
+        setErrorMessage(apiErr.message);
+        return { prompt: null, cost: null };
+      }
+    });
+
+    try {
+      const onProgress = (completed: number) => {
+        setProcessedCount(completed);
+      };
+      await runWithConcurrency(tasks, { concurrency: 2, onProgress, signal: batchAbortRef.current!.signal });
+      // persist results if needed
+    } catch (err) {
+      const e = err as { name?: string } | null;
+      if (e && e.name === 'AbortError') {
+        setErrorMessage('Batch cancelled.');
+      } else {
+        setErrorMessage('Generation failed.');
       }
     }
 
@@ -418,6 +449,19 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
                     Processing...
                   </span>
                 </div>
+                <div className="mt-3">
+                  <label className="block text-xs">Model</label>
+                  <select value={img.assignedModelId} onChange={(e) => handleSelectModelForImage(img.id, e.target.value)} className="w-full p-2 border rounded">
+                    {(() => {
+                      const list = settings.availableModels || [];
+                      const pinnedSet = new Set(settings.pinnedModels || []);
+                      const pinned = list.filter(m => pinnedSet.has(m.id));
+                      const other = list.filter(m => !pinnedSet.has(m.id));
+                      return [...pinned, ...other].map(m => (
+                        <option key={m.id} value={m.id}>{m.name}</option>
+                      ));
+                    })()}
+                  </select>
               )}
 
               {result.error && (
