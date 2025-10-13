@@ -73,7 +73,7 @@ jobs:
         uses: actions/dependency-review-action@v4
         with:
           allow-licenses: BSD-2-Clause, BSD-3-Clause, MIT, Apache-2.0, ISC
-          deny-licenses: MS-PL, BSD, JSON
+          deny-licenses: MS-PL
 
   lint-pr:
     runs-on: ubuntu-latest
