@@ -1,4 +1,4 @@
-import { QueueOptions, QueueResult } from '@/types';
+import type { QueueOptions, QueueResult } from '@/types';
 
 /**
  * runWithConcurrency

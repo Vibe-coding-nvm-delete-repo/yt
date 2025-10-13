@@ -1,4 +1,4 @@
-import { VisionModel } from '@/types';
+import type { VisionModel } from '@/types';
 
 /**
  * Calculate prompt/text cost given token count and pricing per 1k tokens.
