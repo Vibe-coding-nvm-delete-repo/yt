@@ -5,6 +5,7 @@ import type { AppSettings } from "@/types";
 const createSettings = (overrides: Partial<AppSettings> = {}): AppSettings => ({
   openRouterApiKey: "sk-or-v1-testkey-0000000000000000",
   selectedModel: "test-model",
+  selectedVisionModels: [],
   customPrompt: "Describe image",
   isValidApiKey: true,
   lastApiKeyValidation: Date.now(),

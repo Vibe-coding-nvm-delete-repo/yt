@@ -42,6 +42,7 @@ interface SettingsProviderProps {
 const DEFAULT_SETTINGS: AppSettings = {
   openRouterApiKey: "",
   selectedModel: "",
+  selectedVisionModels: [],
   customPrompt:
     "Describe this image in detail and suggest a good prompt for generating similar images.",
   isValidApiKey: false,
@@ -72,6 +73,9 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
           ...parsed,
           openRouterApiKey: parsed.openRouterApiKey || "",
           selectedModel: parsed.selectedModel || "",
+          selectedVisionModels: Array.isArray(parsed.selectedVisionModels)
+            ? parsed.selectedVisionModels
+            : [],
           customPrompt: parsed.customPrompt || DEFAULT_SETTINGS.customPrompt,
           isValidApiKey: Boolean(parsed.isValidApiKey),
           lastApiKeyValidation: parsed.lastApiKeyValidation
