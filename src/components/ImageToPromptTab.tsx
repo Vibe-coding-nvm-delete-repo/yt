@@ -621,7 +621,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
                       </button>
                     </div>
                     <div className="flex-1 overflow-hidden">
-                      <p className="text-xs text-gray-900 dark:text-white leading-relaxed">
+                      <p className="text-xs text-gray-900 dark:text-white leading-relaxed break-words">
                         {result.prompt}
                       </p>
                     </div>
