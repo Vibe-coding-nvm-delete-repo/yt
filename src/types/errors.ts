@@ -23,19 +23,19 @@ export enum ErrorSeverity {
 }
 
 export interface ErrorContext {
-  component?: string;
-  operation?: string;
+  component?: string | undefined;
+  operation?: string | undefined;
   timestamp: number;
-  userId?: string;
-  retryable?: boolean;
-  retryCount?: number;
-  stackTrace?: string;
-  requestId?: string;
-  userAgent?: string;
-  url?: string;
-  statusCode?: number;
-  metadata?: Record<string, any>;
-  errorId?: string;
+  userId?: string | undefined;
+  retryable?: boolean | undefined;
+  retryCount?: number | undefined;
+  stackTrace?: string | undefined;
+  requestId?: string | undefined;
+  userAgent?: string | undefined;
+  url?: string | undefined;
+  statusCode?: number | undefined;
+  metadata?: Record<string, any> | undefined;
+  errorId?: string | undefined;
 }
 
 export interface RetryConfig {
@@ -83,8 +83,8 @@ export class AppError extends Error {
       timestamp: Date.now(),
       retryable: this.retryable,
       retryCount: 0,
-      stackTrace: this.stack,
-      ...options?.context
+      stackTrace: this.stack ?? undefined,
+      ...(options?.context ?? {})
     };
 
     if (Error.captureStackTrace) {
@@ -158,7 +158,7 @@ export class AppError extends Error {
   }
 }
 
-// Specific error classes
+// Specific error classes unchanged...
 export class NetworkError extends AppError {
   constructor(message: string, userMessage?: string, context?: Partial<ErrorContext>) {
     super(ErrorType.NETWORK, message, userMessage, {
@@ -323,7 +323,7 @@ export const createErrorFromException = (
       error.message,
       undefined,
       {
-        context,
+        context: context ?? undefined,
         originalError: error
       }
     );
@@ -333,11 +333,11 @@ export const createErrorFromException = (
     ErrorType.UNKNOWN,
     'An unknown error occurred',
     undefined,
-    { context }
+    { context: context ?? undefined }
   );
 };
 
-// Error type guards
+// Type guards unchanged...
 export const isAppError = (error: unknown): error is AppError => {
   return error instanceof AppError;
 };
