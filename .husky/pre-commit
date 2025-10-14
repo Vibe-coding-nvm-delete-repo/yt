@@ -1,9 +1,82 @@
 #!/bin/sh
-# P0 Enforcement: Architecture Guards + Lint-Staged
-# This pre-commit hook prevents committing code that violates our standards
+# P0 Enforcement: Comprehensive Pre-commit Quality Gate
+# This pre-commit hook ensures all code meets quality standards before commit
 
-# Run lint-staged (ESLint + Prettier on staged files)
-npx lint-staged
+set -e  # Exit immediately if any command fails
 
-# Exit with lint-staged's exit code
-exit $?
+echo "🔍 Running comprehensive pre-commit quality checks..."
+
+# 1. Architecture Guards (fail-fast)
+echo "📐 Checking architecture compliance..."
+npx --no-install tsx .github/scripts/architecture-guard.ts || {
+  echo "❌ Architecture compliance check failed"
+  exit 1
+}
+
+# 2. TypeScript Type Checking
+echo "🔧 Running TypeScript type checking..."
+npm run typecheck || {
+  echo "❌ TypeScript type checking failed"
+  exit 1
+}
+
+# 3. Security Audit (high/critical vulnerabilities only)
+echo "🔒 Running security audit..."
+npm audit --audit-level=high --production || {
+  echo "⚠️  High/critical vulnerabilities detected"
+  echo "💡 Run 'npm audit fix' to resolve issues"
+  exit 1
+}
+
+# 4. Lint-staged (ESLint + Prettier on staged files)
+echo "✨ Running lint-staged (ESLint + Prettier)..."
+npx lint-staged || {
+  echo "❌ Lint-staged check failed"
+  exit 1
+}
+
+# 5. Type Contract Validation
+echo "📋 Validating type contracts..."
+npm run type:contracts || {
+  echo "❌ Type contract validation failed"
+  exit 1
+}
+
+# 6. Bundle Size Check (if build assets exist)
+if [ -d ".next" ]; then
+  echo "📦 Checking bundle size..."
+  node -e "
+    const fs = require('fs');
+    const path = require('path');
+    try {
+      const buildManifest = JSON.parse(fs.readFileSync('.next/build-manifest.json'));
+      const totalSize = Object.values(buildManifest.pages).flat()
+        .reduce((acc, file) => {
+          try {
+            const filePath = path.join('.next', file);
+            return acc + fs.statSync(filePath).size;
+          } catch { return acc; }
+        }, 0);
+      const sizeMB = (totalSize / 1024 / 1024).toFixed(2);
+      console.log(\`📦 Total bundle size: \${sizeMB}MB\`);
+      if (totalSize > 5 * 1024 * 1024) { // 5MB limit
+        console.error('❌ Bundle size exceeds 5MB limit');
+        process.exit(1);
+      }
+    } catch (e) {
+      console.log('⚠️  Bundle size check skipped (no build artifacts)');
+    }
+  "
+fi
+
+# 7. Git hooks validation
+echo "🔗 Validating git hooks integrity..."
+if [ ! -f ".husky/commit-msg" ] || [ ! -x ".husky/commit-msg" ]; then
+  echo "❌ commit-msg hook is missing or not executable"
+  exit 1
+fi
+
+echo "✅ All pre-commit checks passed successfully!"
+echo "📝 Ready to commit with confidence"
+
+exit 0
