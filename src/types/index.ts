@@ -230,6 +230,52 @@ export interface QueueResult<T> {
   errors: Error[];
 }
 
+/**
+ * Rating System Types
+ */
+export type RatingValue = 1 | 2 | 3 | 4 | 5;
+export type ThumbsRating = "up" | "down" | null;
+
+export interface Rating {
+  id: string; // unique rating id (e.g., "rating-{historyId}-{timestamp}")
+  historyEntryId: string; // Links to HistoryEntry.id
+  modelId: string;
+  modelName: string;
+  stars: RatingValue | null; // 1-5 star rating
+  thumbs: ThumbsRating; // Quick thumbs up/down
+  comment: string | null; // Optional user feedback
+  imagePreview: string | null; // For display
+  prompt: string | null; // The prompt that was rated
+  createdAt: number; // When rating was created
+  updatedAt: number; // When rating was last modified
+}
+
+export interface RatingFilter {
+  modelId?: string;
+  minStars?: RatingValue;
+  maxStars?: RatingValue;
+  thumbs?: ThumbsRating;
+  fromDate?: number;
+  toDate?: number;
+}
+
+export interface RatingStats {
+  totalRatings: number;
+  averageStars: number;
+  thumbsUp: number;
+  thumbsDown: number;
+  byModel: Record<
+    string,
+    {
+      modelName: string;
+      count: number;
+      averageStars: number;
+      thumbsUp: number;
+      thumbsDown: number;
+    }
+  >;
+}
+
 // Export standardized validation types
 export * from "./validation";
 

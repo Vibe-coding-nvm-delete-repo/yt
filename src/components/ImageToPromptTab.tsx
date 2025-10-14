@@ -6,21 +6,32 @@ import { createOpenRouterClient } from "@/lib/openrouter";
 import { imageStateStorage } from "@/lib/storage";
 import { calculateDetailedCost } from "@/lib/cost";
 import { normalizeToApiError } from "@/lib/errorUtils";
-import { usageStorage } from "@/lib/usage";
-import { historyStorage } from "@/lib/historyStorage";
-import type { UsageEntry } from "@/types/usage";
-import type { HistoryEntry } from "@/types/history";
 import {
   AlertCircle,
   Image as ImageIcon,
   Loader2,
-  Check,
-  Copy,
+  Calculator,
+  DollarSign,
 } from "lucide-react";
 import Image from "next/image";
+import { RatingWidget } from "@/components/RatingWidget";
 
 interface ImageToPromptTabProps {
   settings: AppSettings;
+}
+
+interface ModelResult {
+  id: string; // Stable ID for this result (used for ratings)
+  modelId: string;
+  modelName: string;
+  prompt: string | null;
+  cost: number | null;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  inputCost: number | null;
+  outputCost: number | null;
+  isProcessing: boolean;
+  error: string | null;
 }
 
 export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
@@ -33,7 +44,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   const [modelResults, setModelResults] = useState<ModelResult[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [copiedPromptId, setCopiedPromptId] = useState<string | null>(null);
+  const [sessionId] = useState<string>(() => `session-${Date.now()}`); // Stable session ID for ratings
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const dropZoneRef = useRef<HTMLDivElement | null>(null);
 
@@ -87,6 +98,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
 
           // New model, create fresh result
           return {
+            id: `${sessionId}-${modelId}`, // Stable ID for this session + model
             modelId,
             modelName: model?.name || modelId,
             prompt: null,
@@ -101,7 +113,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
         });
       });
     }
-  }, [settings.selectedVisionModels, settings.availableModels]);
+  }, [settings.selectedVisionModels, settings.availableModels, sessionId]);
 
   // Load persisted image and model results on mount
   // CRITICAL: This must run AFTER the model initialization effect to prevent race conditions
@@ -201,6 +213,20 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
     [],
   );
 
+  const estimateImageTokens = useCallback((imageDataUrl: string): number => {
+    // Rough estimation: base64 image size / 4 * 0.75 (typical compression)
+    // This is an approximation - actual token count varies by model
+    const base64Data = imageDataUrl.split(",")[1] || "";
+    const sizeInBytes = base64Data.length * 0.75;
+    // Vision models typically use ~85 tokens per image on average
+    return Math.max(85, Math.floor(sizeInBytes / 1000));
+  }, []);
+
+  const estimateTextTokens = useCallback((text: string): number => {
+    // Rough estimation: 1 token ≈ 0.75 words ≈ 4 characters
+    return Math.ceil(text.length / 4);
+  }, []);
+
   const handleFileInput = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -224,8 +250,8 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
           file.type,
         );
         // Reset results when new image is uploaded
-        setModelResults((prev) => {
-          const resetResults = prev.map((r) => ({
+        setModelResults((prev) =>
+          prev.map((r) => ({
             ...r,
             prompt: null,
             cost: null,
@@ -234,11 +260,8 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
             inputCost: null,
             outputCost: null,
             error: null,
-          }));
-          // Persist reset results
-          imageStateStorage.saveModelResults(resetResults);
-          return resetResults;
-        });
+          })),
+        );
       } catch (error) {
         console.error("Failed to read file:", error);
         setErrorMessage("Failed to read file. Please try again.");
@@ -273,8 +296,8 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
           file.type,
         );
         // Reset results when new image is uploaded
-        setModelResults((prev) => {
-          const resetResults = prev.map((r) => ({
+        setModelResults((prev) =>
+          prev.map((r) => ({
             ...r,
             prompt: null,
             cost: null,
@@ -283,11 +306,8 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
             inputCost: null,
             outputCost: null,
             error: null,
-          }));
-          // Persist reset results
-          imageStateStorage.saveModelResults(resetResults);
-          return resetResults;
-        });
+          })),
+        );
       } catch (error) {
         console.error("Failed to read file:", error);
         setErrorMessage("Failed to read file. Please try again.");
@@ -352,24 +372,25 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
           (m) => m.id === result.modelId,
         );
 
-        // Calculate detailed costs using proper function
-        let inputTokens = 0;
-        let outputTokens = 0;
+        // Calculate detailed costs
+        const inputTokens = estimateImageTokens(uploadedImage.preview);
+        const outputTokens = estimateTextTokens(prompt);
+
         let inputCost = 0;
         let outputCost = 0;
         let totalCost = 0;
 
         if (model) {
-          const costDetails = calculateDetailedCost(
-            model,
-            uploadedImage.preview,
-            prompt,
-          );
-          inputTokens = costDetails.inputTokens;
-          outputTokens = costDetails.outputTokens;
-          inputCost = costDetails.inputCost;
-          outputCost = costDetails.outputCost;
-          totalCost = costDetails.totalCost;
+          const costObj = calculateGenerationCost(model, prompt.length);
+          totalCost = costObj ? costObj.totalCost : 0;
+
+          // Calculate input/output costs based on model pricing
+          if (model.pricing) {
+            const inputPrice = parseFloat(String(model.pricing.prompt || 0));
+            const outputPrice = parseFloat(String(model.pricing.completion || 0));
+            inputCost = (inputTokens * inputPrice) / 1000000; // Convert from per-1M tokens
+            outputCost = (outputTokens * outputPrice) / 1000000;
+          }
         }
 
         // Update this specific result (thread-safe with functional update)
@@ -448,9 +469,13 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
     await Promise.all(promises);
 
     setIsGenerating(false);
-    // Persist generation completion status
-    imageStateStorage.saveGenerationStatus(false);
-  }, [settings, uploadedImage, modelResults]);
+  }, [
+    settings,
+    uploadedImage,
+    modelResults,
+    estimateImageTokens,
+    estimateTextTokens,
+  ]);
 
   const formatCost = useCallback((cost: number | null): string => {
     if (cost === null || cost === 0) return "$0.00";
@@ -626,13 +651,37 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
               {modelResults.length}
             </span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-gray-500 dark:text-gray-400">
-              Total Cost:
-            </span>
-            <span className="font-semibold text-green-600 dark:text-green-400">
-              {formatCost(totalCostAllModels)}
-            </span>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg border">
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                Models Selected
+              </div>
+              <div className="text-xl font-bold text-gray-900 dark:text-white">
+                {modelResults.length}
+              </div>
+            </div>
+
+            <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg border">
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                Completed
+              </div>
+              <div className="text-xl font-bold text-gray-900 dark:text-white">
+                {modelResults.filter((r) => r.prompt).length}
+              </div>
+            </div>
+
+            <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg border">
+              <div className="flex items-center justify-center">
+                <DollarSign className="h-4 w-4 text-green-600 dark:text-green-400 mr-1" />
+                <div className="text-sm text-gray-500 dark:text-gray-400">
+                  Total Cost
+                </div>
+              </div>
+              <div className="text-xl font-bold text-green-600 dark:text-green-400">
+                {formatCost(totalCostAllModels)}
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -655,33 +704,62 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
                 </div>
               </div>
 
-              {/* Cost Breakdown */}
-              <div className="p-4 space-y-3 border-b border-gray-200 dark:border-gray-700">
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-500 dark:text-gray-400">
-                    Input Tokens
-                  </span>
-                  <span className="font-medium text-gray-900 dark:text-white">
-                    {formatTokens(result.inputTokens)}
-                  </span>
+              {/* Detailed Metrics - Always Visible */}
+              <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border">
+                <div className="flex items-center mb-2">
+                  <Calculator className="h-4 w-4 text-blue-600 dark:text-blue-400 mr-2" />
+                  <h4 className="font-semibold text-gray-900 dark:text-white">
+                    Cost Breakdown
+                  </h4>
                 </div>
 
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-500 dark:text-gray-400">
-                    Output Tokens
-                  </span>
-                  <span className="font-medium text-gray-900 dark:text-white">
-                    {formatTokens(result.outputTokens)}
-                  </span>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                  <div>
+                    <div className="text-gray-500 dark:text-gray-400">
+                      Input Tokens
+                    </div>
+                    <div className="font-medium text-gray-900 dark:text-white">
+                      {formatTokens(result.inputTokens)}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-gray-500 dark:text-gray-400">
+                      Output Tokens
+                    </div>
+                    <div className="font-medium text-gray-900 dark:text-white">
+                      {formatTokens(result.outputTokens)}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-gray-500 dark:text-gray-400">
+                      Input Cost
+                    </div>
+                    <div className="font-medium text-blue-600 dark:text-blue-400">
+                      {formatCost(result.inputCost)}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-gray-500 dark:text-gray-400">
+                      Output Cost
+                    </div>
+                    <div className="font-medium text-blue-600 dark:text-blue-400">
+                      {formatCost(result.outputCost)}
+                    </div>
+                  </div>
                 </div>
 
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-500 dark:text-gray-400">
-                    Input Cost
-                  </span>
-                  <span className="font-medium text-blue-600 dark:text-blue-400">
-                    {formatCost(result.inputCost)}
-                  </span>
+                <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-gray-900 dark:text-white">
+                      Total Request Cost:
+                    </span>
+                    <span className="text-lg font-bold text-green-600 dark:text-green-400">
+                      {formatCost(result.cost)}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="flex justify-between text-xs">
@@ -701,15 +779,33 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
                     {formatCost(result.cost)}
                   </span>
                 </div>
-              </div>
+              )}
 
-              {/* Output Section */}
-              <div className="flex-1 flex flex-col min-h-0">
-                {result.isProcessing && (
-                  <div className="flex-1 flex items-center justify-center">
-                    <Loader2 className="h-6 w-6 animate-spin text-blue-600 dark:text-blue-400" />
+              {result.prompt && !result.isProcessing && (
+                <>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600">
+                    <div className="flex items-center justify-between mb-2">
+                      <h5 className="font-medium text-gray-900 dark:text-white">
+                        Generated Prompt
+                      </h5>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {result.prompt.length} characters
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-900 dark:text-white whitespace-pre-wrap">
+                      {result.prompt}
+                    </p>
                   </div>
-                )}
+                  <RatingWidget
+                    historyEntryId={result.id}
+                    modelId={result.modelId}
+                    modelName={result.modelName}
+                    imagePreview={uploadedImage?.preview || null}
+                    prompt={result.prompt}
+                    compact={true}
+                  />
+                </>
+              )}
 
                 {result.error && (
                   <div className="flex-1 p-4">

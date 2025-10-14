@@ -1,10 +1,7 @@
+// import { imageStateStorage } from './storage';
 import type { PersistedHistoryState, HistoryEntry } from "@/types/history";
 
 const HISTORY_KEY = "image-to-prompt-history-state";
-
-export const HISTORY_STORAGE_EVENTS = {
-  HISTORY_UPDATED: "image-to-prompt-history-updated",
-} as const;
 
 const DEFAULT_HISTORY_STATE: PersistedHistoryState = {
   entries: [],
@@ -77,27 +74,6 @@ export class HistoryStorage {
       window.dispatchEvent(event);
     } catch (e) {
       console.error("Failed to save history state", e);
-    }
-  }
-
-  private handleStorageEvent(event: StorageEvent): void {
-    if (event.key === HISTORY_KEY && event.newValue) {
-      try {
-        const parsed = JSON.parse(event.newValue);
-        this.state = {
-          ...DEFAULT_HISTORY_STATE,
-          ...parsed,
-          entries: Array.isArray(parsed?.entries)
-            ? parsed.entries.slice(0, 200)
-            : [],
-          filterModelIds: Array.isArray(parsed?.filterModelIds)
-            ? parsed.filterModelIds
-            : [],
-        };
-        this.notifySubscribers();
-      } catch (error) {
-        console.error("Failed to handle storage event:", error);
-      }
     }
   }
 
