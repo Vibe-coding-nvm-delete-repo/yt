@@ -10,7 +10,6 @@ import {
   AlertCircle,
   Image as ImageIcon,
   Loader2,
-  Calculator,
   DollarSign,
   Copy,
   Check,
