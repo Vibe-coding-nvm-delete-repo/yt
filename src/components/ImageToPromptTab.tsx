@@ -13,6 +13,7 @@ import {
   DollarSign,
   Copy,
   Check,
+  Calculator,
 } from "lucide-react";
 import Image from "next/image";
 
