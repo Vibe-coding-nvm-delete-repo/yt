@@ -9,6 +9,18 @@ import Image from "next/image";
 type SortField = keyof HistoryEntry;
 type SortOrder = "asc" | "desc";
 
+// SortIndicator component defined outside to avoid recreation during render
+const SortIndicator: React.FC<{
+  field: SortField;
+  sortField: SortField;
+  sortOrder: SortOrder;
+}> = ({ field, sortField, sortOrder }) => {
+  if (sortField !== field) return null;
+  return (
+    <span className="ml-1 text-xs">{sortOrder === "asc" ? "↑" : "↓"}</span>
+  );
+};
+
 export const HistoryTab: React.FC = () => {
   const { entries } = useHistory();
 
@@ -105,13 +117,6 @@ export const HistoryTab: React.FC = () => {
     return date.toLocaleString();
   };
 
-  const SortIndicator = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return null;
-    return (
-      <span className="ml-1 text-xs">{sortOrder === "asc" ? "↑" : "↓"}</span>
-    );
-  };
-
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -165,14 +170,22 @@ export const HistoryTab: React.FC = () => {
                   onClick={() => handleSort("createdAt")}
                 >
                   Date/Time
-                  <SortIndicator field="createdAt" />
+                  <SortIndicator
+                    field="createdAt"
+                    sortField={sortField}
+                    sortOrder={sortOrder}
+                  />
                 </th>
                 <th
                   className="px-3 py-2 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600"
                   onClick={() => handleSort("modelName")}
                 >
                   Model
-                  <SortIndicator field="modelName" />
+                  <SortIndicator
+                    field="modelName"
+                    sortField={sortField}
+                    sortOrder={sortOrder}
+                  />
                 </th>
                 <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">
                   Image
@@ -185,35 +198,55 @@ export const HistoryTab: React.FC = () => {
                   onClick={() => handleSort("inputTokens")}
                 >
                   Input Tokens
-                  <SortIndicator field="inputTokens" />
+                  <SortIndicator
+                    field="inputTokens"
+                    sortField={sortField}
+                    sortOrder={sortOrder}
+                  />
                 </th>
                 <th
                   className="px-3 py-2 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600"
                   onClick={() => handleSort("outputTokens")}
                 >
                   Output Tokens
-                  <SortIndicator field="outputTokens" />
+                  <SortIndicator
+                    field="outputTokens"
+                    sortField={sortField}
+                    sortOrder={sortOrder}
+                  />
                 </th>
                 <th
                   className="px-3 py-2 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600"
                   onClick={() => handleSort("inputCost")}
                 >
                   Input Cost
-                  <SortIndicator field="inputCost" />
+                  <SortIndicator
+                    field="inputCost"
+                    sortField={sortField}
+                    sortOrder={sortOrder}
+                  />
                 </th>
                 <th
                   className="px-3 py-2 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600"
                   onClick={() => handleSort("outputCost")}
                 >
                   Output Cost
-                  <SortIndicator field="outputCost" />
+                  <SortIndicator
+                    field="outputCost"
+                    sortField={sortField}
+                    sortOrder={sortOrder}
+                  />
                 </th>
                 <th
                   className="px-3 py-2 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600"
                   onClick={() => handleSort("totalCost")}
                 >
                   Total Cost
-                  <SortIndicator field="totalCost" />
+                  <SortIndicator
+                    field="totalCost"
+                    sortField={sortField}
+                    sortOrder={sortOrder}
+                  />
                 </th>
               </tr>
             </thead>
