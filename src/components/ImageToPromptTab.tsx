@@ -6,7 +6,7 @@ import { createOpenRouterClient } from "@/lib/openrouter";
 import { imageStateStorage } from "@/lib/storage";
 import calculateGenerationCost from "@/lib/cost";
 import { normalizeToApiError } from "@/lib/errorUtils";
-import { AlertCircle, Image as ImageIcon, Loader2 } from "lucide-react";
+import { AlertCircle, Image as ImageIcon, Loader2, Calculator, DollarSign } from "lucide-react";
 import Image from "next/image";
 
 interface ImageToPromptTabProps {
@@ -18,6 +18,10 @@ interface ModelResult {
   modelName: string;
   prompt: string | null;
   cost: number | null;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  inputCost: number | null;
+  outputCost: number | null;
   isProcessing: boolean;
   error: string | null;
 }
@@ -49,6 +53,10 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
             modelName: model?.name || modelId,
             prompt: null,
             cost: null,
+            inputTokens: null,
+            outputTokens: null,
+            inputCost: null,
+            outputCost: null,
             isProcessing: false,
             error: null,
           };
@@ -101,6 +109,20 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
     [],
   );
 
+  const estimateImageTokens = useCallback((imageDataUrl: string): number => {
+    // Rough estimation: base64 image size / 4 * 0.75 (typical compression)
+    // This is an approximation - actual token count varies by model
+    const base64Data = imageDataUrl.split(',')[1] || '';
+    const sizeInBytes = base64Data.length * 0.75;
+    // Vision models typically use ~85 tokens per image on average
+    return Math.max(85, Math.floor(sizeInBytes / 1000));
+  }, []);
+
+  const estimateTextTokens = useCallback((text: string): number => {
+    // Rough estimation: 1 token ≈ 0.75 words ≈ 4 characters
+    return Math.ceil(text.length / 4);
+  }, []);
+
   const handleFileInput = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -125,7 +147,16 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
         );
         // Reset results when new image is uploaded
         setModelResults((prev) =>
-          prev.map((r) => ({ ...r, prompt: null, cost: null, error: null })),
+          prev.map((r) => ({ 
+            ...r, 
+            prompt: null, 
+            cost: null, 
+            inputTokens: null,
+            outputTokens: null,
+            inputCost: null,
+            outputCost: null,
+            error: null 
+          })),
         );
       } catch (error) {
         console.error("Failed to read file:", error);
@@ -162,7 +193,16 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
         );
         // Reset results when new image is uploaded
         setModelResults((prev) =>
-          prev.map((r) => ({ ...r, prompt: null, cost: null, error: null })),
+          prev.map((r) => ({ 
+            ...r, 
+            prompt: null, 
+            cost: null, 
+            inputTokens: null,
+            outputTokens: null,
+            inputCost: null,
+            outputCost: null,
+            error: null 
+          })),
         );
       } catch (error) {
         console.error("Failed to read file:", error);
@@ -220,10 +260,27 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
         const model = settings.availableModels.find(
           (m) => m.id === result.modelId,
         );
-        const costObj = model
-          ? calculateGenerationCost(model, prompt.length)
-          : null;
-        const totalCost = costObj ? costObj.totalCost : null;
+        
+        // Calculate detailed costs
+        const inputTokens = estimateImageTokens(uploadedImage.preview);
+        const outputTokens = estimateTextTokens(prompt);
+        
+        let inputCost = 0;
+        let outputCost = 0;
+        let totalCost = 0;
+        
+        if (model) {
+          const costObj = calculateGenerationCost(model, prompt.length);
+          totalCost = costObj ? costObj.totalCost : 0;
+          
+          // Calculate input/output costs based on model pricing
+          if (model.pricing) {
+            const inputPrice = parseFloat(model.pricing.prompt || '0');
+            const outputPrice = parseFloat(model.pricing.completion || '0');
+            inputCost = (inputTokens * inputPrice) / 1000000; // Convert from per-1M tokens
+            outputCost = (outputTokens * outputPrice) / 1000000;
+          }
+        }
 
         // Update result
         setModelResults((prev) =>
@@ -233,6 +290,10 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
                   ...r,
                   prompt,
                   cost: totalCost,
+                  inputTokens,
+                  outputTokens,
+                  inputCost,
+                  outputCost,
                   isProcessing: false,
                   error: null,
                 }
@@ -256,12 +317,22 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
     }
 
     setIsGenerating(false);
-  }, [settings, uploadedImage, modelResults]);
+  }, [settings, uploadedImage, modelResults, estimateImageTokens, estimateTextTokens]);
 
   const formatCost = useCallback((cost: number | null): string => {
-    if (cost === null) return "$0.000000";
+    if (cost === null || cost === 0) return "$0.000000";
     return `$${cost.toFixed(6)}`;
   }, []);
+
+  const formatTokens = useCallback((tokens: number | null): string => {
+    if (tokens === null) return "—";
+    return tokens.toLocaleString();
+  }, []);
+
+  // Calculate total cost across all models
+  const totalCostAllModels = modelResults.reduce((sum, result) => {
+    return sum + (result.cost || 0);
+  }, 0);
 
   return (
     <div className="space-y-6">
@@ -358,6 +429,10 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
                     ...r,
                     prompt: null,
                     cost: null,
+                    inputTokens: null,
+                    outputTokens: null,
+                    inputCost: null,
+                    outputCost: null,
                     error: null,
                   })),
                 );
@@ -392,6 +467,44 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
         </div>
       )}
 
+      {/* Overall Cost Summary - Always Visible */}
+      {modelResults.length > 0 && (
+        <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+          <div className="flex items-center mb-3">
+            <Calculator className="mr-2 h-5 w-5 text-green-600 dark:text-green-400" />
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Generation Metrics
+            </h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg border">
+              <div className="text-sm text-gray-500 dark:text-gray-400">Models Selected</div>
+              <div className="text-xl font-bold text-gray-900 dark:text-white">
+                {modelResults.length}
+              </div>
+            </div>
+            
+            <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg border">
+              <div className="text-sm text-gray-500 dark:text-gray-400">Completed</div>
+              <div className="text-xl font-bold text-gray-900 dark:text-white">
+                {modelResults.filter(r => r.prompt).length}
+              </div>
+            </div>
+            
+            <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg border">
+              <div className="flex items-center justify-center">
+                <DollarSign className="h-4 w-4 text-green-600 dark:text-green-400 mr-1" />
+                <div className="text-sm text-gray-500 dark:text-gray-400">Total Cost</div>
+              </div>
+              <div className="text-xl font-bold text-green-600 dark:text-green-400">
+                {formatCost(totalCostAllModels)}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Model Results */}
       {modelResults.length > 0 && (
         <div className="space-y-4">
@@ -401,14 +514,59 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
               className="p-4 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
             >
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-gray-900 dark:text-white">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
                   {result.modelName}
                 </h3>
-                {result.cost !== null && (
-                  <span className="text-sm font-medium text-green-600 dark:text-green-400">
-                    Cost: {formatCost(result.cost)}
-                  </span>
-                )}
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  {result.modelId}
+                </div>
+              </div>
+
+              {/* Detailed Metrics - Always Visible */}
+              <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border">
+                <div className="flex items-center mb-2">
+                  <Calculator className="h-4 w-4 text-blue-600 dark:text-blue-400 mr-2" />
+                  <h4 className="font-semibold text-gray-900 dark:text-white">Cost Breakdown</h4>
+                </div>
+                
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                  <div>
+                    <div className="text-gray-500 dark:text-gray-400">Input Tokens</div>
+                    <div className="font-medium text-gray-900 dark:text-white">
+                      {formatTokens(result.inputTokens)}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="text-gray-500 dark:text-gray-400">Output Tokens</div>
+                    <div className="font-medium text-gray-900 dark:text-white">
+                      {formatTokens(result.outputTokens)}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="text-gray-500 dark:text-gray-400">Input Cost</div>
+                    <div className="font-medium text-blue-600 dark:text-blue-400">
+                      {formatCost(result.inputCost)}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="text-gray-500 dark:text-gray-400">Output Cost</div>
+                    <div className="font-medium text-blue-600 dark:text-blue-400">
+                      {formatCost(result.outputCost)}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-gray-900 dark:text-white">Total Request Cost:</span>
+                    <span className="text-lg font-bold text-green-600 dark:text-green-400">
+                      {formatCost(result.cost)}
+                    </span>
+                  </div>
+                </div>
               </div>
 
               {result.isProcessing && (
@@ -430,6 +588,12 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
 
               {result.prompt && !result.isProcessing && (
                 <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600">
+                  <div className="flex items-center justify-between mb-2">
+                    <h5 className="font-medium text-gray-900 dark:text-white">Generated Prompt</h5>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      {result.prompt.length} characters
+                    </div>
+                  </div>
                   <p className="text-sm text-gray-900 dark:text-white whitespace-pre-wrap">
                     {result.prompt}
                   </p>
