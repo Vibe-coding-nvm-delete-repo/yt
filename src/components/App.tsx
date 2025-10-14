@@ -3,6 +3,8 @@
 import React, { useState } from "react";
 import { MainLayout } from "./layout/MainLayout";
 import { SettingsTab } from "./SettingsTab";
+import { BestPracticesTab } from "./BestPracticesTab";
+import { UsageTab } from "./UsageTab";
 import ImageToPromptTabs from "./ImageToPromptTabs";
 import type { TabState } from "@/types";
 import { useSettings } from "@/hooks/useSettings";
@@ -32,6 +34,8 @@ export const App: React.FC = () => {
   return (
     <MainLayout activeTab={tabState.activeTab} onTabChange={handleTabChange}>
       {tabState.activeTab === "image-to-prompt" && <ImageToPromptTabs />}
+      {tabState.activeTab === "best-practices" && <BestPracticesTab />}
+      {tabState.activeTab === "usage" && <UsageTab />}
       {tabState.activeTab === "settings" && (
         <SettingsTab
           settings={settings}

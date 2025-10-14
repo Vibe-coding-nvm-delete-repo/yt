@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Image, Settings, BookOpen } from "lucide-react";
+import { Image, Settings, BookOpen, List } from "lucide-react";
 import type { TabState } from "@/types";
 
 interface TabNavigationProps {
@@ -27,6 +27,13 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
       shortLabel: "Best Practices",
       icon: BookOpen,
       description: "Manage best practices for your workflow",
+    },
+    {
+      id: "usage" as const,
+      label: "Usage & Costs",
+      shortLabel: "Usage",
+      icon: List,
+      description: "View usage statistics and costs",
     },
     {
       id: "settings" as const,
