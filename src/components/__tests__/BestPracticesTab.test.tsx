@@ -30,11 +30,12 @@ describe("BestPracticesTab", () => {
 
   it("should render all subtabs", () => {
     render(<BestPracticesTab />);
-    expect(screen.getByText("All")).toBeInTheDocument();
-    expect(screen.getByText("Words/Phrases")).toBeInTheDocument();
-    expect(screen.getByText("Image")).toBeInTheDocument();
-    expect(screen.getByText("Youtube")).toBeInTheDocument();
-    expect(screen.getByText("Our Unique Channel")).toBeInTheDocument();
+    expect(screen.getByText(/All \(\d+\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Words\/Phrases \(\d+\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Photography \(\d+\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Youtube Engagement \(\d+\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Youtube Thumbnail \(\d+\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Our Unique Channel \(\d+\)/)).toBeInTheDocument();
   });
 
   it("should show empty state when no practices exist", () => {
@@ -47,8 +48,8 @@ describe("BestPracticesTab", () => {
     const createButton = screen.getByText("Create");
     fireEvent.click(createButton);
 
-    // Check that dropdown options appear (will appear multiple times due to tabs)
-    const wordsPhrasesOptions = screen.getAllByText("Words/Phrases");
+    // Check that dropdown options appear
+    const wordsPhrasesOptions = screen.getAllByText(/Words\/Phrases/);
     expect(wordsPhrasesOptions.length).toBeGreaterThan(1);
   });
 
@@ -56,9 +57,9 @@ describe("BestPracticesTab", () => {
     render(<BestPracticesTab />);
 
     // All subtabs should be visible
-    expect(screen.getByText("All")).toBeInTheDocument();
-    const imageOptions = screen.getAllByText("Image");
-    expect(imageOptions.length).toBeGreaterThan(0);
+    expect(screen.getByText(/All \(\d+\)/)).toBeInTheDocument();
+    const photographyOptions = screen.getAllByText(/Photography/);
+    expect(photographyOptions.length).toBeGreaterThan(0);
   });
 
   it("should display practices when they exist", () => {
@@ -108,14 +109,14 @@ describe("BestPracticesTab", () => {
       },
       {
         id: "2",
-        name: "Image Practice",
-        description: "Image Description",
+        name: "Photography Practice",
+        description: "Photography Description",
         leonardoAiLanguage: "",
         images: [],
         importance: 5,
         type: "optional" as const,
         typeExplanation: "",
-        category: "image" as const,
+        category: "photography" as const,
         createdAt: Date.now(),
         updatedAt: Date.now(),
       },
@@ -132,18 +133,17 @@ describe("BestPracticesTab", () => {
 
     // Initially both should be visible (All tab)
     expect(screen.getByText("Words Practice")).toBeInTheDocument();
-    expect(screen.getByText("Image Practice")).toBeInTheDocument();
+    expect(screen.getByText("Photography Practice")).toBeInTheDocument();
 
     // Click on Words/Phrases subtab
-    const subtabs = screen.getAllByText("Words/Phrases");
-    const subtab = subtabs[0];
+    const subtab = screen.getByText(/Words\/Phrases \(1\)/);
     if (subtab) {
       fireEvent.click(subtab);
     }
 
     // Only Words Practice should be visible
     expect(screen.getByText("Words Practice")).toBeInTheDocument();
-    expect(screen.queryByText("Image Practice")).not.toBeInTheDocument();
+    expect(screen.queryByText("Photography Practice")).not.toBeInTheDocument();
   });
 
   it("should render modal components", () => {

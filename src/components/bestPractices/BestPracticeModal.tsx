@@ -69,8 +69,9 @@ export const BestPracticeModal: React.FC<BestPracticeModalProps> = ({
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             >
               <option value="words-phrases">Words/Phrases</option>
-              <option value="image">Image</option>
-              <option value="youtube">Youtube</option>
+              <option value="photography">Photography</option>
+              <option value="youtube-engagement">Youtube Engagement</option>
+              <option value="youtube-thumbnail">Youtube Thumbnail</option>
               <option value="our-unique-channel">Our Unique Channel</option>
             </select>
           </div>
@@ -99,7 +100,7 @@ export const BestPracticeModal: React.FC<BestPracticeModalProps> = ({
               onChange={(e) => onFormChange({ description: e.target.value })}
               rows={3}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none"
-              placeholder="Enter description"
+              placeholder="Provide a detailed description of this best practice, including when and how to apply it"
             />
           </div>
 
@@ -108,32 +109,52 @@ export const BestPracticeModal: React.FC<BestPracticeModalProps> = ({
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Leonardo.AI Language
             </label>
-            <input
-              type="text"
+            <textarea
               value={formData.leonardoAiLanguage}
               onChange={(e) =>
                 onFormChange({ leonardoAiLanguage: e.target.value })
               }
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              placeholder="Enter Leonardo.AI language"
+              rows={4}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none"
+              placeholder="Enter detailed Leonardo.AI language instructions or prompt structure"
             />
           </div>
 
           {/* Importance */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Importance (1-10): {formData.importance}
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Importance (1-10)
             </label>
-            <input
-              type="range"
-              min="1"
-              max="10"
-              value={formData.importance}
-              onChange={(e) =>
-                onFormChange({ importance: parseInt(e.target.value) })
-              }
-              className="w-full"
-            />
+            <div className="flex items-center gap-4">
+              <input
+                type="range"
+                min="1"
+                max="10"
+                value={formData.importance}
+                onChange={(e) =>
+                  onFormChange({ importance: parseInt(e.target.value) })
+                }
+                className="flex-1"
+              />
+              <div
+                className={`px-4 py-2 rounded-lg font-bold text-lg min-w-[60px] text-center ${
+                  formData.importance >= 8
+                    ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                    : formData.importance >= 5
+                      ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                      : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                }`}
+              >
+                {formData.importance}
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {formData.importance >= 8
+                ? "High importance - critical best practice"
+                : formData.importance >= 5
+                  ? "Medium importance - recommended practice"
+                  : "Low importance - optional suggestion"}
+            </p>
           </div>
 
           {/* Type */}
@@ -166,7 +187,7 @@ export const BestPracticeModal: React.FC<BestPracticeModalProps> = ({
               }
               rows={2}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none"
-              placeholder="Explain why this is mandatory, optional, or conditional"
+              placeholder="Explain why this is mandatory (must always follow), optional (good to have), or conditional (depends on context)"
             />
           </div>
 
@@ -175,6 +196,10 @@ export const BestPracticeModal: React.FC<BestPracticeModalProps> = ({
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Images
             </label>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mb-2">
+              Add reference images to visually demonstrate this best practice
+              and make it easier to understand and apply.
+            </p>
             <div className="flex gap-2 flex-wrap mb-2">
               {formData.images.map((img, idx) => (
                 <div key={idx} className="relative">

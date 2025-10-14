@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
-import { BookOpen, Plus, ChevronDown } from "lucide-react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { BookOpen, Plus, ChevronDown, Info } from "lucide-react";
 import type {
   BestPractice,
   BestPracticeCategory,
@@ -14,15 +14,17 @@ import { BestPracticeCard } from "./bestPractices/BestPracticeCard";
 type BestPracticeSubTab =
   | "all"
   | "words-phrases"
-  | "image"
-  | "youtube"
+  | "photography"
+  | "youtube-engagement"
+  | "youtube-thumbnail"
   | "our-unique-channel";
 
 const SUB_TAB_LABELS: Record<BestPracticeSubTab, string> = {
   all: "All",
   "words-phrases": "Words/Phrases",
-  image: "Image",
-  youtube: "Youtube",
+  photography: "Photography",
+  "youtube-engagement": "Youtube Engagement",
+  "youtube-thumbnail": "Youtube Thumbnail",
   "our-unique-channel": "Our Unique Channel",
 };
 
@@ -58,6 +60,10 @@ export const BestPracticesTab: React.FC = () => {
   const [formData, setFormData] =
     useState<BestPracticeFormData>(EMPTY_FORM_DATA);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [typeFilters, setTypeFilters] = useState<Set<BestPracticeType>>(
+    new Set(["mandatory", "optional", "conditional"]),
+  );
+  const [showMetricsTooltip, setShowMetricsTooltip] = useState(false);
 
   // Load practices from storage
   useEffect(() => {
@@ -68,11 +74,53 @@ export const BestPracticesTab: React.FC = () => {
     return unsubscribe;
   }, []);
 
-  // Filter practices based on active subtab
-  const filteredPractices =
-    activeSubTab === "all"
-      ? practices
-      : practices.filter((p) => p.category === activeSubTab);
+  // Calculate counts for each category
+  const categoryCounts = useMemo(() => {
+    const counts: Record<BestPracticeSubTab, number> = {
+      all: practices.length,
+      "words-phrases": 0,
+      photography: 0,
+      "youtube-engagement": 0,
+      "youtube-thumbnail": 0,
+      "our-unique-channel": 0,
+    };
+
+    practices.forEach((practice) => {
+      if (practice.category in counts) {
+        counts[practice.category]++;
+      }
+    });
+
+    return counts;
+  }, [practices]);
+
+  // Calculate metrics breakdown
+  const metricsBreakdown = useMemo(() => {
+    return {
+      "Words/Phrases": categoryCounts["words-phrases"],
+      Photography: categoryCounts["photography"],
+      "Youtube Engagement": categoryCounts["youtube-engagement"],
+      "Youtube Thumbnail": categoryCounts["youtube-thumbnail"],
+      "Our Unique Channel": categoryCounts["our-unique-channel"],
+    };
+  }, [categoryCounts]);
+
+  // Filter practices based on active subtab and type filters
+  const filteredPractices = useMemo(() => {
+    let filtered = practices;
+
+    // Filter by category
+    if (activeSubTab !== "all") {
+      filtered = filtered.filter((p) => p.category === activeSubTab);
+    }
+
+    // Filter by type (only on "all" tab)
+    if (activeSubTab === "all") {
+      filtered = filtered.filter((p) => typeFilters.has(p.type));
+    }
+
+    return filtered;
+  }, [practices, activeSubTab, typeFilters]);
 
   const handleCreateClick = useCallback((category?: BestPracticeCategory) => {
     setFormData({
@@ -173,13 +221,52 @@ export const BestPracticesTab: React.FC = () => {
     }));
   }, []);
 
+  const toggleTypeFilter = useCallback((type: BestPracticeType) => {
+    setTypeFilters((prev) => {
+      const newFilters = new Set(prev);
+      if (newFilters.has(type)) {
+        newFilters.delete(type);
+      } else {
+        newFilters.add(type);
+      }
+      return newFilters;
+    });
+  }, []);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
-          <BookOpen className="mr-2 h-6 w-6" />
-          Best Practices
-        </h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
+            <BookOpen className="mr-2 h-6 w-6" />
+            Best Practices
+          </h1>
+
+          {/* Metrics Display */}
+          <div
+            className="relative"
+            onMouseEnter={() => setShowMetricsTooltip(true)}
+            onMouseLeave={() => setShowMetricsTooltip(false)}
+          >
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-lg border border-blue-200 dark:border-blue-800 cursor-help">
+              <span className="text-2xl font-bold">{practices.length}</span>
+              <Info className="h-4 w-4" />
+            </div>
+
+            {showMetricsTooltip && (
+              <div className="absolute left-0 top-full mt-2 z-10 bg-gray-900 dark:bg-gray-700 text-white rounded-lg shadow-lg p-3 min-w-[200px]">
+                <div className="space-y-1">
+                  {Object.entries(metricsBreakdown).map(([category, count]) => (
+                    <div key={category} className="flex justify-between gap-4">
+                      <span className="text-gray-300">{category}:</span>
+                      <span className="font-semibold text-white">{count}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* Create Dropdown */}
         <div className="relative">
@@ -201,16 +288,22 @@ export const BestPracticesTab: React.FC = () => {
                 Words/Phrases
               </button>
               <button
-                onClick={() => handleCreateClick("image")}
+                onClick={() => handleCreateClick("photography")}
                 className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-900 dark:text-white"
               >
-                Image
+                Photography
               </button>
               <button
-                onClick={() => handleCreateClick("youtube")}
+                onClick={() => handleCreateClick("youtube-engagement")}
                 className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-900 dark:text-white"
               >
-                Youtube
+                Youtube Engagement
+              </button>
+              <button
+                onClick={() => handleCreateClick("youtube-thumbnail")}
+                className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-900 dark:text-white"
+              >
+                Youtube Thumbnail
               </button>
               <button
                 onClick={() => handleCreateClick("our-unique-channel")}
@@ -230,8 +323,9 @@ export const BestPracticesTab: React.FC = () => {
             [
               "all",
               "words-phrases",
-              "image",
-              "youtube",
+              "photography",
+              "youtube-engagement",
+              "youtube-thumbnail",
               "our-unique-channel",
             ] as BestPracticeSubTab[]
           ).map((tab) => (
@@ -244,11 +338,42 @@ export const BestPracticesTab: React.FC = () => {
                   : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
               }`}
             >
-              {SUB_TAB_LABELS[tab]}
+              {SUB_TAB_LABELS[tab]} ({categoryCounts[tab]})
             </button>
           ))}
         </nav>
       </div>
+
+      {/* Type Filters (only on "all" tab) */}
+      {activeSubTab === "all" && (
+        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+          <div className="flex items-center gap-4">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Filter by Type:
+            </span>
+            <div className="flex gap-4">
+              {(
+                ["mandatory", "optional", "conditional"] as BestPracticeType[]
+              ).map((type) => (
+                <label
+                  key={type}
+                  className="flex items-center gap-2 cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    checked={typeFilters.has(type)}
+                    onChange={() => toggleTypeFilter(type)}
+                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+                  />
+                  <span className="text-sm text-gray-700 dark:text-gray-300 capitalize">
+                    {type}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Practices List */}
       <div className="space-y-4">
