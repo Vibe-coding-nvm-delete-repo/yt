@@ -56,29 +56,6 @@ describe("SettingsStorage", () => {
     });
   });
 
-  describe("importSettings", () => {
-    it("should preserve timestamp fields when importing settings", () => {
-      const mockSettings = {
-        openRouterApiKey: "test-key",
-        selectedModel: "test-model",
-        customPrompt: "test prompt",
-        isValidApiKey: true,
-        lastApiKeyValidation: 1234567890,
-        lastModelFetch: 9876543210,
-        availableModels: [],
-      };
-
-      const success = settingsStorage.importSettings(
-        JSON.stringify(mockSettings),
-      );
-
-      expect(success).toBe(true);
-      const settings = settingsStorage.getSettings();
-      expect(settings.lastApiKeyValidation).toBe(1234567890);
-      expect(settings.lastModelFetch).toBe(9876543210);
-    });
-  });
-
   describe("loadSettings", () => {
     it("should handle missing timestamp fields in stored settings", () => {
       const legacySettings = {

@@ -1,4 +1,4 @@
-import type { QueueOptions, QueueResult } from '@/types';
+import type { QueueOptions, QueueResult } from "@/types";
 
 /**
  * runWithConcurrency
@@ -20,9 +20,10 @@ import type { QueueOptions, QueueResult } from '@/types';
  */
 export async function runWithConcurrency<T>(
   tasks: Array<() => Promise<T>>,
-  options: QueueOptions = {}
+  options: QueueOptions = {},
 ): Promise<QueueResult<T>> {
-  const concurrency = options.concurrency && options.concurrency > 0 ? options.concurrency : 2;
+  const concurrency =
+    options.concurrency && options.concurrency > 0 ? options.concurrency : 2;
   const total = tasks.length;
   const results: (T | Error)[] = new Array(total);
   let completed = 0;
@@ -33,12 +34,14 @@ export async function runWithConcurrency<T>(
 
   // If signal is aborted before start, throw
   if (options.signal?.aborted) {
-    throw new DOMException('Aborted', 'AbortError');
+    throw new DOMException("Aborted", "AbortError");
   }
 
   const onProgress = options.onProgress;
-  const retryAttempts = typeof options.retryAttempts === 'number' ? options.retryAttempts : 1;
-  const retryDelay = typeof options.retryDelay === 'number' ? options.retryDelay : 300;
+  const retryAttempts =
+    typeof options.retryAttempts === "number" ? options.retryAttempts : 1;
+  const retryDelay =
+    typeof options.retryDelay === "number" ? options.retryDelay : 300;
 
   // Helper: sleep with jitter
   const sleep = (ms: number) =>
@@ -46,12 +49,12 @@ export async function runWithConcurrency<T>(
       const t = setTimeout(res, ms);
       if (options.signal) {
         options.signal.addEventListener(
-          'abort',
+          "abort",
           () => {
             clearTimeout(t);
             res();
           },
-          { once: true }
+          { once: true },
         );
       }
     });
@@ -61,7 +64,7 @@ export async function runWithConcurrency<T>(
     while (true) {
       if (options.signal?.aborted) {
         // Stop processing further tasks
-        throw new DOMException('Aborted', 'AbortError');
+        throw new DOMException("Aborted", "AbortError");
       }
 
       const current = index++;
@@ -70,6 +73,10 @@ export async function runWithConcurrency<T>(
       }
 
       const taskFactory = tasks[current];
+      if (!taskFactory) {
+        // Defensive check for strict noUncheckedIndexedAccess
+        return;
+      }
       let attempt = 0;
 
       while (true) {
@@ -80,10 +87,12 @@ export async function runWithConcurrency<T>(
         } catch (err) {
           attempt++;
           const errName = (err as { name?: string })?.name;
-          const isAbort = (err instanceof DOMException && err.name === 'AbortError') || errName === 'AbortError';
+          const isAbort =
+            (err instanceof DOMException && err.name === "AbortError") ||
+            errName === "AbortError";
           if (isAbort || options.signal?.aborted) {
             // propagate abort
-            throw new DOMException('Aborted', 'AbortError');
+            throw new DOMException("Aborted", "AbortError");
           }
 
           if (attempt > retryAttempts) {
@@ -117,12 +126,12 @@ export async function runWithConcurrency<T>(
     workers.push(
       worker().catch((err) => {
         // If AbortError, propagate later; otherwise record
-        if (err instanceof DOMException && err.name === 'AbortError') {
+        if (err instanceof DOMException && err.name === "AbortError") {
           throw err;
         }
         // Non-fatal - push to errors array
         errors.push(err instanceof Error ? err : new Error(String(err)));
-      })
+      }),
     );
   }
 
@@ -131,7 +140,7 @@ export async function runWithConcurrency<T>(
     await Promise.all(workers);
   } catch (err) {
     // If aborted, ensure we surface it as an AbortError
-    if (err instanceof DOMException && err.name === 'AbortError') {
+    if (err instanceof DOMException && err.name === "AbortError") {
       throw err;
     }
     // otherwise continue to return partial results

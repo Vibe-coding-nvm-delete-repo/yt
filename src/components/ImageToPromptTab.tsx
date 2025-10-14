@@ -42,6 +42,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   const [modelResults, setModelResults] = useState<ModelResult[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [copiedPromptId, setCopiedPromptId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const dropZoneRef = useRef<HTMLDivElement | null>(null);
 
@@ -244,8 +245,12 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
     setIsGenerating(true);
     setErrorMessage(null);
 
-    // Process each model sequentially (avoid unchecked array indexing)
-    for (const [i, result] of modelResults.entries()) {
+    // Process each model sequentially with explicit index access
+    for (let i = 0; i < modelResults.length; i++) {
+      const result = modelResults[i];
+      if (!result) {
+        continue;
+      }
       // Mark as processing
       setModelResults((prev) =>
         prev.map((r, idx) =>
@@ -322,6 +327,23 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
         });
       } catch (error) {
         const apiErr = normalizeToApiError(error);
+
+        // Record failed usage attempt
+        usageStorage.add({
+          id: `${Date.now()}-${result.modelId}`,
+          timestamp: Date.now(),
+          modelId: result.modelId,
+          modelName: result.modelName,
+          inputTokens: 0,
+          outputTokens: 0,
+          inputCost: 0,
+          outputCost: 0,
+          totalCost: 0,
+          success: false,
+          error: apiErr.message,
+          imagePreview: uploadedImage.preview,
+        });
+
         setModelResults((prev) =>
           prev.map((r, idx) =>
             idx === i
@@ -350,9 +372,14 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
     return `$${cost.toFixed(6)}`;
   }, []);
 
-  const formatTokens = useCallback((tokens: number | null): string => {
-    if (tokens === null) return "—";
-    return tokens.toLocaleString();
+  const copyToClipboard = useCallback(async (text: string, modelId: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedPromptId(modelId);
+      setTimeout(() => setCopiedPromptId(null), 2000);
+    } catch (error) {
+      console.error("Failed to copy to clipboard:", error);
+    }
   }, []);
 
   // Calculate total cost across all models
@@ -493,7 +520,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
         </div>
       )}
 
-      {/* Overall Cost Summary - Always Visible */}
+      {/* Overall Cost Summary - Minimalist */}
       {modelResults.length > 0 && (
         <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
           <div className="flex items-center mb-3">
@@ -537,13 +564,13 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
         </div>
       )}
 
-      {/* Model Results */}
+      {/* Model Results - Vertical Layout with Fixed Heights */}
       {modelResults.length > 0 && (
-        <div className="space-y-4">
+        <div className="space-y-2">
           {modelResults.map((result) => (
             <div
               key={result.modelId}
-              className="p-4 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+              className="p-3 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 h-[18vh] flex flex-col"
             >
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white">
@@ -614,17 +641,17 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
               </div>
 
               {result.isProcessing && (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-blue-600 dark:text-blue-400" />
-                  <span className="ml-3 text-gray-6 00 dark:text-gray-400">
+                <div className="flex items-center justify-center flex-1">
+                  <Loader2 className="h-6 w-6 animate-spin text-blue-600 dark:text-blue-400" />
+                  <span className="ml-2 text-xs text-gray-600 dark:text-gray-400">
                     Processing...
                   </span>
                 </div>
               )}
 
               {result.error && (
-                <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded">
-                  <p className="text-sm text-red-600 dark:text-red-400">
+                <div className="p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded flex-1">
+                  <p className="text-xs text-red-600 dark:text-red-400">
                     {result.error}
                   </p>
                 </div>
@@ -640,18 +667,48 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
                       {result.prompt.length} characters
                     </div>
                   </div>
-                  <p className="text-sm text-gray-900 dark:text-white whitespace-pre-wrap">
-                    {result.prompt}
-                  </p>
-                </div>
-              )}
 
-              {!result.isProcessing && !result.prompt && !result.error && (
-                <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600">
-                  <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-                    Waiting to generate...
-                  </p>
-                </div>
+                  {/* Total Cost */}
+                  <div className="text-sm font-semibold text-green-600 dark:text-green-400 mb-2">
+                    Total: {formatCost(result.cost)}
+                  </div>
+
+                  {/* Generated Prompt - Small Scrollable Window */}
+                  {result.prompt ? (
+                    <div className="flex-1 min-h-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                          Generated Prompt
+                        </span>
+                        <button
+                          onClick={() =>
+                            copyToClipboard(result.prompt!, result.modelId)
+                          }
+                          className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                          title="Copy prompt"
+                          aria-label="Copy prompt to clipboard"
+                        >
+                          {copiedPromptId === result.modelId ? (
+                            <Check className="h-3 w-3 text-green-600 dark:text-green-400" />
+                          ) : (
+                            <Copy className="h-3 w-3 text-gray-600 dark:text-gray-400" />
+                          )}
+                        </button>
+                      </div>
+                      <div className="h-[calc(100%-1.5rem)] overflow-y-auto bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600 p-2">
+                        <p className="text-xs text-gray-900 dark:text-white whitespace-pre-wrap">
+                          {result.prompt}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex-1 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600 flex items-center justify-center">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 italic">
+                        Awaiting generation...
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           ))}
