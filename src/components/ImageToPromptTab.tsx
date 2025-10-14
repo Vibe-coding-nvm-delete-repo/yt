@@ -6,6 +6,7 @@ import { createOpenRouterClient } from "@/lib/openrouter";
 import { imageStateStorage } from "@/lib/storage";
 import calculateGenerationCost from "@/lib/cost";
 import { normalizeToApiError } from "@/lib/errorUtils";
+import { usageStorage } from "@/lib/usage";
 import {
   AlertCircle,
   Image as ImageIcon,

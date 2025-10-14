@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Edit, Trash2 } from "lucide-react";
+import { Edit, Trash2, Calendar } from "lucide-react";
 import type { BestPractice } from "@/types";
 
 interface BestPracticeCardProps {
@@ -15,11 +15,20 @@ export const BestPracticeCard: React.FC<BestPracticeCardProps> = ({
   onEdit,
   onDelete,
 }) => {
+  const formatDate = (timestamp: number) => {
+    const date = new Date(timestamp);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
+
   return (
     <div className="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 p-4">
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center gap-3 mb-2 flex-wrap">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
               {practice.name}
             </h3>
@@ -36,6 +45,10 @@ export const BestPracticeCard: React.FC<BestPracticeCardProps> = ({
             </span>
             <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
               Importance: {practice.importance}/10
+            </span>
+            <span className="flex items-center gap-1 px-2 py-1 text-xs text-gray-500 dark:text-gray-400">
+              <Calendar className="h-3 w-3" />
+              {formatDate(practice.createdAt)}
             </span>
           </div>
 

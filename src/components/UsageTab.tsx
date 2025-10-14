@@ -9,7 +9,9 @@ import {
   Filter,
   List,
   SlidersHorizontal,
+  Image as ImageIcon,
 } from "lucide-react";
+import Image from "next/image";
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface UsageTabProps {}
@@ -122,22 +124,53 @@ export const UsageTab: React.FC<UsageTabProps> = () => {
         {list.map((e: UsageEntry) => (
           <div
             key={e.id}
-            className="p-4 flex items-center justify-between gap-4"
+            className="p-4 flex items-start justify-between gap-4"
           >
-            <div className="min-w-0">
-              <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                {e.modelName}{" "}
-                <span className="text-xs text-gray-500">({e.modelId})</span>
-              </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">
-                {new Date(e.timestamp).toLocaleString()}
-              </div>
-              <div className="mt-1 text-xs text-gray-600 dark:text-gray-300">
-                Input: {e.inputTokens} • Output: {e.outputTokens}
+            <div className="flex items-start gap-3 min-w-0 flex-1">
+              {e.imagePreview ? (
+                <a
+                  href={e.imagePreview}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-shrink-0 w-16 h-16 rounded border border-gray-300 dark:border-gray-600 overflow-hidden hover:ring-2 hover:ring-blue-500 transition-all"
+                  title="Click to view full image"
+                >
+                  <Image
+                    src={e.imagePreview}
+                    alt="Prompt image"
+                    width={64}
+                    height={64}
+                    className="w-full h-full object-cover"
+                    unoptimized
+                  />
+                </a>
+              ) : (
+                <div className="flex-shrink-0 w-16 h-16 rounded border border-gray-300 dark:border-gray-600 flex items-center justify-center bg-gray-100 dark:bg-gray-700">
+                  <ImageIcon className="h-6 w-6 text-gray-400" />
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                  {e.modelName}{" "}
+                  <span className="text-xs text-gray-500">({e.modelId})</span>
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  {new Date(e.timestamp).toLocaleString()}
+                </div>
+                <div className="mt-1 text-xs text-gray-600 dark:text-gray-300">
+                  Input: {e.inputTokens} • Output: {e.outputTokens}
+                </div>
+                {!e.success && e.error && (
+                  <div className="mt-1 text-xs text-red-600 dark:text-red-400">
+                    Error: {e.error}
+                  </div>
+                )}
               </div>
             </div>
-            <div className="text-right">
-              <div className="text-sm font-semibold text-green-600 dark:text-green-400">
+            <div className="text-right flex-shrink-0">
+              <div
+                className={`text-sm font-semibold ${e.success ? "text-green-600 dark:text-green-400" : "text-gray-400"}`}
+              >
                 {formatCurrency(e.totalCost)}
               </div>
               <div className="text-xs text-gray-500">
