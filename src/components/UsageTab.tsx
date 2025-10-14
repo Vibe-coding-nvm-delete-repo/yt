@@ -17,11 +17,12 @@ export const UsageTab: React.FC<UsageTabProps> = () => {
   const list = useMemo(() => {
     const fromTs = from ? new Date(from).getTime() : undefined;
     const toTs = to ? new Date(to).getTime() : undefined;
-    const entries = usageStorage.list({
-      from: fromTs,
-      to: toTs,
-      modelIds: modelFilter ? modelFilter.split(",").map((s) => s.trim()) : undefined,
-    });
+    const filter: Record<string, unknown> = {};
+    if (fromTs !== undefined) filter.from = fromTs;
+    if (toTs !== undefined) filter.to = toTs;
+    if (modelFilter) filter.modelIds = modelFilter.split(",").map((s) => s.trim());
+
+    const entries = usageStorage.list(filter as any);
     return entries.slice(0, 500);
   }, [from, to, modelFilter]);
 
