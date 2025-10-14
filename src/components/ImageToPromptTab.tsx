@@ -12,6 +12,8 @@ import {
   Loader2,
   Calculator,
   DollarSign,
+  Check,
+  Copy,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -294,8 +296,10 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
 
           // Calculate input/output costs based on model pricing
           if (model.pricing) {
-            const inputPrice = parseFloat(model.pricing.prompt || "0");
-            const outputPrice = parseFloat(model.pricing.completion || "0");
+            const inputPrice = parseFloat(String(model.pricing.prompt || "0"));
+            const outputPrice = parseFloat(
+              String(model.pricing.completion || "0"),
+            );
             inputCost = (inputTokens * inputPrice) / 1000000; // Convert from per-1M tokens
             outputCost = (outputTokens * outputPrice) / 1000000;
           }
@@ -355,6 +359,11 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   const formatCost = useCallback((cost: number | null): string => {
     if (cost === null || cost === 0) return "$0.000000";
     return `$${cost.toFixed(6)}`;
+  }, []);
+
+  const formatTokens = useCallback((tokens: number | null): string => {
+    if (tokens === null) return "0";
+    return tokens.toLocaleString();
   }, []);
 
   const copyToClipboard = useCallback(async (text: string, modelId: string) => {
@@ -694,7 +703,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
                       </p>
                     </div>
                   )}
-                </>
+                </div>
               )}
             </div>
           ))}
