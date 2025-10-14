@@ -43,7 +43,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   const [modelResults, setModelResults] = useState<ModelResult[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [copiedModelId, setCopiedModelId] = useState<string | null>(null);
+  const [copiedPromptId, setCopiedPromptId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const dropZoneRef = useRef<HTMLDivElement | null>(null);
 
@@ -349,23 +349,11 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   const copyToClipboard = useCallback(async (text: string, modelId: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      setCopiedModelId(modelId);
-      setTimeout(() => setCopiedModelId(null), 2000);
-    } catch (err) {
-      console.error("Failed to copy:", err);
+      setCopiedPromptId(modelId);
+      setTimeout(() => setCopiedPromptId(null), 2000);
+    } catch (error) {
+      console.error("Failed to copy to clipboard:", error);
     }
-  }, []);
-
-  const getCharCountColor = useCallback((charCount: number): string => {
-    return charCount <= 1500
-      ? "text-green-600 dark:text-green-400"
-      : "text-red-600 dark:text-red-400";
-  }, []);
-
-  const getCharCountBgColor = useCallback((charCount: number): string => {
-    return charCount <= 1500
-      ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
-      : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800";
   }, []);
 
   // Calculate total cost across all models
@@ -508,60 +496,41 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
 
       {/* Overall Cost Summary - Minimalist */}
       {modelResults.length > 0 && (
-        <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-700">
+        <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 p-2 rounded border border-green-200 dark:border-green-800">
           <div className="flex items-center justify-between text-xs">
             <div className="flex items-center gap-3">
               <span className="text-gray-600 dark:text-gray-400">
-                Models:{" "}
-                <span className="font-semibold text-gray-900 dark:text-white">
-                  {modelResults.length}
-                </span>
+                <Calculator className="inline h-3 w-3 mr-1" />
+                {modelResults.length} models
               </span>
               <span className="text-gray-600 dark:text-gray-400">
-                Completed:{" "}
-                <span className="font-semibold text-gray-900 dark:text-white">
-                  {modelResults.filter((r) => r.prompt).length}
-                </span>
+                {modelResults.filter((r) => r.prompt).length} completed
               </span>
             </div>
-            <div className="flex items-center">
-              <DollarSign className="h-3 w-3 text-green-600 dark:text-green-400 mr-1" />
-              <span className="font-semibold text-green-600 dark:text-green-400">
-                {formatCost(totalCostAllModels)}
-              </span>
+            <div className="flex items-center font-semibold text-green-600 dark:text-green-400">
+              <DollarSign className="h-3 w-3" />
+              {formatCost(totalCostAllModels)}
             </div>
           </div>
         </div>
       )}
 
-      {/* Model Results - Vertical Minimalist Layout */}
+      {/* Model Results - Vertical Layout with Fixed Heights */}
       {modelResults.length > 0 && (
         <div className="space-y-2">
           {modelResults.map((result) => (
             <div
               key={result.modelId}
-              className="p-3 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800"
-              style={{ minHeight: "20vh" }}
+              className="p-3 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 h-[18vh] flex flex-col"
             >
               {/* Model Name */}
-              <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-2">
+              <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-1 truncate">
                 {result.modelName}
               </h3>
 
-              {/* Cost Breakdown - Single Line */}
-              <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">
-                Input: {formatCost(result.inputCost)} | Output:{" "}
-                {formatCost(result.outputCost)}
-              </div>
-
-              {/* Total Cost */}
-              <div className="text-sm font-semibold text-green-600 dark:text-green-400 mb-3">
-                Total: {formatCost(result.cost)}
-              </div>
-
               {result.isProcessing && (
-                <div className="flex items-center py-4">
-                  <Loader2 className="h-5 w-5 animate-spin text-blue-600 dark:text-blue-400" />
+                <div className="flex items-center justify-center flex-1">
+                  <Loader2 className="h-6 w-6 animate-spin text-blue-600 dark:text-blue-400" />
                   <span className="ml-2 text-xs text-gray-600 dark:text-gray-400">
                     Processing...
                   </span>
@@ -569,56 +538,68 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
               )}
 
               {result.error && (
-                <div className="p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded">
+                <div className="p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded flex-1">
                   <p className="text-xs text-red-600 dark:text-red-400">
                     {result.error}
                   </p>
                 </div>
               )}
 
-              {result.prompt && !result.isProcessing && (
-                <div className="space-y-2">
-                  {/* Character Count Indicator */}
-                  <div
-                    className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold border ${getCharCountBgColor(result.prompt.length)}`}
-                  >
-                    <span className={getCharCountColor(result.prompt.length)}>
-                      {result.prompt.length} / 1500 chars
-                      {result.prompt.length <= 1500 ? " ✓" : " ⚠"}
-                    </span>
+              {!result.isProcessing && !result.error && (
+                <>
+                  {/* Cost Breakdown - Compact Single Line */}
+                  <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                    {result.inputCost !== null && result.outputCost !== null ? (
+                      <span>
+                        Input: {formatCost(result.inputCost)} | Output:{" "}
+                        {formatCost(result.outputCost)}
+                      </span>
+                    ) : (
+                      <span className="italic">Waiting to generate...</span>
+                    )}
+                  </div>
+
+                  {/* Total Cost */}
+                  <div className="text-sm font-semibold text-green-600 dark:text-green-400 mb-2">
+                    Total: {formatCost(result.cost)}
                   </div>
 
                   {/* Generated Prompt - Small Scrollable Window */}
-                  <div className="relative">
-                    <div className="h-16 overflow-y-auto p-2 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600">
-                      <p className="text-xs text-gray-900 dark:text-white whitespace-pre-wrap">
-                        {result.prompt}
+                  {result.prompt ? (
+                    <div className="flex-1 min-h-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                          Generated Prompt
+                        </span>
+                        <button
+                          onClick={() =>
+                            copyToClipboard(result.prompt!, result.modelId)
+                          }
+                          className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                          title="Copy prompt"
+                          aria-label="Copy prompt to clipboard"
+                        >
+                          {copiedPromptId === result.modelId ? (
+                            <Check className="h-3 w-3 text-green-600 dark:text-green-400" />
+                          ) : (
+                            <Copy className="h-3 w-3 text-gray-600 dark:text-gray-400" />
+                          )}
+                        </button>
+                      </div>
+                      <div className="h-[calc(100%-1.5rem)] overflow-y-auto bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600 p-2">
+                        <p className="text-xs text-gray-900 dark:text-white whitespace-pre-wrap">
+                          {result.prompt}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex-1 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600 flex items-center justify-center">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 italic">
+                        Awaiting generation...
                       </p>
                     </div>
-                    <button
-                      onClick={() =>
-                        copyToClipboard(result.prompt || "", result.modelId)
-                      }
-                      className="absolute top-1 right-1 p-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-                      aria-label="Copy prompt"
-                      title="Copy prompt"
-                    >
-                      {copiedModelId === result.modelId ? (
-                        <Check className="h-3 w-3" />
-                      ) : (
-                        <Copy className="h-3 w-3" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {!result.isProcessing && !result.prompt && !result.error && (
-                <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 italic">
-                    Waiting to generate...
-                  </p>
-                </div>
+                  )}
+                </>
               )}
             </div>
           ))}
