@@ -135,8 +135,9 @@ export interface TabState {
 export type BestPracticeType = "mandatory" | "optional" | "conditional";
 export type BestPracticeCategory =
   | "words-phrases"
-  | "image"
-  | "youtube"
+  | "photography"
+  | "youtube-engagement"
+  | "youtube-thumbnail"
   | "our-unique-channel";
 
 export interface BestPractice {
