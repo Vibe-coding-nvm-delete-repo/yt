@@ -10,8 +10,6 @@ import {
   AlertCircle,
   Image as ImageIcon,
   Loader2,
-  Calculator,
-  DollarSign,
   Check,
   Copy,
 } from "lucide-react";
@@ -498,174 +496,138 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
         </div>
       )}
 
-      {/* Overall Cost Summary - Minimalist */}
+      {/* Overall Cost Summary - Ultra Minimalist */}
       {modelResults.length > 0 && (
-        <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
-          <div className="flex items-center mb-3">
-            <Calculator className="mr-2 h-5 w-5 text-green-600 dark:text-green-400" />
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Generation Metrics
-            </h2>
+        <div className="flex items-center justify-center gap-8 py-3 text-sm">
+          <div className="flex items-center gap-2">
+            <span className="text-gray-500 dark:text-gray-400">Models:</span>
+            <span className="font-medium text-gray-900 dark:text-white">
+              {modelResults.filter((r) => r.prompt).length}/
+              {modelResults.length}
+            </span>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg border">
-              <div className="text-sm text-gray-500 dark:text-gray-400">
-                Models Selected
-              </div>
-              <div className="text-xl font-bold text-gray-900 dark:text-white">
-                {modelResults.length}
-              </div>
-            </div>
-
-            <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg border">
-              <div className="text-sm text-gray-500 dark:text-gray-400">
-                Completed
-              </div>
-              <div className="text-xl font-bold text-gray-900 dark:text-white">
-                {modelResults.filter((r) => r.prompt).length}
-              </div>
-            </div>
-
-            <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg border">
-              <div className="flex items-center justify-center">
-                <DollarSign className="h-4 w-4 text-green-600 dark:text-green-400 mr-1" />
-                <div className="text-sm text-gray-500 dark:text-gray-400">
-                  Total Cost
-                </div>
-              </div>
-              <div className="text-xl font-bold text-green-600 dark:text-green-400">
-                {formatCost(totalCostAllModels)}
-              </div>
-            </div>
+          <div className="flex items-center gap-2">
+            <span className="text-gray-500 dark:text-gray-400">
+              Total Cost:
+            </span>
+            <span className="font-semibold text-green-600 dark:text-green-400">
+              {formatCost(totalCostAllModels)}
+            </span>
           </div>
         </div>
       )}
 
-      {/* Model Results - Vertical Layout with Fixed Heights */}
+      {/* Model Results - Horizontal Layout (Columns) */}
       {modelResults.length > 0 && (
-        <div className="space-y-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
           {modelResults.map((result) => (
             <div
               key={result.modelId}
-              className="p-3 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 h-[18vh] flex flex-col"
+              className="flex flex-col border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 overflow-hidden h-[600px]"
             >
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+              {/* Model Header */}
+              <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-1 truncate">
                   {result.modelName}
                 </h3>
-                <div className="text-xs text-gray-500 dark:text-gray-400">
+                <div className="text-xs text-gray-400 dark:text-gray-500 truncate">
                   {result.modelId}
                 </div>
               </div>
 
-              {/* Detailed Metrics - Always Visible */}
-              <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border">
-                <div className="flex items-center mb-2">
-                  <Calculator className="h-4 w-4 text-blue-600 dark:text-blue-400 mr-2" />
-                  <h4 className="font-semibold text-gray-900 dark:text-white">
-                    Cost Breakdown
-                  </h4>
+              {/* Cost Breakdown */}
+              <div className="p-4 space-y-3 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-500 dark:text-gray-400">
+                    Input Tokens
+                  </span>
+                  <span className="font-medium text-gray-900 dark:text-white">
+                    {formatTokens(result.inputTokens)}
+                  </span>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                  <div>
-                    <div className="text-gray-500 dark:text-gray-400">
-                      Input Tokens
-                    </div>
-                    <div className="font-medium text-gray-900 dark:text-white">
-                      {formatTokens(result.inputTokens)}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="text-gray-500 dark:text-gray-400">
-                      Output Tokens
-                    </div>
-                    <div className="font-medium text-gray-900 dark:text-white">
-                      {formatTokens(result.outputTokens)}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="text-gray-500 dark:text-gray-400">
-                      Input Cost
-                    </div>
-                    <div className="font-medium text-blue-600 dark:text-blue-400">
-                      {formatCost(result.inputCost)}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="text-gray-500 dark:text-gray-400">
-                      Output Cost
-                    </div>
-                    <div className="font-medium text-blue-600 dark:text-blue-400">
-                      {formatCost(result.outputCost)}
-                    </div>
-                  </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-500 dark:text-gray-400">
+                    Output Tokens
+                  </span>
+                  <span className="font-medium text-gray-900 dark:text-white">
+                    {formatTokens(result.outputTokens)}
+                  </span>
                 </div>
 
-                <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
-                  <div className="flex justify-between items-center">
-                    <span className="font-semibold text-gray-900 dark:text-white">
-                      Total Request Cost:
-                    </span>
-                    <span className="text-lg font-bold text-green-600 dark:text-green-400">
-                      {formatCost(result.cost)}
-                    </span>
-                  </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-500 dark:text-gray-400">
+                    Input Cost
+                  </span>
+                  <span className="font-medium text-blue-600 dark:text-blue-400">
+                    {formatCost(result.inputCost)}
+                  </span>
+                </div>
+
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-500 dark:text-gray-400">
+                    Output Cost
+                  </span>
+                  <span className="font-medium text-blue-600 dark:text-blue-400">
+                    {formatCost(result.outputCost)}
+                  </span>
+                </div>
+
+                <div className="flex justify-between text-xs pt-2 border-t border-gray-200 dark:border-gray-700">
+                  <span className="font-semibold text-gray-900 dark:text-white">
+                    Total Cost
+                  </span>
+                  <span className="font-bold text-green-600 dark:text-green-400">
+                    {formatCost(result.cost)}
+                  </span>
                 </div>
               </div>
 
-              {result.isProcessing && (
-                <div className="flex items-center justify-center flex-1">
-                  <Loader2 className="h-6 w-6 animate-spin text-blue-600 dark:text-blue-400" />
-                  <span className="ml-2 text-xs text-gray-600 dark:text-gray-400">
-                    Processing...
-                  </span>
-                </div>
-              )}
-
-              {result.error && (
-                <div className="p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded flex-1">
-                  <p className="text-xs text-red-600 dark:text-red-400">
-                    {result.error}
-                  </p>
-                </div>
-              )}
-
-              {result.prompt && !result.isProcessing && (
-                <div className="flex-1 min-h-0 p-3 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600">
-                  <div className="flex items-center justify-between mb-2">
-                    <h5 className="font-medium text-gray-900 dark:text-white">
-                      Generated Prompt
-                    </h5>
-                    <button
-                      onClick={() =>
-                        copyToClipboard(result.prompt!, result.modelId)
-                      }
-                      className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
-                      title="Copy prompt"
-                      aria-label="Copy prompt to clipboard"
-                    >
-                      {copiedPromptId === result.modelId ? (
-                        <Check className="h-3 w-3 text-green-600 dark:text-green-400" />
-                      ) : (
-                        <Copy className="h-3 w-3 text-gray-600 dark:text-gray-400" />
-                      )}
-                    </button>
+              {/* Output Section */}
+              <div className="flex-1 flex flex-col min-h-0">
+                {result.isProcessing && (
+                  <div className="flex-1 flex items-center justify-center">
+                    <Loader2 className="h-6 w-6 animate-spin text-blue-600 dark:text-blue-400" />
                   </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                    {result.prompt.length} characters
-                  </div>
-                  <div className="h-24 overflow-y-auto bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600 p-2">
-                    <p className="text-xs text-gray-900 dark:text-white whitespace-pre-wrap">
-                      {result.prompt}
+                )}
+
+                {result.error && (
+                  <div className="flex-1 p-4">
+                    <p className="text-xs text-red-600 dark:text-red-400">
+                      {result.error}
                     </p>
                   </div>
-                </div>
-              )}
+                )}
+
+                {result.prompt && !result.isProcessing && (
+                  <div className="flex-1 flex flex-col min-h-0 p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                        Output
+                      </span>
+                      <button
+                        onClick={() =>
+                          copyToClipboard(result.prompt!, result.modelId)
+                        }
+                        className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                        title="Copy to clipboard"
+                        aria-label="Copy prompt to clipboard"
+                      >
+                        {copiedPromptId === result.modelId ? (
+                          <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
+                        ) : (
+                          <Copy className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                        )}
+                      </button>
+                    </div>
+                    <div className="flex-1 overflow-hidden">
+                      <p className="text-xs text-gray-900 dark:text-white leading-relaxed">
+                        {result.prompt}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           ))}
         </div>
