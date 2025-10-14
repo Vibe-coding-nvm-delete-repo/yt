@@ -27,7 +27,7 @@ export const useOptimizedSettings = (subscribeToKeys?: (keyof AppSettings)[]) =>
   });
 
   const [isInitialized, setIsInitialized] = useState(false);
-  const previousSettingsRef = useRef<AppSettings>();
+  const previousSettingsRef = useRef<AppSettings | null>(null);
   const settingsHashRef = useRef<string>("");
 
   // Memoize settings to prevent unnecessary re-renders
@@ -70,7 +70,8 @@ export const useOptimizedSettings = (subscribeToKeys?: (keyof AppSettings)[]) =>
         }
       },
       {
-        keys: subscribeToKeys, // Only subscribe to specific keys if provided
+        // Avoid passing undefined for exactOptionalPropertyTypes compliance
+        ...(subscribeToKeys ? { keys: subscribeToKeys } : {}),
         immediate: false
       }
     );
