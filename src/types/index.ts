@@ -146,12 +146,6 @@ export class ApiError extends Error {
   }
 }
 
-export interface ValidationState {
-  isValidating: boolean;
-  isValid: boolean;
-  error: string | null;
-}
-
 export interface ModelState {
   isLoading: boolean;
   models: VisionModel[];
@@ -184,3 +178,9 @@ export interface QueueResult<T> {
   total: number;
   errors: Error[];
 }
+
+// Export standardized validation types
+export * from './validation';
+
+// Provide backward compatibility alias
+export type { BaseValidationState as ValidationState };
