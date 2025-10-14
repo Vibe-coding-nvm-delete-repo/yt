@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect } from "react";
-import type { AppSettings } from "@/types";
+import type { AppSettings, ModelResult } from "@/types";
 import { createOpenRouterClient } from "@/lib/openrouter";
 import { imageStateStorage } from "@/lib/storage";
 import calculateGenerationCost from "@/lib/cost";
@@ -19,19 +19,6 @@ import Image from "next/image";
 
 interface ImageToPromptTabProps {
   settings: AppSettings;
-}
-
-interface ModelResult {
-  modelId: string;
-  modelName: string;
-  prompt: string | null;
-  cost: number | null;
-  inputTokens: number | null;
-  outputTokens: number | null;
-  inputCost: number | null;
-  outputCost: number | null;
-  isProcessing: boolean;
-  error: string | null;
 }
 
 export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
@@ -75,7 +62,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
     }
   }, [settings.selectedVisionModels, settings.availableModels]);
 
-  // Load persisted image on mount
+  // Load persisted image and model results on mount
   useEffect(() => {
     const persisted = imageStateStorage.getImageState();
     if (persisted && persisted.preview) {
@@ -83,6 +70,18 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
         file: null, // We don't have the file object from storage
         preview: persisted.preview,
       });
+    }
+    // Restore model results if they exist
+    if (
+      persisted &&
+      Array.isArray(persisted.modelResults) &&
+      persisted.modelResults.length > 0
+    ) {
+      setModelResults(persisted.modelResults);
+    }
+    // Restore generation status
+    if (persisted && persisted.isGenerating) {
+      setIsGenerating(persisted.isGenerating);
     }
   }, []);
 
@@ -155,8 +154,8 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
           file.type,
         );
         // Reset results when new image is uploaded
-        setModelResults((prev) =>
-          prev.map((r) => ({
+        setModelResults((prev) => {
+          const resetResults = prev.map((r) => ({
             ...r,
             prompt: null,
             cost: null,
@@ -165,8 +164,11 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
             inputCost: null,
             outputCost: null,
             error: null,
-          })),
-        );
+          }));
+          // Persist reset results
+          imageStateStorage.saveModelResults(resetResults);
+          return resetResults;
+        });
       } catch (error) {
         console.error("Failed to read file:", error);
         setErrorMessage("Failed to read file. Please try again.");
@@ -201,8 +203,8 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
           file.type,
         );
         // Reset results when new image is uploaded
-        setModelResults((prev) =>
-          prev.map((r) => ({
+        setModelResults((prev) => {
+          const resetResults = prev.map((r) => ({
             ...r,
             prompt: null,
             cost: null,
@@ -211,8 +213,11 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
             inputCost: null,
             outputCost: null,
             error: null,
-          })),
-        );
+          }));
+          // Persist reset results
+          imageStateStorage.saveModelResults(resetResults);
+          return resetResults;
+        });
       } catch (error) {
         console.error("Failed to read file:", error);
         setErrorMessage("Failed to read file. Please try again.");
@@ -246,6 +251,8 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
 
     setIsGenerating(true);
     setErrorMessage(null);
+    // Persist generation status
+    imageStateStorage.saveGenerationStatus(true);
 
     // Process each model sequentially with explicit index access
     for (let i = 0; i < modelResults.length; i++) {
@@ -254,11 +261,14 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
         continue;
       }
       // Mark as processing
-      setModelResults((prev) =>
-        prev.map((r, idx) =>
+      setModelResults((prev) => {
+        const updated = prev.map((r, idx) =>
           idx === i ? { ...r, isProcessing: true, error: null } : r,
-        ),
-      );
+        );
+        // Persist to storage immediately
+        imageStateStorage.saveModelResults(updated);
+        return updated;
+      });
 
       try {
         const client = createOpenRouterClient(settings.openRouterApiKey);
@@ -300,8 +310,8 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
         }
 
         // Update result
-        setModelResults((prev) =>
-          prev.map((r, idx) =>
+        setModelResults((prev) => {
+          const updated = prev.map((r, idx) =>
             idx === i
               ? {
                   ...r,
@@ -315,12 +325,15 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
                   error: null,
                 }
               : r,
-          ),
-        );
+          );
+          // Persist to storage immediately
+          imageStateStorage.saveModelResults(updated);
+          return updated;
+        });
       } catch (error) {
         const apiErr = normalizeToApiError(error);
-        setModelResults((prev) =>
-          prev.map((r, idx) =>
+        setModelResults((prev) => {
+          const updated = prev.map((r, idx) =>
             idx === i
               ? {
                   ...r,
@@ -328,12 +341,17 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
                   error: apiErr.message,
                 }
               : r,
-          ),
-        );
+          );
+          // Persist to storage immediately
+          imageStateStorage.saveModelResults(updated);
+          return updated;
+        });
       }
     }
 
     setIsGenerating(false);
+    // Persist generation completion status
+    imageStateStorage.saveGenerationStatus(false);
   }, [
     settings,
     uploadedImage,
@@ -452,6 +470,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
               onClick={() => {
                 setUploadedImage(null);
                 imageStateStorage.clearImageState();
+                // Reset model results in state (clearImageState already clears storage)
                 setModelResults((prev) =>
                   prev.map((r) => ({
                     ...r,
