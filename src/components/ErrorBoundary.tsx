@@ -46,10 +46,14 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // Normalize optional fields to undefined for exactOptionalPropertyTypes
+    const componentName = errorInfo.componentStack?.split('\n')[1]?.trim() ?? undefined;
+    const stackTrace = errorInfo.componentStack ?? undefined;
+
     const appError = createErrorFromException(error, {
-      component: errorInfo.componentStack?.split('\n')[1]?.trim(),
+      component: componentName,
       operation: 'render',
-      stackTrace: errorInfo.componentStack
+      stackTrace
     });
 
     console.error('ErrorBoundary caught an error:', appError.toJSON(), errorInfo);
