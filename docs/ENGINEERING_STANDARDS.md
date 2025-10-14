@@ -8,6 +8,8 @@ This document defines the minimal, enforceable standards for this repository to 
 - Idempotency: Re-running changes must update in place; no duplicate files or redundant commits
 - Accessibility: Each page must contain exactly one `<h1>`; all interactive controls must be accessible and labeled
 
+See also: `docs/AUTONOMOUS_AGENT_POLICY.md` for the definitive Mode ladder, escalation, diff budgets, and acceptance criteria that agents and contributors must follow when proposing changes.
+
 ## 2) Branching and Merge Policy
 - Never push to `main` directly
 - Create feature branches using:

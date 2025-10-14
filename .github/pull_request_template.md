@@ -2,6 +2,20 @@
 
 <short imperative> (Fixes #<NUMBER>)
 
+## Mode
+
+- [ ] 0 Normal
+- [ ] 0.5 Refactor
+- [ ] 1 LTRM (Local Tooling Repair)
+- [ ] 2 CI_REPAIR (Workflows only)
+- [ ] 3 Scoped (requires APPROVED_OVERRIDE)
+- [ ] 4 Freeze (Stalled/High risk)
+
+Mode reason (1–2 lines):
+
+For Mode 3 only — exact paths (or attach `PROPOSED_FILES.txt`):
+-
+
 ## What changed
 
 -
@@ -29,7 +43,7 @@
 - [ ] No secrets / .env added or modified
 - [ ] No changes under `.github/**` unless intentional and approved
 - [ ] Lint clean (zero warnings): `npm run lint -- --max-warnings=0`
-- [ ] Typecheck clean: `npm run typecheck`
+- [ ] Typecheck clean: `npx tsc --noEmit`
 - [ ] Tests passing: `npm test -- --runInBand`
 - [ ] Branch is up to date with `main`
 - [ ] Clear PR body (What/Why/How to verify + Risks + Size)
@@ -47,3 +61,5 @@
  - [ ] Rollout and rollback plan captured in "How to verify" or "Risks"
  - [ ] Tests added/updated (unit/integration/e2e) for new behavior
  - [ ] i18n: user-facing strings externalized and ready for translation or "N/A"
+  - [ ] Mode & scope conformance: diff ≤ budget; paths allowed for Mode; no runtime deps unless Mode 3
+  - [ ] 🧩 Conformance per `docs/ENGINEERING_STANDARDS.md` and `docs/AUTONOMOUS_AGENT_POLICY.md`
