@@ -9,6 +9,7 @@ This document defines the authoritative standard for cost calculation across the
 ---
 
 ## Table of Contents
+
 1. [OpenRouter Pricing Format](#openrouter-pricing-format)
 2. [Cost Calculation Formula](#cost-calculation-formula)
 3. [Token Estimation](#token-estimation)
@@ -37,16 +38,19 @@ OpenRouter API returns pricing in **dollars per token**, NOT per-1k or per-1M to
 ```
 
 **Conversion Reference:**
+
 - `0.00003` per token = `$30` per 1M tokens
 - `0.000001` per token = `$1` per 1M tokens
 - `0.000002` per token = `$2` per 1M tokens
 
 ### **DO NOT:**
+
 - ❌ Divide by 1000 (pricing is NOT per-1k tokens)
 - ❌ Multiply by 1000 (pricing is NOT in fractional units)
 - ❌ Use any conversion factor (pricing is already per-token)
 
 ### **DO:**
+
 - ✅ Use the API price value directly as dollars per token
 - ✅ Multiply tokens by price to get cost: `cost = tokens × pricePerToken`
 - ✅ Store prices as numbers, not strings
@@ -97,15 +101,16 @@ Images are estimated based on base64 data size:
 function estimateImageTokens(imageDataUrl: string): number {
   const base64Data = imageDataUrl.split(",")[1] || "";
   const sizeInBytes = base64Data.length * 0.75;
-  
-  if (sizeInBytes < 100000) return 85;    // Small: < 100KB
-  if (sizeInBytes < 500000) return 120;   // Medium: 100-500KB
-  if (sizeInBytes < 1000000) return 170;  // Large: 500KB-1MB
-  return 200;                              // Very Large: > 1MB
+
+  if (sizeInBytes < 100000) return 85; // Small: < 100KB
+  if (sizeInBytes < 500000) return 120; // Medium: 100-500KB
+  if (sizeInBytes < 1000000) return 170; // Large: 500KB-1MB
+  return 200; // Very Large: > 1MB
 }
 ```
 
 **Token Ranges:**
+
 - Small images: **85 tokens**
 - Medium images: **120 tokens**
 - Large images: **170 tokens**
@@ -122,6 +127,7 @@ function estimateTextTokens(text: string): number {
 ```
 
 **Examples:**
+
 - "Hello" (5 chars) = **2 tokens**
 - "This is a test" (14 chars) = **4 tokens**
 - 400 character text = **100 tokens**
@@ -135,6 +141,7 @@ function estimateTextTokens(text: string): number {
 **Location:** `src/lib/cost.ts`
 
 **Signature:**
+
 ```typescript
 function calculateDetailedCost(
   model: VisionModel,
@@ -146,23 +153,25 @@ function calculateDetailedCost(
   inputCost: number;
   outputCost: number;
   totalCost: number;
-}
+};
 ```
 
 **Usage:**
+
 ```typescript
-import { calculateDetailedCost } from '@/lib/cost';
+import { calculateDetailedCost } from "@/lib/cost";
 
 const costs = calculateDetailedCost(
   model,
   uploadedImage.preview,
-  generatedPrompt
+  generatedPrompt,
 );
 
-console.log(costs.totalCost);  // e.g., 0.000320
+console.log(costs.totalCost); // e.g., 0.000320
 ```
 
 **When to Use:**
+
 - ✅ All production code
 - ✅ When you have both image and generated text
 - ✅ For accurate per-request cost tracking
@@ -173,6 +182,7 @@ console.log(costs.totalCost);  // e.g., 0.000320
 **Status:** DEPRECATED
 
 **Signature:**
+
 ```typescript
 function calculateGenerationCost(
   model: VisionModel,
@@ -181,15 +191,17 @@ function calculateGenerationCost(
   inputCost: number;
   outputCost: number;
   totalCost: number;
-}
+};
 ```
 
 **Issues:**
+
 - Does not account for image tokens
 - Only estimates based on output length
 - Deprecated in favor of `calculateDetailedCost`
 
 **When to Use:**
+
 - ⚠️ Only for backward compatibility
 - ⚠️ Tests for legacy code
 - ❌ DO NOT use in new code
@@ -199,6 +211,7 @@ function calculateGenerationCost(
 **Status:** DEPRECATED
 
 The following methods on `OpenRouterClient` are deprecated:
+
 - `calculateImageCost()` - Returns 0, doesn't account for image tokens
 - `calculateTextCost()` - Only uses completion price, ignores input
 - `calculateGenerationCost()` - Uses the above broken methods
@@ -214,12 +227,12 @@ The following methods on `OpenRouterClient` are deprecated:
 ```typescript
 function formatCost(cost: number | null): string {
   if (cost === null || cost === 0) return "$0.00";
-  
+
   // 2 decimals for amounts >= $0.01
   if (cost >= 0.01) {
     return `$${cost.toFixed(2)}`;
   }
-  
+
   // 6 decimals for very small amounts
   return `$${cost.toFixed(6)}`;
 }
@@ -227,20 +240,20 @@ function formatCost(cost: number | null): string {
 
 ### Examples
 
-| Cost Value | Displayed As | Reasoning |
-|------------|--------------|-----------|
-| `0` | `$0.00` | Zero cost |
-| `0.000150` | `$0.000150` | < $0.01, show 6 decimals |
-| `0.001500` | `$0.001500` | < $0.01, show 6 decimals |
-| `0.015000` | `$0.02` | ≥ $0.01, show 2 decimals |
-| `1.500000` | `$1.50` | ≥ $0.01, show 2 decimals |
+| Cost Value | Displayed As | Reasoning                |
+| ---------- | ------------ | ------------------------ |
+| `0`        | `$0.00`      | Zero cost                |
+| `0.000150` | `$0.000150`  | < $0.01, show 6 decimals |
+| `0.001500` | `$0.001500`  | < $0.01, show 6 decimals |
+| `0.015000` | `$0.02`      | ≥ $0.01, show 2 decimals |
+| `1.500000` | `$1.50`      | ≥ $0.01, show 2 decimals |
 
 ### Token Display
 
 ```typescript
 function formatTokens(tokens: number | null): string {
   if (tokens === null) return "0";
-  return tokens.toLocaleString();  // e.g., "1,234"
+  return tokens.toLocaleString(); // e.g., "1,234"
 }
 ```
 
@@ -290,11 +303,11 @@ historyStorage.addEntry(historyEntry);
 
 ### Storage Locations
 
-| Storage | Purpose | Displayed In |
-|---------|---------|--------------|
-| `usageStorage` | Cost tracking & metrics | Usage Tab, Total Cost Header |
-| `historyStorage` | Generation history | History Tab |
-| `imageStateStorage` | Current session state | ImageToPromptTab (temp) |
+| Storage             | Purpose                 | Displayed In                 |
+| ------------------- | ----------------------- | ---------------------------- |
+| `usageStorage`      | Cost tracking & metrics | Usage Tab, Total Cost Header |
+| `historyStorage`    | Generation history      | History Tab                  |
+| `imageStateStorage` | Current session state   | ImageToPromptTab (temp)      |
 
 ### Total Cost Calculation
 
@@ -359,8 +372,12 @@ const costs = calculateDetailedCost(model, image, text);
 ```typescript
 // CORRECT
 const costs = calculateDetailedCost(model, image, text);
-usageStorage.add({ /* ...entry */ });
-historyStorage.addEntry({ /* ...entry */ });
+usageStorage.add({
+  /* ...entry */
+});
+historyStorage.addEntry({
+  /* ...entry */
+});
 ```
 
 ---
@@ -373,18 +390,18 @@ historyStorage.addEntry({ /* ...entry */ });
 describe("cost calculation", () => {
   const mockModel: VisionModel = {
     pricing: {
-      prompt: 0.000001,      // $1 per 1M tokens
-      completion: 0.000002,  // $2 per 1M tokens
+      prompt: 0.000001, // $1 per 1M tokens
+      completion: 0.000002, // $2 per 1M tokens
     },
   };
-  
+
   test("calculates costs correctly", () => {
     const cost = calculateDetailedCost(
       mockModel,
       mockImageDataUrl,
-      mockOutputText
+      mockOutputText,
     );
-    
+
     expect(cost.inputCost).toBe(expectedInputCost);
     expect(cost.outputCost).toBe(expectedOutputCost);
     expect(cost.totalCost).toBe(expectedTotal);
@@ -395,6 +412,7 @@ describe("cost calculation", () => {
 ### Required Tests
 
 Every cost calculation function MUST have tests for:
+
 - ✅ Small amounts (< $0.01)
 - ✅ Large amounts (≥ $0.01)
 - ✅ Zero pricing (free models)
@@ -405,9 +423,9 @@ Every cost calculation function MUST have tests for:
 
 ## Version History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0 | 2025-10-14 | Initial specification. Fixed per-token pricing confusion, added storage requirements, deprecated legacy functions. |
+| Version | Date       | Changes                                                                                                            |
+| ------- | ---------- | ------------------------------------------------------------------------------------------------------------------ |
+| 1.0     | 2025-10-14 | Initial specification. Fixed per-token pricing confusion, added storage requirements, deprecated legacy functions. |
 
 ---
 
@@ -415,5 +433,7 @@ Every cost calculation function MUST have tests for:
 
 - **Code Implementation:** `src/lib/cost.ts`
 - **Tests:** `src/lib/__tests__/cost.test.ts`
-- **Usage Example:** `src/components/ImageToPromptTab.tsx` (lines 304-399)
+- **Usage Example:** `src/components/ImageToPromptTab.tsx` (lines 363-428)
+- **Storage Updates:** `src/components/ImageToPromptTab.tsx` (lines 398-428)
+- **Header Display:** `src/components/layout/MainLayout.tsx` (lines 32-64)
 - **OpenRouter API Docs:** [openrouter.ai/docs](https://openrouter.ai/docs)
