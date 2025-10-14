@@ -283,8 +283,8 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
 
           // Calculate input/output costs based on model pricing
           if (model.pricing) {
-            const inputPrice = parseFloat(model.pricing.prompt || "0");
-            const outputPrice = parseFloat(model.pricing.completion || "0");
+            const inputPrice = parseFloat(String(model.pricing.prompt || 0));
+            const outputPrice = parseFloat(String(model.pricing.completion || 0));
             inputCost = (inputTokens * inputPrice) / 1000000; // Convert from per-1M tokens
             outputCost = (outputTokens * outputPrice) / 1000000;
           }

@@ -169,7 +169,13 @@ export const RatingTab: React.FC = () => {
                 value={filter.modelId || ""}
                 onChange={(e) => {
                   const value = e.target.value;
-                  setFilter({ ...filter, modelId: value ? value : undefined });
+                  if (value) {
+                    setFilter({ ...filter, modelId: value });
+                  } else {
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                    const { modelId, ...rest } = filter;
+                    setFilter(rest);
+                  }
                 }}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               >
@@ -191,12 +197,13 @@ export const RatingTab: React.FC = () => {
                 value={filter.minStars || ""}
                 onChange={(e) => {
                   const value = e.target.value;
-                  setFilter({
-                    ...filter,
-                    minStars: value
-                      ? (parseInt(value) as RatingValue)
-                      : undefined,
-                  });
+                  if (value) {
+                    setFilter({ ...filter, minStars: parseInt(value) as RatingValue });
+                  } else {
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                    const { minStars, ...rest } = filter;
+                    setFilter(rest);
+                  }
                 }}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               >
@@ -218,10 +225,13 @@ export const RatingTab: React.FC = () => {
                 value={filter.thumbs || ""}
                 onChange={(e) => {
                   const value = e.target.value;
-                  setFilter({
-                    ...filter,
-                    thumbs: value ? (value as ThumbsRating) : undefined,
-                  });
+                  if (value) {
+                    setFilter({ ...filter, thumbs: value as ThumbsRating });
+                  } else {
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                    const { thumbs, ...rest } = filter;
+                    setFilter(rest);
+                  }
                 }}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               >
