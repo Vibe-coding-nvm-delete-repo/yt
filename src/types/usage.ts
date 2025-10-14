@@ -3,11 +3,13 @@ export interface UsageEntry {
   timestamp: number;
   modelId: string;
   modelName: string;
-  inputTokens: number; // images mapped to token-equivalent if applicable
-  outputTokens: number; // prompt characters mapped to tokens
+  inputTokens: number;
+  outputTokens: number;
   inputCost: number;
   outputCost: number;
   totalCost: number;
+  success: boolean;
+  error: string | null;
 }
 
 export interface UsageHistoryState {
