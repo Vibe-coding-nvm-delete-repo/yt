@@ -6,6 +6,7 @@ import { createOpenRouterClient } from "@/lib/openrouter";
 import { imageStateStorage } from "@/lib/storage";
 import calculateGenerationCost from "@/lib/cost";
 import { normalizeToApiError } from "@/lib/errorUtils";
+import { usageStorage } from "@/lib/usage";
 import {
   AlertCircle,
   Image as ImageIcon,
@@ -317,8 +318,41 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
               : r,
           ),
         );
+
+        // Record usage
+        usageStorage.add({
+          id: `${Date.now()}-${result.modelId}`,
+          timestamp: Date.now(),
+          modelId: result.modelId,
+          modelName: result.modelName,
+          inputTokens,
+          outputTokens,
+          inputCost,
+          outputCost,
+          totalCost,
+          success: true,
+          error: null,
+          imagePreview: uploadedImage.preview,
+        });
       } catch (error) {
         const apiErr = normalizeToApiError(error);
+
+        // Record failed usage attempt
+        usageStorage.add({
+          id: `${Date.now()}-${result.modelId}`,
+          timestamp: Date.now(),
+          modelId: result.modelId,
+          modelName: result.modelName,
+          inputTokens: 0,
+          outputTokens: 0,
+          inputCost: 0,
+          outputCost: 0,
+          totalCost: 0,
+          success: false,
+          error: apiErr.message,
+          imagePreview: uploadedImage.preview,
+        });
+
         setModelResults((prev) =>
           prev.map((r, idx) =>
             idx === i

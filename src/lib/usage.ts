@@ -10,6 +10,7 @@ const DEFAULT_USAGE: UsageHistoryState = {
 export class UsageStorage {
   private static instance: UsageStorage;
   private state: UsageHistoryState;
+  private subscribers: Set<() => void> = new Set();
 
   private constructor() {
     this.state = this.load();
@@ -42,9 +43,21 @@ export class UsageStorage {
     if (typeof window === "undefined") return;
     try {
       localStorage.setItem(USAGE_KEY, JSON.stringify(this.state));
+      this.notifySubscribers();
     } catch (e) {
       console.error("Failed to save usage history:", e);
     }
+  }
+
+  private notifySubscribers(): void {
+    this.subscribers.forEach((callback) => callback());
+  }
+
+  subscribe(callback: () => void): () => void {
+    this.subscribers.add(callback);
+    return () => {
+      this.subscribers.delete(callback);
+    };
   }
 
   add(entry: UsageEntry): void {
