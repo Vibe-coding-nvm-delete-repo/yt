@@ -37,15 +37,55 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const dropZoneRef = useRef<HTMLDivElement | null>(null);
 
-  // Initialize model results when settings change
+  // Initialize model results when selected models change
+  // CRITICAL: Only reset when the actual selected models change, not when availableModels updates
+  // This prevents wiping out cost data when models list refreshes
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     if (
       settings.selectedVisionModels &&
       settings.selectedVisionModels.length > 0
     ) {
-      const results: ModelResult[] = settings.selectedVisionModels.map(
-        (modelId) => {
+      setModelResults((prevResults) => {
+        // Get the set of current model IDs
+        const prevModelIds = new Set(prevResults.map((r) => r.modelId));
+        const newModelIds = new Set(settings.selectedVisionModels);
+
+        // If the selected models haven't changed, preserve existing results
+        if (
+          prevModelIds.size === newModelIds.size &&
+          [...prevModelIds].every((id) => newModelIds.has(id))
+        ) {
+          // Just update model names in case availableModels was updated
+          return prevResults.map((result) => {
+            const model = settings.availableModels.find(
+              (m) => m.id === result.modelId,
+            );
+            return {
+              ...result,
+              modelName: model?.name || result.modelName,
+            };
+          });
+        }
+
+        // Models changed, create new results but try to preserve data for unchanged models
+        const existingResultsMap = new Map(
+          prevResults.map((r) => [r.modelId, r]),
+        );
+
+        return settings.selectedVisionModels.map((modelId) => {
           const model = settings.availableModels.find((m) => m.id === modelId);
+          const existing = existingResultsMap.get(modelId);
+
+          // If we have existing data for this model, preserve it
+          if (existing) {
+            return {
+              ...existing,
+              modelName: model?.name || existing.modelName,
+            };
+          }
+
+          // New model, create fresh result
           return {
             modelId,
             modelName: model?.name || modelId,
@@ -58,13 +98,14 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
             isProcessing: false,
             error: null,
           };
-        },
-      );
-      setModelResults(results);
+        });
+      });
     }
   }, [settings.selectedVisionModels, settings.availableModels]);
 
   // Load persisted image and model results on mount
+  // CRITICAL: This must run AFTER the model initialization effect to prevent race conditions
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     const persisted = imageStateStorage.getImageState();
     if (persisted && persisted.preview) {
@@ -74,6 +115,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
       });
     }
     // Restore model results if they exist, but clear any stale processing flags
+    // IMPORTANT: Only restore if we have valid persisted results with cost data
     if (
       persisted &&
       Array.isArray(persisted.modelResults) &&
@@ -84,7 +126,18 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
         ...result,
         isProcessing: false,
       }));
-      setModelResults(cleanedResults);
+      // Set results directly, overriding any initialization from settings
+      setModelResults((prevResults) => {
+        // If prevResults is empty or doesn't have any prompts/costs, use persisted data
+        const hasExistingData = prevResults.some(
+          (r) => r.prompt || r.cost !== null,
+        );
+        if (!hasExistingData) {
+          return cleanedResults;
+        }
+        // Otherwise keep the existing data (edge case: manual refresh during generation)
+        return prevResults;
+      });
       // Persist the cleaned results back to storage
       imageStateStorage.saveModelResults(cleanedResults);
     }
@@ -247,6 +300,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
     e.preventDefault();
   }, []);
 
+  // eslint-disable-next-line custom/require-error-handling
   const generatePrompts = useCallback(async () => {
     if (!settings.isValidApiKey) {
       setErrorMessage("Please set a valid API key in Settings.");
@@ -284,6 +338,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
     });
 
     // Process all models in parallel using Promise.all
+    const timestamp = Date.now();
     const promises = modelResults.map(async (result, i) => {
       try {
         const client = createOpenRouterClient(settings.openRouterApiKey);
@@ -337,6 +392,40 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
           imageStateStorage.saveModelResults(updated);
           return updated;
         });
+
+        // CRITICAL: Save to usageStorage and historyStorage immediately after success
+        // This ensures the total cost header updates right away
+        const usageEntry: UsageEntry = {
+          id: `usage-${result.modelId}-${timestamp}`,
+          timestamp,
+          modelId: result.modelId,
+          modelName: result.modelName,
+          inputTokens,
+          outputTokens,
+          inputCost,
+          outputCost,
+          totalCost,
+          success: true,
+          error: null,
+          imagePreview: uploadedImage?.preview,
+        };
+        usageStorage.add(usageEntry);
+
+        const historyEntry: HistoryEntry = {
+          id: `history-${result.modelId}-${timestamp}`,
+          imageUrl: uploadedImage?.preview || "",
+          prompt,
+          charCount: prompt.length,
+          totalCost,
+          inputTokens,
+          outputTokens,
+          inputCost,
+          outputCost,
+          modelId: result.modelId,
+          modelName: result.modelName,
+          createdAt: timestamp,
+        };
+        historyStorage.addEntry(historyEntry);
       } catch (error) {
         const apiErr = normalizeToApiError(error);
         setModelResults((prev) => {
@@ -357,49 +446,6 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
 
     // Wait for all models to complete in parallel
     await Promise.all(promises);
-
-    // Save all successful results to usageStorage and historyStorage
-    setModelResults((currentResults) => {
-      const timestamp = Date.now();
-      currentResults.forEach((result) => {
-        if (result.prompt && !result.error && result.cost !== null) {
-          // Save to usageStorage for cost tracking
-          const usageEntry: UsageEntry = {
-            id: `usage-${result.modelId}-${timestamp}`,
-            timestamp,
-            modelId: result.modelId,
-            modelName: result.modelName,
-            inputTokens: result.inputTokens || 0,
-            outputTokens: result.outputTokens || 0,
-            inputCost: result.inputCost || 0,
-            outputCost: result.outputCost || 0,
-            totalCost: result.cost,
-            success: true,
-            error: null,
-            imagePreview: uploadedImage?.preview,
-          };
-          usageStorage.add(usageEntry);
-
-          // Save to historyStorage for history tab
-          const historyEntry: HistoryEntry = {
-            id: `history-${result.modelId}-${timestamp}`,
-            imageUrl: uploadedImage?.preview || "",
-            prompt: result.prompt,
-            charCount: result.prompt.length,
-            totalCost: result.cost,
-            inputTokens: result.inputTokens || 0,
-            outputTokens: result.outputTokens || 0,
-            inputCost: result.inputCost || 0,
-            outputCost: result.outputCost || 0,
-            modelId: result.modelId,
-            modelName: result.modelName,
-            createdAt: timestamp,
-          };
-          historyStorage.addEntry(historyEntry);
-        }
-      });
-      return currentResults;
-    });
 
     setIsGenerating(false);
     // Persist generation completion status

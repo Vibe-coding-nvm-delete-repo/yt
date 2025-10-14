@@ -24,9 +24,9 @@ describe("cost calculation", () => {
       
       expect(cost.inputTokens).toBe(85); // Small image = 85 tokens
       expect(cost.outputTokens).toBe(7); // 28 chars / 4 = 7 tokens
-      expect(cost.inputCost).toBe(0.000085); // 85 * 0.000001
-      expect(cost.outputCost).toBe(0.000014); // 7 * 0.000002
-      expect(cost.totalCost).toBe(0.000099); // sum
+      expect(cost.inputCost).toBeCloseTo(0.000085, 6); // 85 * 0.000001
+      expect(cost.outputCost).toBeCloseTo(0.000014, 6); // 7 * 0.000002
+      expect(cost.totalCost).toBeCloseTo(0.000099, 6); // sum (using toBeCloseTo for float precision)
     });
 
     test("calculates costs correctly for medium image", () => {
