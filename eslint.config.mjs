@@ -13,20 +13,27 @@
 
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
-import globals from 'globals';
 import reactHooks from 'eslint-plugin-react-hooks';
 import unusedImports from 'eslint-plugin-unused-imports';
 import { createRequire } from 'module';
+import { FlatCompat } from '@eslint/eslintrc';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Setup for ESM compatibility
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Initialize FlatCompat for legacy config compatibility
+const compat = new FlatCompat({
+  baseDirectory: __dirname,
+});
 
 // Load custom architectural rules
 const require = createRequire(import.meta.url);
 const customRules = require('./eslint-rules/index.js');
 
 export default tseslint.config(
-  // === BASE CONFIGURATION ===
-  js.configs.recommended,
-  ...tseslint.configs.recommended,
-
   // === GLOBAL IGNORES ===
   {
     ignores: [
@@ -42,14 +49,16 @@ export default tseslint.config(
     ],
   },
 
+  // === BASE CONFIGURATION ===
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
+  
+  // === NEXT.JS CONFIGURATION ===
+  // Use FlatCompat to integrate Next.js ESLint config (required for Next.js plugin detection)
+  ...compat.extends('next/core-web-vitals'),
+
   // === GLOBAL DEFAULTS ===
   {
-    languageOptions: {
-      globals: {
-        ...globals.browser,
-        ...globals.node,
-      },
-    },
     plugins: {
       'react-hooks': reactHooks,
       'unused-imports': unusedImports,
@@ -60,7 +69,6 @@ export default tseslint.config(
       'no-console': ['error', { allow: ['warn', 'error'] }],
       'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
-      '@typescript-eslint/consistent-type-imports': 'error',
       '@typescript-eslint/no-explicit-any': 'error', // STRICT: prevent regressions
       '@typescript-eslint/no-unsafe-function-type': 'warn',
       
@@ -99,6 +107,7 @@ export default tseslint.config(
       },
     },
     rules: {
+      '@typescript-eslint/consistent-type-imports': 'error',
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/strict-boolean-expressions': 'off',
     },
@@ -123,9 +132,6 @@ export default tseslint.config(
   // === TEST FILES: RELAXED RULES ===
   {
     files: ['**/__tests__/**', '**/*.test.{ts,tsx,js,jsx}', '**/*.spec.{ts,tsx,js,jsx}'],
-    languageOptions: {
-      globals: globals.jest,
-    },
     rules: {
       'no-console': 'off',
       '@typescript-eslint/no-unused-vars': 'off',
@@ -140,10 +146,8 @@ export default tseslint.config(
   // === CONFIG FILES: MINIMAL RULES ===
   {
     files: ['**/*.config.*', 'jest.config.js', 'jest.setup.js'],
-    languageOptions: {
-      globals: globals.node,
-    },
     rules: {
+      '@typescript-eslint/consistent-type-imports': 'off',
       '@typescript-eslint/no-floating-promises': 'off',
       '@typescript-eslint/strict-boolean-expressions': 'off',
       '@typescript-eslint/no-var-requires': 'off',
