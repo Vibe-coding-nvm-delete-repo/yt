@@ -244,8 +244,12 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
     setIsGenerating(true);
     setErrorMessage(null);
 
-    // Process each model sequentially (avoid unchecked array indexing)
-    for (const [i, result] of modelResults.entries()) {
+    // Process each model sequentially with explicit index access
+    for (let i = 0; i < modelResults.length; i++) {
+      const result = modelResults[i];
+      if (!result) {
+        continue;
+      }
       // Mark as processing
       setModelResults((prev) =>
         prev.map((r, idx) =>
