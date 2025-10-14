@@ -1,0 +1,20 @@
+# Critical paths requiring CODEOWNER approval for changes
+# Used by pr-guard.yml to enforce governance
+
+# Type contracts
+src/types/validation.ts
+src/types/index.ts
+
+# Core storage layer
+src/lib/storage.ts
+
+# Build configuration
+package.json
+tsconfig.json
+eslint.config.mjs
+
+# CI workflows
+.github/workflows/ci.yml
+.github/workflows/required-checks.yml
+.github/workflows/pr-guard.yml
+.github/workflows/architecture-guard.yml
