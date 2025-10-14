@@ -3,12 +3,14 @@
 This document defines the minimal, enforceable standards for this repository to ensure fast, safe iteration.
 
 ## 1) Scope and Allowed Changes
+
 - Allowed paths: `app/**`, `src/**`, `tests/**`, `docs/**`
 - Do NOT touch: `.github/**`, `scripts/**`, environment files (`.env*`), CI workflows
 - Idempotency: Re-running changes must update in place; no duplicate files or redundant commits
 - Accessibility: Each page must contain exactly one `<h1>`; all interactive controls must be accessible and labeled
 
 ## 2) Branching and Merge Policy
+
 - Never push to `main` directly
 - Create feature branches using:
   - `feature/<short-slug>` or
@@ -17,12 +19,14 @@ This document defines the minimal, enforceable standards for this repository to 
 - Merge policy (solo mode): one approved review or explicit self-check with all checks green; rebase/merge without conflicts only
 
 ## 3) Commit Message Convention
+
 - Use Conventional Commits
   - Types: `feat`, `fix`, `chore`, `docs`, `test`, `refactor`, `perf`, `build`, `ci`
   - Example: `feat: add X to Y (Fixes #43)`
 - Prefer small, focused commits
 
 ## 4) Lint, Typecheck, Formatting
+
 - Lint must pass with zero warnings:
   - `npm run lint -- --max-warnings=0`
 - TypeScript must compile cleanly:
@@ -31,6 +35,7 @@ This document defines the minimal, enforceable standards for this repository to 
 - Production code: No `console.log`; `console.warn`/`console.error` allowed only for error reporting in non-production dev flows
 
 ## 5) TypeScript & React/JSX Rules
+
 - TypeScript:
   - Prefer precise types and unions; avoid `any`
   - Export typed interfaces/types from modules
@@ -46,6 +51,7 @@ This document defines the minimal, enforceable standards for this repository to 
     - Re-run the loop above and apply minimal fixes
 
 ## 6) Testing Requirements
+
 - Add or adjust at least one unit test for any new or changed behavior
 - Test runner: Jest
 - Run tests:
@@ -55,17 +61,20 @@ This document defines the minimal, enforceable standards for this repository to 
   - Co-locate under `__tests__/` or as `*.test.ts(x)` near the code
 
 ## 7) Architecture Guardrails
+
 - Component boundaries: UI components must not import server/DB logic
 - Avoid circular dependencies
 - Prefer smaller modules; flag files >300 lines for future refactor (non-blocking)
 - Keep domain logic in `src/domain/*` and shared utilities in `src/lib/*`
 
 ## 8) Security & Secrets
+
 - Never commit `.env*` or secrets
 - Validate environment at startup/build when the validation script is available (e.g., `npm run typecheck` or a dedicated env validation step)
 - Redact sensitive data in logs; use `console.warn`/`console.error` judiciously
 
 ## 9) PR Checklist (copy into PR description)
+
 - [ ] Tests added/updated covering changes
 - [ ] Lint + typecheck pass locally
 - [ ] Build passes locally
@@ -74,6 +83,7 @@ This document defines the minimal, enforceable standards for this repository to 
 - [ ] Accessibility: single `<h1>`, labeled controls
 
 ## 10) Commands Reference
+
 - Lint: `npm run lint`
 - Typecheck: `npx tsc --noEmit`
 - Tests: `npm test`
@@ -105,4 +115,4 @@ Use this section when building any new feature or changing behavior.
   - Developer and user docs updated where applicable
   - PR includes clear What/Why/How to verify + Risks + Size
 
-See also: `docs/P0_ENFORCEMENT_SYSTEM.md` and `docs/MERGE_CONFLICT_PREVENTION.md` for automated and procedural safeguards.
+See also: `docs/AUTONOMOUS_AGENT_POLICY.md`, `docs/P0_ENFORCEMENT_SYSTEM.md`, and `docs/MERGE_CONFLICT_PREVENTION.md` for automated and procedural safeguards.
