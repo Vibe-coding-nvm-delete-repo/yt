@@ -371,6 +371,11 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
     return `$${cost.toFixed(6)}`;
   }, []);
 
+  const formatTokens = useCallback((tokens: number | null): string => {
+    if (tokens === null) return "0";
+    return tokens.toLocaleString();
+  }, []);
+
   const copyToClipboard = useCallback(async (text: string, modelId: string) => {
     try {
       await navigator.clipboard.writeText(text);
