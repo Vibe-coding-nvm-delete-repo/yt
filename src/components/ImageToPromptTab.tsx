@@ -4,7 +4,7 @@ import React, { useState, useRef, useCallback, useEffect } from "react";
 import type { AppSettings, ModelResult } from "@/types";
 import { createOpenRouterClient } from "@/lib/openrouter";
 import { imageStateStorage } from "@/lib/storage";
-import calculateGenerationCost from "@/lib/cost";
+import { calculateDetailedCost } from "@/lib/cost";
 import { normalizeToApiError } from "@/lib/errorUtils";
 import {
   AlertCircle,
@@ -122,20 +122,6 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
       }),
     [],
   );
-
-  const estimateImageTokens = useCallback((imageDataUrl: string): number => {
-    // Rough estimation: base64 image size / 4 * 0.75 (typical compression)
-    // This is an approximation - actual token count varies by model
-    const base64Data = imageDataUrl.split(",")[1] || "";
-    const sizeInBytes = base64Data.length * 0.75;
-    // Vision models typically use ~85 tokens per image on average
-    return Math.max(85, Math.floor(sizeInBytes / 1000));
-  }, []);
-
-  const estimateTextTokens = useCallback((text: string): number => {
-    // Rough estimation: 1 token ≈ 0.75 words ≈ 4 characters
-    return Math.ceil(text.length / 4);
-  }, []);
 
   const handleFileInput = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -288,31 +274,24 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
           (m) => m.id === result.modelId,
         );
 
-        // Calculate detailed costs
-        const inputTokens = estimateImageTokens(uploadedImage.preview);
-        const outputTokens = estimateTextTokens(prompt);
-
+        // Calculate detailed costs using proper function
+        let inputTokens = 0;
+        let outputTokens = 0;
         let inputCost = 0;
         let outputCost = 0;
         let totalCost = 0;
 
         if (model) {
-          const costObj = calculateGenerationCost(model, prompt.length);
-          totalCost = costObj ? costObj.totalCost : 0;
-
-          // Calculate input/output costs based on model pricing
-          if (model.pricing) {
-            const inputPrice =
-              typeof model.pricing.prompt === "number"
-                ? model.pricing.prompt
-                : parseFloat(String(model.pricing.prompt || "0"));
-            const outputPrice =
-              typeof model.pricing.completion === "number"
-                ? model.pricing.completion
-                : parseFloat(String(model.pricing.completion || "0"));
-            inputCost = (inputTokens * inputPrice) / 1000000; // Convert from per-1M tokens
-            outputCost = (outputTokens * outputPrice) / 1000000;
-          }
+          const costDetails = calculateDetailedCost(
+            model,
+            uploadedImage.preview,
+            prompt,
+          );
+          inputTokens = costDetails.inputTokens;
+          outputTokens = costDetails.outputTokens;
+          inputCost = costDetails.inputCost;
+          outputCost = costDetails.outputCost;
+          totalCost = costDetails.totalCost;
         }
 
         // Update result
@@ -358,13 +337,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
     setIsGenerating(false);
     // Persist generation completion status
     imageStateStorage.saveGenerationStatus(false);
-  }, [
-    settings,
-    uploadedImage,
-    modelResults,
-    estimateImageTokens,
-    estimateTextTokens,
-  ]);
+  }, [settings, uploadedImage, modelResults]);
 
   const formatCost = useCallback((cost: number | null): string => {
     if (cost === null || cost === 0) return "$0.000000";
@@ -663,56 +636,34 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
               )}
 
               {result.prompt && !result.isProcessing && (
-                <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600">
+                <div className="flex-1 min-h-0 p-3 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600">
                   <div className="flex items-center justify-between mb-2">
                     <h5 className="font-medium text-gray-900 dark:text-white">
                       Generated Prompt
                     </h5>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {result.prompt.length} characters
-                    </div>
+                    <button
+                      onClick={() =>
+                        copyToClipboard(result.prompt!, result.modelId)
+                      }
+                      className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                      title="Copy prompt"
+                      aria-label="Copy prompt to clipboard"
+                    >
+                      {copiedPromptId === result.modelId ? (
+                        <Check className="h-3 w-3 text-green-600 dark:text-green-400" />
+                      ) : (
+                        <Copy className="h-3 w-3 text-gray-600 dark:text-gray-400" />
+                      )}
+                    </button>
                   </div>
-
-                  {/* Total Cost */}
-                  <div className="text-sm font-semibold text-green-600 dark:text-green-400 mb-2">
-                    Total: {formatCost(result.cost)}
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                    {result.prompt.length} characters
                   </div>
-
-                  {/* Generated Prompt - Small Scrollable Window */}
-                  {result.prompt ? (
-                    <div className="flex-1 min-h-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                          Generated Prompt
-                        </span>
-                        <button
-                          onClick={() =>
-                            copyToClipboard(result.prompt!, result.modelId)
-                          }
-                          className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
-                          title="Copy prompt"
-                          aria-label="Copy prompt to clipboard"
-                        >
-                          {copiedPromptId === result.modelId ? (
-                            <Check className="h-3 w-3 text-green-600 dark:text-green-400" />
-                          ) : (
-                            <Copy className="h-3 w-3 text-gray-600 dark:text-gray-400" />
-                          )}
-                        </button>
-                      </div>
-                      <div className="h-[calc(100%-1.5rem)] overflow-y-auto bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600 p-2">
-                        <p className="text-xs text-gray-900 dark:text-white whitespace-pre-wrap">
-                          {result.prompt}
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex-1 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600 flex items-center justify-center">
-                      <p className="text-xs text-gray-500 dark:text-gray-400 italic">
-                        Awaiting generation...
-                      </p>
-                    </div>
-                  )}
+                  <div className="h-24 overflow-y-auto bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600 p-2">
+                    <p className="text-xs text-gray-900 dark:text-white whitespace-pre-wrap">
+                      {result.prompt}
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
