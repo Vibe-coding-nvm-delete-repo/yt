@@ -17,12 +17,14 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
     {
       id: "image-to-prompt" as const,
       label: "Image to Prompt",
+      shortLabel: "Generate", // Shorter label for mobile
       icon: Image,
       description: "Upload images and generate prompts",
     },
     {
       id: "settings" as const,
       label: "Settings",
+      shortLabel: "Settings",
       icon: Settings,
       description: "Configure API keys and preferences",
     },
@@ -30,12 +32,13 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
 
   return (
     <nav
-      className="border-b border-gray-200 dark:border-gray-700"
+      className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
       role="navigation"
       aria-label="Main navigation"
     >
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex space-x-8">
+      <div className="mx-auto px-3 sm:px-4 md:px-6 lg:px-8 max-w-7xl">
+        {/* Mobile-first tab design */}
+        <div className="flex">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -45,23 +48,26 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
                 key={tab.id}
                 onClick={() => onTabChange(tab.id)}
                 className={`
-                  group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm
-                  transition-colors duration-200 ease-in-out
-                  focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
+                  group flex-1 sm:flex-none inline-flex flex-col sm:flex-row items-center justify-center sm:justify-start
+                  py-3 sm:py-4 px-2 sm:px-1 sm:mr-8 border-b-2 font-medium text-xs sm:text-sm
+                  transition-colors duration-200 ease-in-out min-h-[48px] sm:min-h-auto
+                  focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-inset
+                  active:scale-95 sm:active:scale-100 transform transition-transform
                   ${
                     isActive
-                      ? "border-blue-500 text-blue-600 dark:text-blue-400"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:border-gray-600"
+                      ? "border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/10 sm:bg-transparent"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/50 sm:hover:bg-transparent"
                   }
                 `}
                 role="tab"
                 aria-selected={isActive}
                 aria-controls={`${tab.id}-panel`}
                 tabIndex={isActive ? 0 : -1}
+                title={tab.description}
               >
                 <Icon
                   className={`
-                    mr-3 h-5 w-5
+                    h-5 w-5 sm:mr-3 mb-1 sm:mb-0
                     transition-colors duration-200 ease-in-out
                     ${
                       isActive
@@ -72,7 +78,9 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
                   aria-hidden="true"
                 />
                 <span className="sr-only">{tab.label} tab</span>
-                <span>{tab.label}</span>
+                {/* Show short label on mobile, full label on larger screens */}
+                <span className="block sm:hidden">{tab.shortLabel}</span>
+                <span className="hidden sm:block">{tab.label}</span>
               </button>
             );
           })}

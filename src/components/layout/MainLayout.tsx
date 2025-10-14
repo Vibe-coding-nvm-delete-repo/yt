@@ -17,12 +17,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
 }) => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
-      {/* Header */}
+      {/* Header - Mobile optimized */}
       <header className="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+        <div className="mx-auto px-3 sm:px-4 md:px-6 lg:px-8 max-w-7xl">
+          <div className="flex items-center justify-between h-14 sm:h-16">
             <div className="flex items-center">
-              <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
+              <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white truncate">
                 YouTube Tools
               </h1>
             </div>
@@ -30,26 +30,28 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         </div>
       </header>
 
-      {/* Tab Navigation */}
+      {/* Tab Navigation - Mobile optimized */}
       <TabNavigation activeTab={activeTab} onTabChange={onTabChange} />
 
-      {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div
-          id={`${activeTab}-panel`}
-          role="tabpanel"
-          aria-labelledby={`${activeTab}-tab`}
-          className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6"
-        >
-          {children}
+      {/* Main Content - Mobile-first responsive */}
+      <main className="flex-1 w-full">
+        <div className="mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8 max-w-7xl">
+          <div
+            id={`${activeTab}-panel`}
+            role="tabpanel"
+            aria-labelledby={`${activeTab}-tab`}
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-6 min-h-[60vh] sm:min-h-[50vh]"
+          >
+            {children}
+          </div>
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto sticky bottom-0">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-center text-sm text-gray-500 dark:text-gray-400">
-            <div>© 2025 YouTube Tools. All rights reserved.</div>
+      {/* Footer - Mobile optimized */}
+      <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
+        <div className="mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-3 sm:py-4 max-w-7xl">
+          <div className="flex items-center justify-center text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+            <div className="text-center">© 2025 YouTube Tools. All rights reserved.</div>
           </div>
         </div>
       </footer>
