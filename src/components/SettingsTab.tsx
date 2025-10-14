@@ -1,7 +1,12 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import type { AppSettings, ValidationState, ModelState } from "@/types";
+import type {
+  AppSettings,
+  ValidationState,
+  ModelState,
+  VisionModel,
+} from "@/types";
 import { settingsStorage } from "@/lib/storage";
 import { createOpenRouterClient, isValidApiKeyFormat } from "@/lib/openrouter";
 import {
@@ -14,8 +19,6 @@ import {
   Eye,
   EyeOff,
   XCircle,
-  Download,
-  Upload,
   Pin,
   PinOff,
 } from "lucide-react";
@@ -64,6 +67,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     validateApiKey: hookValidateApiKey,
     updateCustomPrompt: hookUpdateCustomPrompt,
     updateModels: hookUpdateModels,
+    togglePinnedModel: hookTogglePinnedModel,
     subscribe: hookSubscribe,
   } = settingsHook;
 
@@ -75,7 +79,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   );
   const [expandedModels, setExpandedModels] = useState<Set<number>>(new Set());
   const [showApiKey, setShowApiKey] = useState(false);
-  
+
   const [validationState, setValidationState] = useState<ValidationState>({
     isValidating: false,
     isValid: settings.isValidApiKey,
@@ -87,13 +91,18 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     error: null,
     searchTerm: "",
   });
-  
-  // Dropdown states for model selector
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [dropdownSearch, setDropdownSearch] = useState("");
-  const [selectedModel, setSelectedModel] = useState<string>("");
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Dropdown states for the 5 individual model selectors
+  const [dropdownStates, setDropdownStates] = useState<
+    Record<number, { isOpen: boolean; search: string }>
+  >({
+    0: { isOpen: false, search: "" },
+    1: { isOpen: false, search: "" },
+    2: { isOpen: false, search: "" },
+    3: { isOpen: false, search: "" },
+    4: { isOpen: false, search: "" },
+  });
+  const dropdownRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
   // Handle settings updates from storage
   useEffect(() => {
@@ -143,38 +152,26 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     return () => clearTimeout(timeoutId);
   }, [selectedVisionModels, settings.selectedVisionModels, onSettingsUpdate]);
 
-  // Keyboard shortcuts for quick selecting pinned models (1-9) when dropdown is open
+  // Close dropdowns when clicking outside
   useEffect(() => {
-    if (!isDropdownOpen) return;
-    const handler = (e: KeyboardEvent) => {
-      // digits 1-9 map to pinned models order
-      if (e.key >= "1" && e.key <= "9") {
-        const idx = Number(e.key) - 1;
-        const query = dropdownSearch.toLowerCase();
-        const filtered = modelState.models.filter(
-          (m) =>
-            m.name.toLowerCase().includes(query) ||
-            m.id.toLowerCase().includes(query),
-        );
-        const pinnedSet = new Set(settings.pinnedModels || []);
-        const pinnedList = filtered.filter((m) => pinnedSet.has(m.id));
-        const target = pinnedList[idx];
-        if (target) {
-          e.preventDefault();
-          setSelectedModel(target.id);
-          setIsDropdownOpen(false);
-          setDropdownSearch("");
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      Object.keys(dropdownRefs.current).forEach((key) => {
+        const index = Number(key);
+        const ref = dropdownRefs.current[index];
+        if (ref && !ref.contains(target) && dropdownStates[index]?.isOpen) {
+          setDropdownStates((prev) => ({
+            ...prev,
+            [index]: { isOpen: false, search: prev[index]?.search || "" },
+          }));
         }
-      }
+      });
     };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [
-    isDropdownOpen,
-    dropdownSearch,
-    modelState.models,
-    settings.pinnedModels,
-  ]);
+    // eslint-disable-next-line no-restricted-syntax
+    document.addEventListener("mousedown", handleClickOutside);
+    // eslint-disable-next-line no-restricted-syntax
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [dropdownStates]);
 
   const handleApiKeyChange = useCallback(
     (value: string) => {
@@ -189,7 +186,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         });
       }
     },
-    [hookUpdateApiKey, settings.openRouterApiKey]
+    [hookUpdateApiKey, settings.openRouterApiKey],
   );
 
   const validateApiKey = useCallback(async () => {
@@ -277,46 +274,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     }
   }, [apiKey, validationState.isValid, hookUpdateModels]);
 
-  const exportSettings = useCallback(() => {
-    const settingsJson = settingsStorage.exportSettings();
-    const blob = new Blob([settingsJson], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "image-to-prompt-settings.json";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, []);
-
-  const importSettings = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const settingsJson = e.target?.result as string;
-          const success = settingsStorage.importSettings(settingsJson);
-
-          if (!success) {
-            alert("Failed to import settings. Please check the file format.");
-          }
-        } catch {
-          alert("Failed to import settings. Please check the file format.");
-        }
-      };
-      reader.readAsText(file);
-
-      event.target.value = "";
-    },
-    []
-  );
-
   const toggleModelExpansion = useCallback((index: number) => {
-    setExpandedModels((prev) => {
+    setExpandedModels((prev: Set<number>) => {
       const newSet = new Set(prev);
       if (newSet.has(index)) {
         newSet.delete(index);
@@ -325,6 +284,20 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       }
       return newSet;
     });
+  }, []);
+
+  // Helper function to extract provider/company from model ID
+  const getModelProvider = useCallback((modelId: string): string => {
+    const parts = modelId.split("/");
+    return parts.length > 0 ? parts[0] || "Other" : "Other";
+  }, []);
+
+  // Helper function to calculate average cost per token for sorting/comparison
+  // Uses average of prompt and completion pricing since both are used in vision tasks
+  const getModelAverageCost = useCallback((model: VisionModel): number => {
+    const promptCost = model.pricing.prompt || 0;
+    const completionCost = model.pricing.completion || 0;
+    return (promptCost + completionCost) / 2;
   }, []);
 
   const renderApiKeysTab = useCallback(
@@ -406,32 +379,6 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             )}
           </div>
         </div>
-
-        <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Import/Export Settings
-          </h3>
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={exportSettings}
-              className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-            >
-              <Download className="mr-2 h-4 w-4" />
-              Export Settings
-            </button>
-
-            <label className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer">
-              <Upload className="mr-2 h-4 w-4" />
-              Import Settings
-              <input
-                type="file"
-                accept=".json"
-                onChange={importSettings}
-                className="hidden"
-              />
-            </label>
-          </div>
-        </div>
       </div>
     ),
     [
@@ -441,9 +388,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       settings.lastApiKeyValidation,
       handleApiKeyChange,
       validateApiKey,
-      exportSettings,
-      importSettings,
-    ]
+    ],
   );
 
   const renderCustomPromptsTab = useCallback(
@@ -465,7 +410,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         </p>
       </div>
     ),
-    [customPrompt]
+    [customPrompt],
   );
 
   const renderCategoriesTab = useCallback(
@@ -479,7 +424,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         </p>
       </div>
     ),
-    []
+    [],
   );
 
   const renderModelSelectionTab = useCallback(
@@ -681,33 +626,240 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                         )}
                       </div>
 
-                      <select
-                        value={selectedModelId || ""}
-                        onChange={(e) => {
-                          const newModels = [...selectedVisionModels];
-                          if (e.target.value) {
-                            newModels[index] = e.target.value;
-                          } else {
-                            newModels.splice(index, 1);
-                          }
-                          setSelectedVisionModels(newModels);
+                      {/* Enhanced Dropdown with Search, Pricing, Pinning, Grouping, and Sorting */}
+                      <div
+                        className="relative"
+                        ref={(el) => {
+                          if (el) dropdownRefs.current[index] = el;
                         }}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       >
-                        <option value="">-- Select a model --</option>
-                        {modelState.models.map((model) => (
-                          <option
-                            key={model.id}
-                            value={model.id}
-                            disabled={
-                              selectedVisionModels.includes(model.id) &&
-                              selectedVisionModels[index] !== model.id
-                            }
-                          >
-                            {model.name}
-                          </option>
-                        ))}
-                      </select>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDropdownStates((prev) => ({
+                              ...prev,
+                              [index]: {
+                                isOpen: !prev[index]?.isOpen,
+                                search: prev[index]?.search || "",
+                              },
+                            }));
+                          }}
+                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-left flex items-center justify-between"
+                        >
+                          <span className="text-gray-900 dark:text-white truncate">
+                            {selectedModelId
+                              ? modelState.models.find(
+                                  (m) => m.id === selectedModelId,
+                                )?.name || "Select a model..."
+                              : "Select a model..."}
+                          </span>
+                          <ChevronDown
+                            className={`h-4 w-4 text-gray-500 transition-transform flex-shrink-0 ml-2 ${dropdownStates[index]?.isOpen ? "transform rotate-180" : ""}`}
+                          />
+                        </button>
+                        {dropdownStates[index]?.isOpen && (
+                          <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-96 overflow-hidden flex flex-col">
+                            <div className="p-2 border-b border-gray-200 dark:border-gray-600">
+                              <div className="relative">
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                <input
+                                  type="text"
+                                  placeholder="Search models..."
+                                  value={dropdownStates[index]?.search || ""}
+                                  onChange={(e) => {
+                                    setDropdownStates((prev) => ({
+                                      ...prev,
+                                      [index]: {
+                                        isOpen: prev[index]?.isOpen || false,
+                                        search: e.target.value,
+                                      },
+                                    }));
+                                  }}
+                                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              </div>
+                            </div>
+
+                            <div className="overflow-y-auto flex-1">
+                              {(() => {
+                                const query = (
+                                  dropdownStates[index]?.search || ""
+                                ).toLowerCase();
+                                const filtered = modelState.models.filter(
+                                  (m) =>
+                                    m.name.toLowerCase().includes(query) ||
+                                    m.id.toLowerCase().includes(query) ||
+                                    getModelProvider(m.id)
+                                      .toLowerCase()
+                                      .includes(query),
+                                );
+
+                                const pinnedSet = new Set(
+                                  settings.pinnedModels || [],
+                                );
+                                const pinnedList = filtered.filter((m) =>
+                                  pinnedSet.has(m.id),
+                                );
+                                const otherList = filtered.filter(
+                                  (m) => !pinnedSet.has(m.id),
+                                );
+
+                                // Group by provider and sort by cost (highest to lowest)
+                                const groupByProvider = (
+                                  models: VisionModel[],
+                                ) => {
+                                  const groups: Record<string, VisionModel[]> =
+                                    {};
+                                  models.forEach((model) => {
+                                    const provider = getModelProvider(model.id);
+                                    if (!groups[provider]) {
+                                      groups[provider] = [];
+                                    }
+                                    groups[provider].push(model);
+                                  });
+                                  // Sort models within each group by cost (highest to lowest)
+                                  Object.keys(groups).forEach((provider) => {
+                                    const providerModels = groups[provider];
+                                    if (providerModels) {
+                                      providerModels.sort(
+                                        (a, b) =>
+                                          getModelAverageCost(b) -
+                                          getModelAverageCost(a),
+                                      );
+                                    }
+                                  });
+                                  return groups;
+                                };
+
+                                const renderRow = (model: VisionModel) => (
+                                  <button
+                                    key={model.id}
+                                    type="button"
+                                    onClick={() => {
+                                      const newModels = [
+                                        ...selectedVisionModels,
+                                      ];
+                                      if (newModels[index] === model.id) {
+                                        newModels.splice(index, 1);
+                                      } else {
+                                        newModels[index] = model.id;
+                                      }
+                                      setSelectedVisionModels(newModels);
+                                      setDropdownStates((prev) => ({
+                                        ...prev,
+                                        [index]: {
+                                          ...prev[index],
+                                          isOpen: false,
+                                          search: "",
+                                        },
+                                      }));
+                                    }}
+                                    disabled={
+                                      selectedVisionModels.includes(model.id) &&
+                                      selectedVisionModels[index] !== model.id
+                                    }
+                                    className={`w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                                      selectedModelId === model.id
+                                        ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
+                                        : "text-gray-900 dark:text-white"
+                                    }`}
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex-1 min-w-0 mr-2">
+                                        <div className="text-sm font-medium truncate">
+                                          {model.name}
+                                        </div>
+                                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                                          ~{formatPrice(
+                                            getModelAverageCost(model),
+                                          )}
+                                          /token avg
+                                        </div>
+                                      </div>
+                                      <button
+                                        type="button"
+                                        aria-label={
+                                          pinnedSet.has(model.id)
+                                            ? "Unpin model"
+                                            : "Pin model"
+                                        }
+                                        className="ml-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 flex-shrink-0"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          hookTogglePinnedModel(model.id);
+                                        }}
+                                      >
+                                        {pinnedSet.has(model.id) ? (
+                                          <Pin className="h-4 w-4 text-blue-600" />
+                                        ) : (
+                                          <PinOff className="h-4 w-4" />
+                                        )}
+                                      </button>
+                                    </div>
+                                  </button>
+                                );
+
+                                const pinnedGroups =
+                                  groupByProvider(pinnedList);
+                                const otherGroups = groupByProvider(otherList);
+
+                                return (
+                                  <>
+                                    {pinnedList.length > 0 && (
+                                      <>
+                                        <div className="px-4 py-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800">
+                                          Pinned Models
+                                        </div>
+                                        {Object.keys(pinnedGroups)
+                                          .sort()
+                                          .map((provider) => {
+                                            const providerModels =
+                                              pinnedGroups[provider];
+                                            if (!providerModels) return null;
+                                            return (
+                                              <div key={`pinned-${provider}`}>
+                                                <div className="px-4 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-750">
+                                                  {provider}
+                                                </div>
+                                                {providerModels.map((m) =>
+                                                  renderRow(m),
+                                                )}
+                                              </div>
+                                            );
+                                          })}
+                                        <div className="my-1 border-t-2 border-gray-300 dark:border-gray-600" />
+                                      </>
+                                    )}
+                                    {Object.keys(otherGroups)
+                                      .sort()
+                                      .map((provider) => {
+                                        const providerModels =
+                                          otherGroups[provider];
+                                        if (!providerModels) return null;
+                                        return (
+                                          <div key={provider}>
+                                            <div className="px-4 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-750">
+                                              {provider}
+                                            </div>
+                                            {providerModels.map((m) =>
+                                              renderRow(m),
+                                            )}
+                                          </div>
+                                        );
+                                      })}
+                                    {filtered.length === 0 && (
+                                      <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                                        No models found
+                                      </div>
+                                    )}
+                                  </>
+                                );
+                              })()}
+                            </div>
+                          </div>
+                        )}
+                      </div>
 
                       {/* Collapsible Model Info */}
                       {selectedModelData && isExpanded && (
@@ -734,7 +886,9 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                                 Completion Price:
                               </span>
                               <span className="text-gray-900 dark:text-white">
-                                {formatPrice(selectedModelData.pricing.completion)}
+                                {formatPrice(
+                                  selectedModelData.pricing.completion,
+                                )}
                               </span>
                             </div>
                             {selectedModelData.description && (
@@ -767,7 +921,10 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       settings.lastModelFetch,
       fetchModels,
       toggleModelExpansion,
-    ]
+      getModelProvider,
+      getModelAverageCost,
+      hookTogglePinnedModel,
+    ],
   );
 
   return (

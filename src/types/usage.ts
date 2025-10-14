@@ -10,6 +10,7 @@ export interface UsageEntry {
   totalCost: number;
   success: boolean;
   error: string | null;
+  imagePreview?: string; // Base64 data URL of the image used
 }
 
 export interface UsageHistoryState {
