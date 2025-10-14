@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect } from "react";
-import type { AppSettings } from "@/types";
+import type { AppSettings, DetailedGenerationCost } from "@/types";
 import { createOpenRouterClient } from "@/lib/openrouter";
 import { imageStateStorage } from "@/lib/storage";
-import calculateGenerationCost from "@/lib/cost";
 import { normalizeToApiError } from "@/lib/errorUtils";
 import { AlertCircle, Image as ImageIcon, Loader2 } from "lucide-react";
 import Image from "next/image";
+import PromptMetrics from "./PromptMetrics";
 
 interface ImageToPromptTabProps {
   settings: AppSettings;
@@ -17,7 +17,7 @@ interface ModelResult {
   modelId: string;
   modelName: string;
   prompt: string | null;
-  cost: number | null;
+  cost: DetailedGenerationCost | null;
   isProcessing: boolean;
   error: string | null;
 }
@@ -220,10 +220,11 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
         const model = settings.availableModels.find(
           (m) => m.id === result.modelId,
         );
-        const costObj = model
-          ? calculateGenerationCost(model, prompt.length)
+        
+        // Use enhanced cost calculation from OpenRouter client
+        const detailedCost = model
+          ? client.calculateGenerationCost(model, prompt.length)
           : null;
-        const totalCost = costObj ? costObj.totalCost : null;
 
         // Update result
         setModelResults((prev) =>
@@ -232,7 +233,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
               ? {
                   ...r,
                   prompt,
-                  cost: totalCost,
+                  cost: detailedCost,
                   isProcessing: false,
                   error: null,
                 }
@@ -257,11 +258,6 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
 
     setIsGenerating(false);
   }, [settings, uploadedImage, modelResults]);
-
-  const formatCost = useCallback((cost: number | null): string => {
-    if (cost === null) return "$0.000000";
-    return `$${cost.toFixed(6)}`;
-  }, []);
 
   return (
     <div className="space-y-6">
@@ -394,21 +390,16 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
 
       {/* Model Results */}
       {modelResults.length > 0 && (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {modelResults.map((result) => (
             <div
               key={result.modelId}
-              className="p-4 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+              className="p-6 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
             >
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-gray-900 dark:text-white">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
                   {result.modelName}
                 </h3>
-                {result.cost !== null && (
-                  <span className="text-sm font-medium text-green-600 dark:text-green-400">
-                    Cost: {formatCost(result.cost)}
-                  </span>
-                )}
               </div>
 
               {result.isProcessing && (
@@ -429,10 +420,25 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
               )}
 
               {result.prompt && !result.isProcessing && (
-                <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600">
-                  <p className="text-sm text-gray-900 dark:text-white whitespace-pre-wrap">
-                    {result.prompt}
-                  </p>
+                <div className="space-y-4">
+                  {/* Generated Prompt */}
+                  <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">
+                      Generated Prompt
+                    </h4>
+                    <p className="text-sm text-gray-900 dark:text-white whitespace-pre-wrap">
+                      {result.prompt}
+                    </p>
+                  </div>
+
+                  {/* Comprehensive Metrics */}
+                  {result.cost && (
+                    <PromptMetrics
+                      modelName={result.modelName}
+                      promptText={result.prompt}
+                      cost={result.cost}
+                    />
+                  )}
                 </div>
               )}
 
