@@ -2,21 +2,87 @@
   "name": "yt",
   "version": "0.1.0",
   "private": true,
+  "description": "Modern image-to-prompt application with comprehensive developer tooling",
+  "keywords": ["nextjs", "react", "typescript", "ai", "image-processing"],
+  "homepage": "https://yt-three-psi.vercel.app",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Vibe-coding-nvm-delete-repo/yt.git"
+  },
   "scripts": {
     "dev": "next dev --turbopack",
+    "dev:debug": "NODE_OPTIONS='--inspect' next dev --turbopack",
+    "dev:clean": "rm -rf .next node_modules/.cache && npm run dev",
     "build": "next build --turbopack",
+    "build:analyze": "ANALYZE=true next build --turbopack",
+    "build:profile": "next build --profile",
     "start": "next start",
+    "start:prod": "NODE_ENV=production next start",
     "prepare": "husky install",
+    "postinstall": "npm run prepare",
+    
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
+    "lint:staged": "lint-staged",
     "jsx:check": "eslint . --ext .jsx,.tsx",
     "lint:tsx": "eslint . --ext .tsx --max-warnings=0",
+    "lint:report": "eslint . --ext .js,.jsx,.ts,.tsx --format html --output-file reports/eslint-report.html",
+    
     "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "format:staged": "lint-staged",
+    
     "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:coverage:watch": "jest --coverage --watch",
+    "test:ci": "jest --ci --coverage --watchAll=false",
+    "test:debug": "node --inspect-brk node_modules/.bin/jest --runInBand",
+    
     "typecheck": "tsc --noEmit",
+    "typecheck:watch": "tsc --noEmit --watch",
     "type:contracts": "tsd",
-    "check:ci": "npm run lint && npm run typecheck && npm run type:contracts && npm test",
-    "lint-commit": "commitlint --from=origin/main --to=HEAD"
+    
+    "check:ci": "npm run lint && npm run typecheck && npm run type:contracts && npm run test:ci",
+    "check:pre-commit": "npm run typecheck && npm run lint:staged && npm run type:contracts",
+    "check:full": "npm run check:ci && npm run build",
+    
+    "lint-commit": "commitlint --from=origin/main --to=HEAD",
+    
+    "security:audit": "npm audit --audit-level=moderate",
+    "security:audit:fix": "npm audit fix",
+    "security:check": "npm audit --audit-level=high --production",
+    
+    "deps:check": "npm outdated",
+    "deps:update": "npm update",
+    "deps:upgrade": "npx npm-check-updates -u && npm install",
+    
+    "clean": "rm -rf .next dist out node_modules/.cache",
+    "clean:all": "npm run clean && rm -rf node_modules package-lock.json",
+    "reset": "npm run clean:all && npm install",
+    
+    "bundle:analyze": "npm run build:analyze && npx @next/bundle-analyzer .next",
+    "bundle:size": "npx size-limit",
+    
+    "perf:lighthouse": "npx lighthouse http://localhost:3000 --output=html --output-path=reports/lighthouse.html",
+    "perf:profile": "npm run build:profile && npm run start",
+    
+    "db:reset": "echo 'Database reset command placeholder'",
+    "db:migrate": "echo 'Database migration command placeholder'",
+    "db:seed": "echo 'Database seed command placeholder'",
+    
+    "env:check": "node -e \"console.log('Environment:', process.env.NODE_ENV); console.log('Next.js version:', require('next/package.json').version);\"",
+    "env:setup": "chmod +x scripts/dev-setup.sh && ./scripts/dev-setup.sh",
+    
+    "release:patch": "npm version patch && git push && git push --tags",
+    "release:minor": "npm version minor && git push && git push --tags",
+    "release:major": "npm version major && git push && git push --tags",
+    
+    "docs:build": "echo 'Documentation build placeholder'",
+    "docs:serve": "echo 'Documentation serve placeholder'",
+    
+    "health:check": "curl -f http://localhost:3000/api/health || exit 1",
+    "health:monitor": "watch -n 5 'curl -s http://localhost:3000/api/health | jq''"
   },
   "dependencies": {
     "@radix-ui/react-tooltip": "^1.2.8",
@@ -30,6 +96,7 @@
     "@commitlint/cli": "^18.4.3",
     "@commitlint/config-conventional": "^18.4.3",
     "@eslint/eslintrc": "^3",
+    "@next/bundle-analyzer": "^15.5.4",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6",
     "@testing-library/react": "^16.3.0",
@@ -51,7 +118,9 @@
     "jest": "^29",
     "jest-environment-jsdom": "^29",
     "lint-staged": "^16.2.4",
+    "npm-check-updates": "^17.1.8",
     "prettier": "^3.6.2",
+    "size-limit": "^11.1.7",
     "tailwindcss": "^4",
     "tsd": "^0.31.2",
     "typescript": "^5",
@@ -62,8 +131,39 @@
       "eslint --fix",
       "prettier --write"
     ],
-    "*.{json,md}": [
+    "*.{json,md,yml,yaml}": [
       "prettier --write"
+    ],
+    "package.json": [
+      "prettier --write"
+    ]
+  },
+  "size-limit": [
+    {
+      "name": "Client Bundle",
+      "path": ".next/static/**/*.js",
+      "limit": "500 KB"
+    },
+    {
+      "name": "CSS Bundle",
+      "path": ".next/static/**/*.css",
+      "limit": "50 KB"
+    }
+  ],
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
     ]
   }
 }
