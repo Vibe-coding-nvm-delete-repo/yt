@@ -161,7 +161,7 @@ describe("ImageToPromptTab - Background Generation", () => {
     expect(screen.getByText("Persisted prompt 2")).toBeInTheDocument();
   });
 
-  it("should restore generation status from storage on mount", () => {
+  it("should clear stale generation status and isProcessing flags on mount", () => {
     (imageStateStorage.getImageState as jest.Mock).mockReturnValue({
       preview: "data:image/png;base64,test",
       fileName: "test.png",
@@ -178,7 +178,19 @@ describe("ImageToPromptTab - Background Generation", () => {
           outputTokens: null,
           inputCost: null,
           outputCost: null,
-          isProcessing: true,
+          isProcessing: true, // This should be cleared
+          error: null,
+        },
+        {
+          modelId: "model-2",
+          modelName: "Model 2",
+          prompt: "Generated prompt",
+          cost: 0.001,
+          inputTokens: 100,
+          outputTokens: 50,
+          inputCost: 0.0001,
+          outputCost: 0.0001,
+          isProcessing: true, // This should also be cleared
           error: null,
         },
       ],
@@ -188,8 +200,83 @@ describe("ImageToPromptTab - Background Generation", () => {
 
     render(<ImageToPromptTab settings={mockSettings} />);
 
-    // Verify that the component shows it's generating
-    expect(screen.getByText(/generating/i)).toBeInTheDocument();
+    // Verify that stale generation status is cleared on mount
+    expect(imageStateStorage.saveGenerationStatus).toHaveBeenCalledWith(false);
+
+    // Verify that all isProcessing flags are cleared from model results
+    expect(imageStateStorage.saveModelResults).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          modelId: "model-1",
+          isProcessing: false,
+        }),
+        expect.objectContaining({
+          modelId: "model-2",
+          isProcessing: false,
+        }),
+      ]),
+    );
+  });
+
+  it("should clear generation status and isProcessing flags when component unmounts", () => {
+    const mockModelResults = [
+      {
+        modelId: "model-1",
+        modelName: "Model 1",
+        prompt: null,
+        cost: null,
+        inputTokens: null,
+        outputTokens: null,
+        inputCost: null,
+        outputCost: null,
+        isProcessing: true, // Simulating active generation
+        error: null,
+      },
+    ];
+
+    (imageStateStorage.getImageState as jest.Mock).mockReturnValue({
+      preview: "data:image/png;base64,test",
+      fileName: "test.png",
+      fileSize: 1024,
+      fileType: "image/png",
+      generatedPrompt: null,
+      modelResults: mockModelResults,
+      isGenerating: false,
+      schemaVersion: 1,
+    });
+
+    const { unmount } = render(<ImageToPromptTab settings={mockSettings} />);
+
+    // Clear previous calls from mount
+    jest.clearAllMocks();
+
+    // Ensure getImageState returns the model results for the cleanup
+    (imageStateStorage.getImageState as jest.Mock).mockReturnValue({
+      preview: "data:image/png;base64,test",
+      fileName: "test.png",
+      fileSize: 1024,
+      fileType: "image/png",
+      generatedPrompt: null,
+      modelResults: mockModelResults,
+      isGenerating: false,
+      schemaVersion: 1,
+    });
+
+    // Unmount the component
+    unmount();
+
+    // Verify generation status is cleared on unmount
+    expect(imageStateStorage.saveGenerationStatus).toHaveBeenCalledWith(false);
+
+    // Verify all isProcessing flags are cleared on unmount
+    expect(imageStateStorage.saveModelResults).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          modelId: "model-1",
+          isProcessing: false,
+        }),
+      ]),
+    );
   });
 
   // Note: File upload persistence is tested via integration tests
