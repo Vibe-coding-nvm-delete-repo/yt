@@ -1,118 +1,125 @@
-import { renderHook, act } from '@testing-library/react';
-import { useErrorHandler } from '../useErrorHandler';
-import { ErrorType } from '../../types/errors';
+import { renderHook, act } from "@testing-library/react";
+import { useErrorHandler } from "../useErrorHandler";
+import { ErrorType } from "../../types/errors";
 
 jest.useFakeTimers();
 
-describe('useErrorHandler', () => {
+describe("useErrorHandler", () => {
   afterEach(() => {
     jest.clearAllTimers();
   });
 
-  it('should handle errors correctly', () => {
+  it("should handle errors correctly", () => {
     const { result } = renderHook(() => useErrorHandler());
-    
+
     act(() => {
-      result.current.handleError(new Error('Test error'), 'TestComponent');
+      result.current.handleError(new Error("Test error"), "TestComponent");
     });
-    
+
     expect(result.current.isError).toBe(true);
-    expect(result.current.error?.message).toBe('Test error');
-    expect(result.current.error?.context.component).toBe('TestComponent');
+    expect(result.current.error?.message).toBe("Test error");
+    expect(result.current.error?.context.component).toBe("TestComponent");
   });
 
-  it('should clear errors', () => {
+  it("should clear errors", () => {
     const { result } = renderHook(() => useErrorHandler());
-    
+
     act(() => {
-      result.current.handleError(new Error('Test error'));
+      result.current.handleError(new Error("Test error"));
     });
-    
+
     expect(result.current.isError).toBe(true);
-    
+
     act(() => {
       result.current.clearError();
     });
-    
+
     expect(result.current.isError).toBe(false);
     expect(result.current.error).toBe(null);
   });
 
-  it('should track error history', () => {
+  it("should track error history", () => {
     const { result } = renderHook(() => useErrorHandler());
-    
+
     act(() => {
-      result.current.handleError(new Error('Error 1'));
-      result.current.handleError(new Error('Error 2'));
+      result.current.handleError(new Error("Error 1"));
+      result.current.handleError(new Error("Error 2"));
     });
-    
+
     expect(result.current.errorHistory).toHaveLength(2);
-    expect(result.current.errorHistory[0].message).toBe('Error 1');
-    expect(result.current.errorHistory[1].message).toBe('Error 2');
+    expect(result.current.errorHistory[0]?.message).toBe("Error 1");
+    expect(result.current.errorHistory[1]?.message).toBe("Error 2");
   });
 
-  it('should execute async operations with error handling', async () => {
+  it("should execute async operations with error handling", async () => {
     const { result } = renderHook(() => useErrorHandler());
-    
-    const asyncOperation = jest.fn().mockResolvedValue('success');
-    
+
+    const asyncOperation = jest.fn().mockResolvedValue("success");
+
     let resultValue;
     await act(async () => {
       resultValue = await result.current.executeWithErrorHandling(
         asyncOperation,
-        'TestContext'
+        "TestContext",
       );
     });
-    
-    expect(resultValue).toBe('success');
+
+    expect(resultValue).toBe("success");
     expect(asyncOperation).toHaveBeenCalledTimes(1);
   });
 
-  it('should handle async operation failures', async () => {
+  it("should handle async operation failures", async () => {
     const { result } = renderHook(() => useErrorHandler());
-    
-    const failingOperation = jest.fn().mockRejectedValue(new Error('Async error'));
-    
+
+    const failingOperation = jest
+      .fn()
+      .mockRejectedValue(new Error("Async error"));
+
     await act(async () => {
       try {
-        await result.current.executeWithErrorHandling(failingOperation, 'TestContext');
+        await result.current.executeWithErrorHandling(
+          failingOperation,
+          "TestContext",
+        );
       } catch (error) {
         // Expected to throw
       }
     });
-    
+
     expect(result.current.isError).toBe(true);
-    expect(result.current.error?.message).toBe('Async error');
+    expect(result.current.error?.message).toBe("Async error");
   });
 
-  it('should call onError callback', () => {
+  it("should call onError callback", () => {
     const onError = jest.fn();
     const { result } = renderHook(() => useErrorHandler({ onError }));
-    
+
     act(() => {
-      result.current.handleError(new Error('Test error'));
+      result.current.handleError(new Error("Test error"));
     });
-    
+
     expect(onError).toHaveBeenCalledTimes(1);
   });
 
-  it('should track retry attempts', async () => {
+  it("should track retry attempts", async () => {
     const { result } = renderHook(() => useErrorHandler());
-    
-    // First add an error
+
+    // First add an error with retryable option
     act(() => {
-      result.current.handleError(new Error('Retryable error'));
+      const error = new Error("Retryable error");
+      Object.defineProperty(error, "retryable", {
+        value: true,
+        writable: true,
+      });
+      result.current.handleError(error);
     });
-    
-    // Make error retryable
-    result.current.error!.retryable = true;
-    
+
     const retryOperation = jest.fn().mockResolvedValue(undefined);
-    
+
     await act(async () => {
       await result.current.retry(retryOperation);
     });
-    
+
     expect(retryOperation).toHaveBeenCalledTimes(1);
   });
 });

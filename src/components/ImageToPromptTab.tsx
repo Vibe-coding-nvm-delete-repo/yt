@@ -21,6 +21,12 @@ interface ImageToPromptTabProps {
   settings: AppSettings;
 }
 
+// Helper function to format token counts
+const formatTokens = (tokens: number | null): string => {
+  if (tokens === null) return "—";
+  return tokens.toLocaleString();
+};
+
 export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   settings,
 }) => {
@@ -296,10 +302,14 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
 
           // Calculate input/output costs based on model pricing
           if (model.pricing) {
-            const inputPrice = parseFloat(String(model.pricing.prompt || "0"));
-            const outputPrice = parseFloat(
-              String(model.pricing.completion || "0"),
-            );
+            const inputPrice =
+              typeof model.pricing.prompt === "number"
+                ? model.pricing.prompt
+                : parseFloat(String(model.pricing.prompt || "0"));
+            const outputPrice =
+              typeof model.pricing.completion === "number"
+                ? model.pricing.completion
+                : parseFloat(String(model.pricing.completion || "0"));
             inputCost = (inputTokens * inputPrice) / 1000000; // Convert from per-1M tokens
             outputCost = (outputTokens * outputPrice) / 1000000;
           }
