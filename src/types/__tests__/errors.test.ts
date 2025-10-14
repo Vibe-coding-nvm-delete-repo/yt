@@ -102,6 +102,24 @@ describe('Error Types', () => {
       const error = createErrorFromException('string error');
       expect(error.type).toBe(ErrorType.UNKNOWN);
     });
+
+    // Test for exactOptionalPropertyTypes compatibility
+    it('should accept undefined optional fields with exactOptionalPropertyTypes', () => {
+      // This test reproduces the build failure scenario
+      const componentName: string | undefined = undefined;
+      const stackTrace: string | undefined = undefined;
+      
+      // This should not cause TypeScript compilation errors
+      const error = createErrorFromException(new Error('test'), {
+        component: componentName,
+        operation: 'render',
+        stackTrace: stackTrace
+      });
+      
+      expect(error).toBeInstanceOf(AppError);
+      expect(error.context.component).toBe(undefined);
+      expect(error.context.stackTrace).toBe(undefined);
+    });
   });
 
   describe('Type Guards', () => {
