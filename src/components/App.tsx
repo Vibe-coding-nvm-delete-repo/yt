@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { MainLayout } from "./layout/MainLayout";
 import { SettingsTab } from "./SettingsTab";
 import { ImageToPromptTab } from "./ImageToPromptTab";
+import { BestPracticesTab } from "./BestPracticesTab";
 import type { TabState } from "@/types";
 import { useSettings } from "@/hooks/useSettings";
 
@@ -34,6 +35,7 @@ export const App: React.FC = () => {
       {tabState.activeTab === "image-to-prompt" && (
         <ImageToPromptTab settings={settings} />
       )}
+      {tabState.activeTab === "best-practices" && <BestPracticesTab />}
       {tabState.activeTab === "settings" && (
         <SettingsTab
           settings={settings}

@@ -126,7 +126,35 @@ export interface PersistedImageState {
 }
 
 export interface TabState {
-  activeTab: "image-to-prompt" | "settings";
+  activeTab: "image-to-prompt" | "settings" | "best-practices";
+}
+
+/**
+ * Best Practices Types
+ */
+export type BestPracticeType = "mandatory" | "optional" | "conditional";
+export type BestPracticeCategory =
+  | "words-phrases"
+  | "image"
+  | "youtube"
+  | "our-unique-channel";
+
+export interface BestPractice {
+  id: string;
+  name: string;
+  description: string;
+  leonardoAiLanguage: string;
+  images: string[]; // Array of base64 image data URLs
+  importance: number; // 1-10 scale
+  type: BestPracticeType;
+  typeExplanation: string;
+  category: BestPracticeCategory;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface BestPracticesState {
+  practices: BestPractice[];
 }
 
 export class ApiError extends Error {
