@@ -21,6 +21,7 @@ interface ImageToPromptTabProps {
 }
 
 interface ModelResult {
+  id: string; // Stable ID for this result (used for ratings)
   modelId: string;
   modelName: string;
   prompt: string | null;
@@ -43,6 +44,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   const [modelResults, setModelResults] = useState<ModelResult[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [sessionId] = useState<string>(() => `session-${Date.now()}`); // Stable session ID for ratings
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const dropZoneRef = useRef<HTMLDivElement | null>(null);
 
@@ -56,6 +58,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
         (modelId) => {
           const model = settings.availableModels.find((m) => m.id === modelId);
           return {
+            id: `${sessionId}-${modelId}`, // Stable ID for this session + model
             modelId,
             modelName: model?.name || modelId,
             prompt: null,
@@ -71,7 +74,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
       );
       setModelResults(results);
     }
-  }, [settings.selectedVisionModels, settings.availableModels]);
+  }, [settings.selectedVisionModels, settings.availableModels, sessionId]);
 
   // Load persisted image on mount
   useEffect(() => {
@@ -631,7 +634,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
                     </p>
                   </div>
                   <RatingWidget
-                    historyEntryId={`result-${result.modelId}-${Date.now()}`}
+                    historyEntryId={result.id}
                     modelId={result.modelId}
                     modelName={result.modelName}
                     imagePreview={uploadedImage?.preview || null}

@@ -4,11 +4,13 @@ import React, { useState } from "react";
 import HistoryTab from "@/components/HistoryTab";
 import ImageToPromptTab from "@/components/ImageToPromptTab";
 import RatingTab from "@/components/RatingTab";
+import { useSettings } from "@/hooks/useSettings";
 
 const ImageToPromptTabs: React.FC = () => {
   const [active, setActive] = useState<"generate" | "history" | "rating">(
     "generate",
   );
+  const { settings } = useSettings();
 
   return (
     <div className="space-y-4">
@@ -45,7 +47,7 @@ const ImageToPromptTabs: React.FC = () => {
         </button>
       </div>
 
-      {active === "generate" && <ImageToPromptTab />}
+      {active === "generate" && <ImageToPromptTab settings={settings} />}
       {active === "history" && <HistoryTab />}
       {active === "rating" && <RatingTab />}
     </div>
