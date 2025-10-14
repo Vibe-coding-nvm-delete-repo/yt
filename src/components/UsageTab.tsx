@@ -21,6 +21,8 @@ export const UsageTab: React.FC<UsageTabProps> = () => {
   const [to, setTo] = useState<string>("");
   const [modelFilter, setModelFilter] = useState<string>("");
 
+  // Disable React Compiler for this component due to manual memoization
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const list = useMemo(() => {
     const fromTs = from ? new Date(from).getTime() : undefined;
     const toTs = to ? new Date(to).getTime() : undefined;
