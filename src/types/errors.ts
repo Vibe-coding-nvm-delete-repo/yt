@@ -79,13 +79,19 @@ export class AppError extends Error {
     this.retryConfig = options?.retryConfig;
     this.originalError = options?.originalError;
     
-    this.context = {
+    // Fix for exactOptionalPropertyTypes: Build context carefully without
+    // introducing incompatible defaults that force optional properties to concrete types
+    const baseContext: ErrorContext = {
       timestamp: Date.now(),
       retryable: this.retryable,
       retryCount: 0,
-      stackTrace: this.stack ?? undefined,
-      ...(options?.context ?? {})
+      stackTrace: this.stack ?? undefined
     };
+    
+    // Only spread provided context if it exists, preserving undefined values
+    this.context = options?.context 
+      ? { ...baseContext, ...options.context }
+      : baseContext;
 
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, AppError);
@@ -323,6 +329,8 @@ export const createErrorFromException = (
       error.message,
       undefined,
       {
+        // Fix for exactOptionalPropertyTypes: do not coerce undefined to {}
+        // This preserves undefined values without forcing concrete types
         context: context ?? undefined,
         originalError: error
       }
@@ -333,7 +341,10 @@ export const createErrorFromException = (
     ErrorType.UNKNOWN,
     'An unknown error occurred',
     undefined,
-    { context: context ?? undefined }
+    { 
+      // Fix for exactOptionalPropertyTypes: preserve undefined
+      context: context ?? undefined 
+    }
   );
 };
 
