@@ -40,6 +40,24 @@ export interface GenerationState {
 }
 
 /**
+ * Enhanced Cost Calculation Types
+ */
+export interface DetailedGenerationCost {
+  inputCost: number;    // Cost for processing the image input
+  outputCost: number;   // Cost for generating the text output
+  totalCost: number;    // Sum of input and output costs
+}
+
+export interface GenerationMetrics {
+  modelId: string;
+  modelName: string;
+  promptLength: number;     // Character count of generated prompt
+  tokenEstimate: number;    // Estimated token count
+  cost: DetailedGenerationCost;
+  timestamp: number;        // When the generation completed
+}
+
+/**
  * Multi-Image Batch Processing Types
  */
 
