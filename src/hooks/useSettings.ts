@@ -28,7 +28,8 @@ export const useSettings = (subscribeToKeys?: (keyof AppSettings)[]) => {
   });
 
   const [isInitialized, setIsInitialized] = useState(false);
-  const previousSettingsRef = useRef<AppSettings>();
+  // FIX: initialize ref with null and allow nullable type for strict TS
+  const previousSettingsRef = useRef<AppSettings | null>(null);
   const settingsHashRef = useRef<string>("");
 
   // Memoize settings to prevent unnecessary re-renders
@@ -36,7 +37,7 @@ export const useSettings = (subscribeToKeys?: (keyof AppSettings)[]) => {
     // Create a hash of the settings to check for actual changes
     const currentHash = JSON.stringify(settings);
     
-    // Only return new object if settings actually changed
+    // Only return previous object if settings actually didn't change
     if (previousSettingsRef.current && settingsHashRef.current === currentHash) {
       return previousSettingsRef.current;
     }
@@ -53,7 +54,7 @@ export const useSettings = (subscribeToKeys?: (keyof AppSettings)[]) => {
     setSettings(storedSettings);
     setIsInitialized(true);
 
-    // Subscribe with selective updates - FIX: Add proper callback function
+    // Subscribe with selective updates
     const unsubscribe = settingsStorage.subscribe(
       (newSettings, oldSettings, changedKeys) => {
         // Only update if settings actually changed and we care about the keys
@@ -140,7 +141,7 @@ export const useSettings = (subscribeToKeys?: (keyof AppSettings)[]) => {
     return settingsStorage.getPinnedModels();
   }, []);
 
-  // FIXED: Subscribe function with proper callback signature matching storage.subscribe()
+  // Subscribe function with proper callback signature matching storage.subscribe()
   const subscribe = useCallback((callback: (settings: AppSettings) => void) => {
     return settingsStorage.subscribe((newSettings) => {
       callback(newSettings);
