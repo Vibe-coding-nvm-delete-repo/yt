@@ -29,6 +29,12 @@ interface OpenRouterChatResponse {
   choices: OpenRouterChatChoice[];
 }
 
+interface DetailedCost {
+  inputCost: number;
+  outputCost: number;
+  totalCost: number;
+}
+
 const OPENROUTER_API_BASE = 'https://openrouter.ai/api/v1';
 
 export class OpenRouterClient {
@@ -200,20 +206,35 @@ export class OpenRouterClient {
     }
   }
 
-  calculateImageCost(_model: VisionModel): number {
-    return 0;
+  /**
+   * Calculate image processing cost for a given model
+   * Uses the prompt pricing as base cost for image input
+   */
+  calculateImageCost(model: VisionModel): number {
+    // Use prompt pricing for image input cost
+    // Most vision models charge per image, we'll use a fixed multiplier
+    const imageCost = this.safeNumber(model.pricing?.prompt, 0) * 0.001; // Approximate image cost
+    return parseFloat(imageCost.toFixed(6));
   }
 
+  /**
+   * Calculate text generation cost based on output length
+   */
   calculateTextCost(textLength: number, model: VisionModel): number {
     const pricePerThousandTokens = this.safeNumber(model.pricing?.completion, 0);
-    const estimatedTokens = Math.ceil(textLength / 4);
-    return (pricePerThousandTokens * estimatedTokens) / 1000;
+    // More accurate token estimation: roughly 3.5-4 characters per token
+    const estimatedTokens = Math.ceil(textLength / 3.75);
+    const cost = (pricePerThousandTokens * estimatedTokens) / 1000;
+    return parseFloat(cost.toFixed(6));
   }
 
-  calculateGenerationCost(model: VisionModel, textLength: number) {
+  /**
+   * Calculate comprehensive generation costs with detailed breakdown
+   */
+  calculateGenerationCost(model: VisionModel, textLength: number): DetailedCost {
     const inputCost = this.calculateImageCost(model);
     const outputCost = this.calculateTextCost(textLength, model);
-    const totalCost = inputCost + outputCost;
+    const totalCost = parseFloat((inputCost + outputCost).toFixed(6));
 
     return {
       inputCost,
@@ -290,3 +311,5 @@ export const isValidApiKeyFormat = (apiKey: string): boolean => {
   const trimmedKey = apiKey.trim();
   return trimmedKey.length >= 20 && trimmedKey.startsWith('sk-or-v1-');
 };
+
+export type { DetailedCost };
