@@ -140,9 +140,11 @@ export const useSettings = (subscribeToKeys?: (keyof AppSettings)[]) => {
     return settingsStorage.getPinnedModels();
   }, []);
 
-  // Simple subscribe function that matches the expected signature
-  const subscribe = useCallback((callback: () => void) => {
-    return settingsStorage.subscribe(callback);
+  // FIXED: Subscribe function with proper callback signature matching storage.subscribe()
+  const subscribe = useCallback((callback: (settings: AppSettings) => void) => {
+    return settingsStorage.subscribe((newSettings) => {
+      callback(newSettings);
+    });
   }, []);
 
   // Return memoized values and functions
