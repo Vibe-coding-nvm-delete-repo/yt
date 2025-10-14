@@ -19,12 +19,6 @@ interface ImageToPromptTabProps {
   settings: AppSettings;
 }
 
-// Helper function to format token counts
-const formatTokens = (tokens: number | null): string => {
-  if (tokens === null) return "—";
-  return tokens.toLocaleString();
-};
-
 export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   settings,
 }) => {
@@ -273,22 +267,20 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
     // Persist generation status
     imageStateStorage.saveGenerationStatus(true);
 
-    // Process each model sequentially with explicit index access
-    for (let i = 0; i < modelResults.length; i++) {
-      const result = modelResults[i];
-      if (!result) {
-        continue;
-      }
-      // Mark as processing
-      setModelResults((prev) => {
-        const updated = prev.map((r, idx) =>
-          idx === i ? { ...r, isProcessing: true, error: null } : r,
-        );
-        // Persist to storage immediately
-        imageStateStorage.saveModelResults(updated);
-        return updated;
-      });
+    // Mark ALL models as processing at once (single state update)
+    setModelResults((prev) => {
+      const updated = prev.map((r) => ({
+        ...r,
+        isProcessing: true,
+        error: null,
+      }));
+      // Persist to storage immediately
+      imageStateStorage.saveModelResults(updated);
+      return updated;
+    });
 
+    // Process all models in parallel using Promise.all
+    const promises = modelResults.map(async (result, i) => {
       try {
         const client = createOpenRouterClient(settings.openRouterApiKey);
         const prompt = await client.generateImagePrompt(
@@ -321,23 +313,22 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
           totalCost = costDetails.totalCost;
         }
 
-        // Update result
+        // Update this specific result (thread-safe with functional update)
         setModelResults((prev) => {
-          const updated = prev.map((r, idx) =>
-            idx === i
-              ? {
-                  ...r,
-                  prompt,
-                  cost: totalCost,
-                  inputTokens,
-                  outputTokens,
-                  inputCost,
-                  outputCost,
-                  isProcessing: false,
-                  error: null,
-                }
-              : r,
-          );
+          const updated = [...prev];
+          if (updated[i]) {
+            updated[i] = {
+              ...updated[i]!,
+              prompt,
+              cost: totalCost,
+              inputTokens,
+              outputTokens,
+              inputCost,
+              outputCost,
+              isProcessing: false,
+              error: null,
+            };
+          }
           // Persist to storage immediately
           imageStateStorage.saveModelResults(updated);
           return updated;
@@ -345,21 +336,23 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
       } catch (error) {
         const apiErr = normalizeToApiError(error);
         setModelResults((prev) => {
-          const updated = prev.map((r, idx) =>
-            idx === i
-              ? {
-                  ...r,
-                  isProcessing: false,
-                  error: apiErr.message,
-                }
-              : r,
-          );
+          const updated = [...prev];
+          if (updated[i]) {
+            updated[i] = {
+              ...updated[i]!,
+              isProcessing: false,
+              error: apiErr.message,
+            };
+          }
           // Persist to storage immediately
           imageStateStorage.saveModelResults(updated);
           return updated;
         });
       }
-    }
+    });
+
+    // Wait for all models to complete in parallel
+    await Promise.all(promises);
 
     setIsGenerating(false);
     // Persist generation completion status
