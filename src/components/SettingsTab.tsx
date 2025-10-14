@@ -19,8 +19,6 @@ import {
   Eye,
   EyeOff,
   XCircle,
-  Download,
-  Upload,
   Pin,
   PinOff,
 } from "lucide-react";
@@ -276,46 +274,6 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     }
   }, [apiKey, validationState.isValid, hookUpdateModels]);
 
-  const exportSettings = useCallback(() => {
-    const settingsJson = settingsStorage.exportSettings();
-    const blob = new Blob([settingsJson], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "image-to-prompt-settings.json";
-    // eslint-disable-next-line custom/no-dom-manipulation
-    document.body.appendChild(a);
-    a.click();
-    // eslint-disable-next-line custom/no-dom-manipulation
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, []);
-
-  const importSettings = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const settingsJson = e.target?.result as string;
-          const success = settingsStorage.importSettings(settingsJson);
-
-          if (!success) {
-            alert("Failed to import settings. Please check the file format.");
-          }
-        } catch {
-          alert("Failed to import settings. Please check the file format.");
-        }
-      };
-      reader.readAsText(file);
-
-      event.target.value = "";
-    },
-    [],
-  );
-
   const toggleModelExpansion = useCallback((index: number) => {
     setExpandedModels((prev: Set<number>) => {
       const newSet = new Set(prev);
@@ -418,32 +376,6 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             )}
           </div>
         </div>
-
-        <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Import/Export Settings
-          </h3>
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={exportSettings}
-              className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-            >
-              <Download className="mr-2 h-4 w-4" />
-              Export Settings
-            </button>
-
-            <label className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer">
-              <Upload className="mr-2 h-4 w-4" />
-              Import Settings
-              <input
-                type="file"
-                accept=".json"
-                onChange={importSettings}
-                className="hidden"
-              />
-            </label>
-          </div>
-        </div>
       </div>
     ),
     [
@@ -453,8 +385,6 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       settings.lastApiKeyValidation,
       handleApiKeyChange,
       validateApiKey,
-      exportSettings,
-      importSettings,
     ],
   );
 
