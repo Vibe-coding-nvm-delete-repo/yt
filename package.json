@@ -14,7 +14,8 @@
     "format": "prettier --write .",
     "test": "jest",
     "typecheck": "tsc --noEmit",
-    "check:ci": "npm run lint && npm run typecheck && npm test",
+    "type:contracts": "tsd",
+    "check:ci": "npm run lint && npm run typecheck && npm run type:contracts && npm test",
     "lint-commit": "commitlint --from=origin/main --to=HEAD"
   },
   "dependencies": {
@@ -52,6 +53,7 @@
     "lint-staged": "^16.2.4",
     "prettier": "^3.6.2",
     "tailwindcss": "^4",
+    "tsd": "^0.31.2",
     "typescript": "^5",
     "typescript-eslint": "^8.46.0"
   },
