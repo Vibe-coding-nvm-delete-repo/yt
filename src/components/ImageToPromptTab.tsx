@@ -75,18 +75,47 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
         preview: persisted.preview,
       });
     }
-    // Restore model results if they exist
+    // Restore model results if they exist, but clear any stale processing flags
     if (
       persisted &&
       Array.isArray(persisted.modelResults) &&
       persisted.modelResults.length > 0
     ) {
-      setModelResults(persisted.modelResults);
+      // Clear isProcessing flags to prevent stuck spinners after navigation/refresh
+      const cleanedResults = persisted.modelResults.map((result) => ({
+        ...result,
+        isProcessing: false,
+      }));
+      setModelResults(cleanedResults);
+      // Persist the cleaned results back to storage
+      imageStateStorage.saveModelResults(cleanedResults);
     }
-    // Restore generation status
+    // DO NOT restore generation status - if user navigated away or refreshed
+    // during generation, the generation is effectively cancelled
+    // Clear any stale generation status from storage
     if (persisted && persisted.isGenerating) {
-      setIsGenerating(persisted.isGenerating);
+      imageStateStorage.saveGenerationStatus(false);
     }
+  }, []);
+
+  // Cleanup: Reset generation state when component unmounts
+  useEffect(() => {
+    return () => {
+      // Clear generation status on unmount to prevent stuck state
+      imageStateStorage.saveGenerationStatus(false);
+      // Also clear all isProcessing flags from model results directly in storage
+      const currentState = imageStateStorage.getImageState();
+      if (
+        currentState.modelResults &&
+        Array.isArray(currentState.modelResults)
+      ) {
+        const cleaned = currentState.modelResults.map((result) => ({
+          ...result,
+          isProcessing: false,
+        }));
+        imageStateStorage.saveModelResults(cleaned);
+      }
+    };
   }, []);
 
   const validateFile = useCallback((file: File): string | null => {
