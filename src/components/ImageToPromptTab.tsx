@@ -6,6 +6,10 @@ import { createOpenRouterClient } from "@/lib/openrouter";
 import { imageStateStorage } from "@/lib/storage";
 import { calculateDetailedCost } from "@/lib/cost";
 import { normalizeToApiError } from "@/lib/errorUtils";
+import { usageStorage } from "@/lib/usage";
+import { historyStorage } from "@/lib/historyStorage";
+import type { UsageEntry } from "@/types/usage";
+import type { HistoryEntry } from "@/types/history";
 import {
   AlertCircle,
   Image as ImageIcon,
@@ -353,6 +357,49 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
 
     // Wait for all models to complete in parallel
     await Promise.all(promises);
+
+    // Save all successful results to usageStorage and historyStorage
+    setModelResults((currentResults) => {
+      const timestamp = Date.now();
+      currentResults.forEach((result) => {
+        if (result.prompt && !result.error && result.cost !== null) {
+          // Save to usageStorage for cost tracking
+          const usageEntry: UsageEntry = {
+            id: `usage-${result.modelId}-${timestamp}`,
+            timestamp,
+            modelId: result.modelId,
+            modelName: result.modelName,
+            inputTokens: result.inputTokens || 0,
+            outputTokens: result.outputTokens || 0,
+            inputCost: result.inputCost || 0,
+            outputCost: result.outputCost || 0,
+            totalCost: result.cost,
+            success: true,
+            error: null,
+            imagePreview: uploadedImage?.preview,
+          };
+          usageStorage.add(usageEntry);
+
+          // Save to historyStorage for history tab
+          const historyEntry: HistoryEntry = {
+            id: `history-${result.modelId}-${timestamp}`,
+            imageUrl: uploadedImage?.preview || "",
+            prompt: result.prompt,
+            charCount: result.prompt.length,
+            totalCost: result.cost,
+            inputTokens: result.inputTokens || 0,
+            outputTokens: result.outputTokens || 0,
+            inputCost: result.inputCost || 0,
+            outputCost: result.outputCost || 0,
+            modelId: result.modelId,
+            modelName: result.modelName,
+            createdAt: timestamp,
+          };
+          historyStorage.addEntry(historyEntry);
+        }
+      });
+      return currentResults;
+    });
 
     setIsGenerating(false);
     // Persist generation completion status
