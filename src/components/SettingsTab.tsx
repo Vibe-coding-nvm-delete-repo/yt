@@ -65,7 +65,6 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     updateCustomPrompt: hookUpdateCustomPrompt,
     updateModels: hookUpdateModels,
     subscribe: hookSubscribe,
-    togglePinnedModel: hookTogglePinnedModel,
   } = settingsHook;
 
   const [activeSubTab, setActiveSubTab] = useState<SettingsSubTab>("api-keys");
@@ -76,6 +75,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   );
   const [expandedModels, setExpandedModels] = useState<Set<number>>(new Set());
   const [showApiKey, setShowApiKey] = useState(false);
+  
   const [validationState, setValidationState] = useState<ValidationState>({
     isValidating: false,
     isValid: settings.isValidApiKey,
@@ -187,7 +187,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         error: null,
       });
     }
-  };
+  }, [hookUpdateApiKey, settings.openRouterApiKey]);
 
   const validateApiKey = useCallback(async () => {
     if (!apiKey.trim()) {
@@ -311,18 +311,6 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     },
     [],
   );
-
-  // Reserved for future multi-select checkbox functionality
-  // const toggleModelSelection = (modelId: string) => {
-  //   setSelectedVisionModels((prev) => {
-  //     if (prev.includes(modelId)) {
-  //       return prev.filter((id) => id !== modelId);
-  //     } else if (prev.length < 5) {
-  //       return [...prev, modelId];
-  //     }
-  //     return prev;
-  //   });
-  // };
 
   const toggleModelExpansion = useCallback((index: number) => {
     setExpandedModels((prev) => {
@@ -660,7 +648,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             <div className="space-y-3">
               {[0, 1, 2, 3, 4].map((index) => {
                 const selectedModelId = selectedVisionModels[index];
-                const selectedModel = selectedModelId
+                const selectedModelData = selectedModelId
                   ? modelState.models.find((m) => m.id === selectedModelId)
                   : null;
                 const isExpanded = expandedModels.has(index);
@@ -675,7 +663,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                         <h4 className="font-semibold text-gray-900 dark:text-white">
                           Vision Model {index + 1}
                         </h4>
-                        {selectedModel && (
+                        {selectedModelData && (
                           <button
                             onClick={() => toggleModelExpansion(index)}
                             className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
@@ -718,7 +706,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                       </select>
 
                       {/* Collapsible Model Info */}
-                      {selectedModel && isExpanded && (
+                      {selectedModelData && isExpanded && (
                         <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600 text-sm">
                           <div className="space-y-2">
                             <div className="flex justify-between">
@@ -726,7 +714,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                                 Model:
                               </span>
                               <span className="text-gray-900 dark:text-white">
-                                {selectedModel.name}
+                                {selectedModelData.name}
                               </span>
                             </div>
                             <div className="flex justify-between">
@@ -734,7 +722,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                                 Prompt Price:
                               </span>
                               <span className="text-gray-900 dark:text-white">
-                                {formatPrice(selectedModel.pricing.prompt)}
+                                {formatPrice(selectedModelData.pricing.prompt)}
                               </span>
                             </div>
                             <div className="flex justify-between">
@@ -742,16 +730,16 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                                 Completion Price:
                               </span>
                               <span className="text-gray-900 dark:text-white">
-                                {formatPrice(selectedModel.pricing.completion)}
+                                {formatPrice(selectedModelData.pricing.completion)}
                               </span>
                             </div>
-                            {selectedModel.description && (
+                            {selectedModelData.description && (
                               <div>
                                 <span className="font-medium text-gray-700 dark:text-gray-300">
                                   Description:
                                 </span>
                                 <p className="text-gray-600 dark:text-gray-400 mt-1">
-                                  {selectedModel.description}
+                                  {selectedModelData.description}
                                 </p>
                               </div>
                             )}

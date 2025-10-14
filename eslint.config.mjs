@@ -124,10 +124,7 @@ export default tseslint.config(
   {
     files: ['**/__tests__/**', '**/*.test.{ts,tsx,js,jsx}', '**/*.spec.{ts,tsx,js,jsx}'],
     languageOptions: {
-      globals: {
-        ...globals.jest,
-        ...globals.node,
-      },
+      globals: globals.jest,
     },
     rules: {
       'no-console': 'off',
