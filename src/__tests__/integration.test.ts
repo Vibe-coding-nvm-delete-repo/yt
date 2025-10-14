@@ -12,7 +12,7 @@ import { retryAsync, CircuitBreaker } from "../utils/retry";
 describe("Error Handling Integration", () => {
   it("should integrate error types with retry logic", async () => {
     let attempts = 0;
-    const operation = jest.fn(() => {
+    const operation = jest.fn(async () => {
       attempts++;
       if (attempts < 3) {
         throw new AppError(
