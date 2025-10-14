@@ -145,8 +145,6 @@ export class SettingsStorage {
 
   getSettings(): AppSettings {
     // Always attempt to reload from localStorage to reflect the latest persisted state.
-    // This helps tests that modify localStorage directly and expect the storage singleton
-    // to pick up changes without recreating the instance.
     if (typeof window !== "undefined") {
       try {
         const stored = localStorage.getItem(STORAGE_KEY);
@@ -170,7 +168,6 @@ export class SettingsStorage {
           };
         }
       } catch (e) {
-        // If parsing fails, fall back to the in-memory settings
         console.warn("Failed to refresh settings from localStorage:", e);
       }
     }
@@ -255,10 +252,6 @@ export class SettingsStorage {
     }
   }
 
-  /**
-   * Export current settings as a JSON string.
-   * This is a safe-serializable snapshot suitable for download or copying.
-   */
   exportSettings(): string {
     try {
       return JSON.stringify(this.settings);
@@ -273,7 +266,6 @@ export class SettingsStorage {
       return true;
     }
 
-    // Refresh if older than 24 hours
     const oneDayInMs = 24 * 60 * 60 * 1000;
     return Date.now() - this.settings.lastModelFetch > oneDayInMs;
   }
@@ -298,14 +290,13 @@ export class SettingsStorage {
       : [];
   }
 
-  // Pin/unpin models for quick access favorites
+  // Pin/unpin models for quick access favorites (cap 9, add-to-front)
   pinModel(modelId: string): void {
     if (!Array.isArray(this.settings.pinnedModels)) {
       this.settings.pinnedModels = [];
     }
 
     if (!this.settings.pinnedModels.includes(modelId)) {
-      // Add to front and cap at 9
       this.settings.pinnedModels = [
         modelId,
         ...this.settings.pinnedModels,
