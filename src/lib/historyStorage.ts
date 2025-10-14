@@ -2,18 +2,37 @@ import type { PersistedHistoryState, HistoryEntry } from "@/types/history";
 
 const HISTORY_KEY = "image-to-prompt-history-state";
 
+export const HISTORY_STORAGE_EVENTS = {
+  HISTORY_UPDATED: "image-to-prompt-history-updated",
+} as const;
+
 const DEFAULT_HISTORY_STATE: PersistedHistoryState = {
   entries: [],
   filterModelIds: [],
   schemaVersion: 1,
 };
 
+type SubscriptionCallback = (state: PersistedHistoryState) => void;
+type UnsubscribeFunction = () => void;
+
+interface Subscription {
+  id: string;
+  callback: SubscriptionCallback;
+}
+
 export class HistoryStorage {
   private static instance: HistoryStorage;
   private state: PersistedHistoryState;
+  private subscriptions = new Map<string, Subscription>();
+  private subscriptionCounter = 0;
 
   private constructor() {
     this.state = this.load();
+
+    // Listen for storage events from other tabs/windows
+    if (typeof window !== "undefined") {
+      window.addEventListener("storage", this.handleStorageEvent.bind(this));
+    }
   }
 
   static getInstance(): HistoryStorage {
@@ -49,10 +68,59 @@ export class HistoryStorage {
     if (typeof window === "undefined") return;
     try {
       localStorage.setItem(HISTORY_KEY, JSON.stringify(this.state));
-      // optional: dispatch custom event in future
+      this.notifySubscribers();
+
+      // Dispatch custom event for cross-tab synchronization
+      const event = new CustomEvent(HISTORY_STORAGE_EVENTS.HISTORY_UPDATED, {
+        detail: this.state,
+      });
+      window.dispatchEvent(event);
     } catch (e) {
       console.error("Failed to save history state", e);
     }
+  }
+
+  private handleStorageEvent(event: StorageEvent): void {
+    if (event.key === HISTORY_KEY && event.newValue) {
+      try {
+        const parsed = JSON.parse(event.newValue);
+        this.state = {
+          ...DEFAULT_HISTORY_STATE,
+          ...parsed,
+          entries: Array.isArray(parsed?.entries)
+            ? parsed.entries.slice(0, 200)
+            : [],
+          filterModelIds: Array.isArray(parsed?.filterModelIds)
+            ? parsed.filterModelIds
+            : [],
+        };
+        this.notifySubscribers();
+      } catch (error) {
+        console.error("Failed to handle storage event:", error);
+      }
+    }
+  }
+
+  private notifySubscribers(): void {
+    this.subscriptions.forEach((sub) => {
+      try {
+        sub.callback({ ...this.state, entries: [...this.state.entries] });
+      } catch (error) {
+        console.error("Subscription callback error:", error);
+      }
+    });
+  }
+
+  subscribe(callback: SubscriptionCallback): UnsubscribeFunction {
+    const id = `sub-${++this.subscriptionCounter}`;
+    this.subscriptions.set(id, { id, callback });
+
+    // Call immediately with current value
+    callback({ ...this.state, entries: [...this.state.entries] });
+
+    return () => {
+      this.subscriptions.delete(id);
+    };
   }
 
   getState(): PersistedHistoryState {
