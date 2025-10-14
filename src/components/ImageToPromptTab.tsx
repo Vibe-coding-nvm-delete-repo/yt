@@ -6,15 +6,12 @@ import { createOpenRouterClient } from "@/lib/openrouter";
 import { imageStateStorage } from "@/lib/storage";
 import calculateGenerationCost from "@/lib/cost";
 import { normalizeToApiError } from "@/lib/errorUtils";
-import { usageStorage } from "@/lib/usage";
 import {
   AlertCircle,
   Image as ImageIcon,
   Loader2,
-  DollarSign,
-  Copy,
-  Check,
   Calculator,
+  DollarSign,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -287,14 +284,8 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
 
           // Calculate input/output costs based on model pricing
           if (model.pricing) {
-            const toNumber = (v: number | string | null | undefined): number =>
-              typeof v === "number"
-                ? v
-                : Number.isFinite(parseFloat(v ?? "0"))
-                  ? parseFloat(v ?? "0")
-                  : 0;
-            const inputPrice = toNumber(model.pricing.prompt);
-            const outputPrice = toNumber(model.pricing.completion);
+            const inputPrice = parseFloat(model.pricing.prompt || "0");
+            const outputPrice = parseFloat(model.pricing.completion || "0");
             inputCost = (inputTokens * inputPrice) / 1000000; // Convert from per-1M tokens
             outputCost = (outputTokens * outputPrice) / 1000000;
           }
@@ -319,20 +310,20 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
           ),
         );
 
-        // Record usage
-        usageStorage.add({
+        // Save to history
+        historyStorage.addEntry({
           id: `${Date.now()}-${result.modelId}`,
-          timestamp: Date.now(),
-          modelId: result.modelId,
-          modelName: result.modelName,
+          imageUrl: uploadedImage.preview,
+          prompt,
+          charCount: prompt.length,
+          totalCost,
           inputTokens,
           outputTokens,
           inputCost,
           outputCost,
-          totalCost,
-          success: true,
-          error: null,
-          imagePreview: uploadedImage.preview,
+          modelId: result.modelId,
+          modelName: result.modelName,
+          createdAt: Date.now(),
         });
       } catch (error) {
         const apiErr = normalizeToApiError(error);
@@ -531,20 +522,43 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
 
       {/* Overall Cost Summary - Minimalist */}
       {modelResults.length > 0 && (
-        <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 p-2 rounded border border-green-200 dark:border-green-800">
-          <div className="flex items-center justify-between text-xs">
-            <div className="flex items-center gap-3">
-              <span className="text-gray-600 dark:text-gray-400">
-                <Calculator className="inline h-3 w-3 mr-1" />
-                {modelResults.length} models
-              </span>
-              <span className="text-gray-600 dark:text-gray-400">
-                {modelResults.filter((r) => r.prompt).length} completed
-              </span>
+        <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+          <div className="flex items-center mb-3">
+            <Calculator className="mr-2 h-5 w-5 text-green-600 dark:text-green-400" />
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Generation Metrics
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg border">
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                Models Selected
+              </div>
+              <div className="text-xl font-bold text-gray-900 dark:text-white">
+                {modelResults.length}
+              </div>
             </div>
-            <div className="flex items-center font-semibold text-green-600 dark:text-green-400">
-              <DollarSign className="h-3 w-3" />
-              {formatCost(totalCostAllModels)}
+
+            <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg border">
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                Completed
+              </div>
+              <div className="text-xl font-bold text-gray-900 dark:text-white">
+                {modelResults.filter((r) => r.prompt).length}
+              </div>
+            </div>
+
+            <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg border">
+              <div className="flex items-center justify-center">
+                <DollarSign className="h-4 w-4 text-green-600 dark:text-green-400 mr-1" />
+                <div className="text-sm text-gray-500 dark:text-gray-400">
+                  Total Cost
+                </div>
+              </div>
+              <div className="text-xl font-bold text-green-600 dark:text-green-400">
+                {formatCost(totalCostAllModels)}
+              </div>
             </div>
           </div>
         </div>
@@ -558,10 +572,73 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
               key={result.modelId}
               className="p-3 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 h-[18vh] flex flex-col"
             >
-              {/* Model Name */}
-              <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-1 truncate">
-                {result.modelName}
-              </h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                  {result.modelName}
+                </h3>
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  {result.modelId}
+                </div>
+              </div>
+
+              {/* Detailed Metrics - Always Visible */}
+              <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border">
+                <div className="flex items-center mb-2">
+                  <Calculator className="h-4 w-4 text-blue-600 dark:text-blue-400 mr-2" />
+                  <h4 className="font-semibold text-gray-900 dark:text-white">
+                    Cost Breakdown
+                  </h4>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                  <div>
+                    <div className="text-gray-500 dark:text-gray-400">
+                      Input Tokens
+                    </div>
+                    <div className="font-medium text-gray-900 dark:text-white">
+                      {formatTokens(result.inputTokens)}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-gray-500 dark:text-gray-400">
+                      Output Tokens
+                    </div>
+                    <div className="font-medium text-gray-900 dark:text-white">
+                      {formatTokens(result.outputTokens)}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-gray-500 dark:text-gray-400">
+                      Input Cost
+                    </div>
+                    <div className="font-medium text-blue-600 dark:text-blue-400">
+                      {formatCost(result.inputCost)}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-gray-500 dark:text-gray-400">
+                      Output Cost
+                    </div>
+                    <div className="font-medium text-blue-600 dark:text-blue-400">
+                      {formatCost(result.outputCost)}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-gray-900 dark:text-white">
+                      Total Request Cost:
+                    </span>
+                    <span className="text-lg font-bold text-green-600 dark:text-green-400">
+                      {formatCost(result.cost)}
+                    </span>
+                  </div>
+                </div>
+              </div>
 
               {result.isProcessing && (
                 <div className="flex items-center justify-center flex-1">
@@ -580,18 +657,15 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
                 </div>
               )}
 
-              {!result.isProcessing && !result.error && (
-                <>
-                  {/* Cost Breakdown - Compact Single Line */}
-                  <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">
-                    {result.inputCost !== null && result.outputCost !== null ? (
-                      <span>
-                        Input: {formatCost(result.inputCost)} | Output:{" "}
-                        {formatCost(result.outputCost)}
-                      </span>
-                    ) : (
-                      <span className="italic">Waiting to generate...</span>
-                    )}
+              {result.prompt && !result.isProcessing && (
+                <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600">
+                  <div className="flex items-center justify-between mb-2">
+                    <h5 className="font-medium text-gray-900 dark:text-white">
+                      Generated Prompt
+                    </h5>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      {result.prompt.length} characters
+                    </div>
                   </div>
 
                   {/* Total Cost */}
