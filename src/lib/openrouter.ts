@@ -190,7 +190,10 @@ export class OpenRouterClient {
           (model): model is OpenRouterModelResponse =>
             Boolean(model?.id) && Boolean(model?.name),
         )
-        .filter((model) => this.safeNumber(model.pricing?.image, 0) > 0)
+        .filter(
+          (model) =>
+            Boolean(model.supports_image) || Boolean(model.supports_vision),
+        )
         .map((model) => {
           const contextLength = this.safeNumber(model.context_length, 0);
 
