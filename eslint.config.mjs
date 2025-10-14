@@ -6,6 +6,7 @@
  * - File size limits to prevent monolithic components
  * - Component complexity limits
  * - Best practices for React and TypeScript
+ * - Strict no-any policy to prevent regressions
  * 
  * Custom rules located in: ./eslint-rules/index.js
  */
@@ -60,8 +61,17 @@ export default tseslint.config(
       'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/consistent-type-imports': 'error',
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-explicit-any': 'error', // STRICT: prevent regressions
       '@typescript-eslint/no-unsafe-function-type': 'warn',
+      
+      // === STRICT PATTERNS TO PREVENT REGRESSIONS ===
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'CallExpression[callee.object.name="document"][callee.property.name!=/^(createElement|getElementById|querySelector)$/]',
+          message: 'Direct DOM manipulation outside useEffect/useLayoutEffect is forbidden. Use React refs.'
+        }
+      ],
       
       // === REACT HOOKS ===
       'react-hooks/rules-of-hooks': 'error',
@@ -106,6 +116,7 @@ export default tseslint.config(
       'custom/component-complexity': 'off', // Complex legacy components
       '@typescript-eslint/no-unused-vars': 'warn',
       'unused-imports/no-unused-imports': 'warn',
+      '@typescript-eslint/no-explicit-any': 'warn', // Allow any in legacy until refactored
     },
   },
 
@@ -142,6 +153,7 @@ export default tseslint.config(
       '@typescript-eslint/no-require-imports': 'off',
       'custom/max-file-size': 'off',
       'custom/architecture-boundaries': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
     },
   },
 );
