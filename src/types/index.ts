@@ -112,6 +112,22 @@ export interface BatchEntry {
 }
 
 /**
+ * Model Result for Single-Image Multi-Model Generation
+ */
+export interface ModelResult {
+  modelId: string;
+  modelName: string;
+  prompt: string | null;
+  cost: number | null;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  inputCost: number | null;
+  outputCost: number | null;
+  isProcessing: boolean;
+  error: string | null;
+}
+
+/**
  * Enhanced Persisted Image State with Multi-Image Support
  */
 export interface PersistedImageState {
@@ -120,6 +136,8 @@ export interface PersistedImageState {
   fileSize: number | null;
   fileType: string | null;
   generatedPrompt: string | null;
+  modelResults?: ModelResult[]; // Current generation results
+  isGenerating?: boolean; // Track if generation is in progress
   batchHistory?: BatchEntry[]; // Legacy multi-model batches
   imageBatchHistory?: ImageBatchEntry[]; // New multi-image batches
   schemaVersion: 1; // For storage migrations

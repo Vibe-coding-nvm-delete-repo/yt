@@ -4,6 +4,7 @@ import type {
   PersistedImageState,
   BatchEntry,
   ImageBatchEntry,
+  ModelResult,
 } from "@/types";
 
 const STORAGE_KEY = "image-to-prompt-settings";
@@ -482,6 +483,8 @@ const DEFAULT_IMAGE_STATE: PersistedImageState = {
   fileSize: null,
   fileType: null,
   generatedPrompt: null,
+  modelResults: [],
+  isGenerating: false,
   schemaVersion: 1,
 };
 
@@ -584,6 +587,36 @@ export class ImageStateStorage {
       generatedPrompt: prompt,
     };
     this.saveImageState();
+  }
+
+  saveModelResults(modelResults: ModelResult[]): void {
+    this.imageState = {
+      ...this.imageState,
+      modelResults,
+    };
+    this.saveImageState();
+  }
+
+  saveGenerationStatus(isGenerating: boolean): void {
+    this.imageState = {
+      ...this.imageState,
+      isGenerating,
+    };
+    this.saveImageState();
+  }
+
+  updateSingleModelResult(index: number, updates: Partial<ModelResult>): void {
+    const currentResults = Array.isArray(this.imageState.modelResults)
+      ? [...this.imageState.modelResults]
+      : [];
+
+    if (index >= 0 && index < currentResults.length && currentResults[index]) {
+      currentResults[index] = {
+        ...currentResults[index]!,
+        ...updates,
+      };
+      this.saveModelResults(currentResults);
+    }
   }
 
   clearGeneratedPrompt(): void {
