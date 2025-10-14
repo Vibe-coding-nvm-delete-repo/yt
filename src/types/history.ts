@@ -4,6 +4,10 @@ export interface HistoryEntry {
   prompt: string;
   charCount: number; // 0-1500
   totalCost: number; // currency in USD
+  inputTokens: number;
+  outputTokens: number;
+  inputCost: number;
+  outputCost: number;
   modelId: string;
   modelName: string;
   createdAt: number; // epoch ms
