@@ -3,18 +3,12 @@
 import React from 'react';
 import { Key, RefreshCw, CheckCircle, XCircle, Eye, EyeOff } from 'lucide-react';
 import { Tooltip } from '@/components/common/Tooltip';
-
-type ValidationState = {
-  isValidating: boolean;
-  isValid?: boolean;
-  error?: string | null;
-  lastCheckedAt?: number | null;
-};
+import type { ExtendedValidationState } from '@/types/validation';
 
 export type SettingsApiKeysProps = {
   apiKey: string;
   showApiKey: boolean;
-  validation: ValidationState;
+  validation: ExtendedValidationState;
   onApiKeyChange: (value: string) => void;
   onToggleShow: () => void;
   onValidate: () => void;
