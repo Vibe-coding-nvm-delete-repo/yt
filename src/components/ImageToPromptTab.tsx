@@ -238,10 +238,8 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
     setIsGenerating(true);
     setErrorMessage(null);
 
-    // Process each model sequentially
-    for (let i = 0; i < modelResults.length; i++) {
-      const result = modelResults[i];
-
+    // Process each model sequentially (avoid unchecked array indexing)
+    for (const [i, result] of modelResults.entries()) {
       // Mark as processing
       setModelResults((prev) =>
         prev.map((r, idx) =>
@@ -572,7 +570,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
               {result.isProcessing && (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin text-blue-600 dark:text-blue-400" />
-                  <span className="ml-3 text-gray-600 dark:text-gray-400">
+                  <span className="ml-3 text-gray-6 00 dark:text-gray-400">
                     Processing...
                   </span>
                 </div>
