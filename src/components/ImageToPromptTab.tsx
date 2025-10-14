@@ -4,7 +4,7 @@ import React, { useState, useRef, useCallback, useEffect } from "react";
 import type { AppSettings } from "@/types";
 import { createOpenRouterClient } from "@/lib/openrouter";
 import { imageStateStorage } from "@/lib/storage";
-import { calculateDetailedCost, calculateGenerationCost } from "@/lib/cost";
+import { calculateGenerationCost } from "@/lib/cost";
 import { normalizeToApiError } from "@/lib/errorUtils";
 import { usageStorage } from "@/lib/usage";
 import { historyStorage } from "@/lib/historyStorage";
@@ -16,8 +16,6 @@ import {
   Loader2,
   Calculator,
   DollarSign,
-  Copy,
-  Check,
 } from "lucide-react";
 import Image from "next/image";
 import { RatingWidget } from "@/components/RatingWidget";
@@ -50,7 +48,6 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   const [modelResults, setModelResults] = useState<ModelResult[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [copiedPromptId, setCopiedPromptId] = useState<string | null>(null);
   const [sessionId] = useState<string>(() => `session-${Date.now()}`); // Stable session ID for ratings
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const dropZoneRef = useRef<HTMLDivElement | null>(null);
@@ -500,15 +497,6 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
     return tokens.toLocaleString();
   }, []);
 
-  const copyToClipboard = useCallback(async (text: string, modelId: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedPromptId(modelId);
-      setTimeout(() => setCopiedPromptId(null), 2000);
-    } catch (error) {
-      console.error("Failed to copy to clipboard:", error);
-    }
-  }, []);
 
   // Calculate total cost across all models
   const totalCostAllModels = modelResults.reduce((sum, result) => {
