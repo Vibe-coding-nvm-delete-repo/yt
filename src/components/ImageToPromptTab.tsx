@@ -1,17 +1,23 @@
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect } from "react";
-import type { AppSettings, ModelResult } from "@/types";
+import type { AppSettings } from "@/types";
 import { createOpenRouterClient } from "@/lib/openrouter";
 import { imageStateStorage } from "@/lib/storage";
-import { calculateDetailedCost } from "@/lib/cost";
+import { calculateDetailedCost, calculateGenerationCost } from "@/lib/cost";
 import { normalizeToApiError } from "@/lib/errorUtils";
+import { usageStorage } from "@/lib/usage";
+import { historyStorage } from "@/lib/historyStorage";
+import type { UsageEntry } from "@/types/usage";
+import type { HistoryEntry } from "@/types/history";
 import {
   AlertCircle,
   Image as ImageIcon,
   Loader2,
   Calculator,
   DollarSign,
+  Copy,
+  Check,
 } from "lucide-react";
 import Image from "next/image";
 import { RatingWidget } from "@/components/RatingWidget";
@@ -44,6 +50,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   const [modelResults, setModelResults] = useState<ModelResult[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [copiedPromptId, setCopiedPromptId] = useState<string | null>(null);
   const [sessionId] = useState<string>(() => `session-${Date.now()}`); // Stable session ID for ratings
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const dropZoneRef = useRef<HTMLDivElement | null>(null);
@@ -136,6 +143,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
       // Clear isProcessing flags to prevent stuck spinners after navigation/refresh
       const cleanedResults = persisted.modelResults.map((result) => ({
         ...result,
+        id: `${sessionId}-${result.modelId}`, // Ensure id is present
         isProcessing: false,
       }));
       // Set results directly, overriding any initialization from settings
@@ -761,25 +769,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
                     </span>
                   </div>
                 </div>
-
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-500 dark:text-gray-400">
-                    Output Cost
-                  </span>
-                  <span className="font-medium text-blue-600 dark:text-blue-400">
-                    {formatCost(result.outputCost)}
-                  </span>
-                </div>
-
-                <div className="flex justify-between text-xs pt-2 border-t border-gray-200 dark:border-gray-700">
-                  <span className="font-semibold text-gray-900 dark:text-white">
-                    Total Cost
-                  </span>
-                  <span className="font-bold text-green-600 dark:text-green-400">
-                    {formatCost(result.cost)}
-                  </span>
-                </div>
-              )}
+              </div>
 
               {result.prompt && !result.isProcessing && (
                 <>
@@ -807,43 +797,19 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
                 </>
               )}
 
-                {result.error && (
-                  <div className="flex-1 p-4">
-                    <p className="text-xs text-red-600 dark:text-red-400">
-                      {result.error}
-                    </p>
-                  </div>
-                )}
+              {result.error && (
+                <div className="flex-1 p-4">
+                  <p className="text-xs text-red-600 dark:text-red-400">
+                    {result.error}
+                  </p>
+                </div>
+              )}
 
-                {result.prompt && !result.isProcessing && (
-                  <div className="flex-1 flex flex-col min-h-0 p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                        Output
-                      </span>
-                      <button
-                        onClick={() =>
-                          copyToClipboard(result.prompt!, result.modelId)
-                        }
-                        className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
-                        title="Copy to clipboard"
-                        aria-label="Copy prompt to clipboard"
-                      >
-                        {copiedPromptId === result.modelId ? (
-                          <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
-                        ) : (
-                          <Copy className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                        )}
-                      </button>
-                    </div>
-                    <div className="flex-1 overflow-hidden">
-                      <p className="text-xs text-gray-900 dark:text-white leading-relaxed break-words">
-                        {result.prompt}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
+              {result.isProcessing && (
+                <div className="flex-1 flex items-center justify-center p-4">
+                  <Loader2 className="h-6 w-6 animate-spin text-blue-600 dark:text-blue-400" />
+                </div>
+              )}
             </div>
           ))}
         </div>
