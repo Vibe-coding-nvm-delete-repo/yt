@@ -360,7 +360,12 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   }, [settings, uploadedImage, modelResults]);
 
   const formatCost = useCallback((cost: number | null): string => {
-    if (cost === null || cost === 0) return "$0.000000";
+    if (cost === null || cost === 0) return "$0.00";
+    // Show user-friendly format: 2 decimal places for amounts >= $0.01
+    // Otherwise show up to 6 decimals for very small amounts
+    if (cost >= 0.01) {
+      return `$${cost.toFixed(2)}`;
+    }
     return `$${cost.toFixed(6)}`;
   }, []);
 

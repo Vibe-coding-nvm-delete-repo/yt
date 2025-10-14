@@ -34,7 +34,14 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     return allEntries.reduce((sum, entry) => sum + entry.totalCost, 0);
   }, [updateTrigger]);
 
-  const formatCurrency = (n: number) => `$${n.toFixed(6)}`;
+  const formatCurrency = (n: number) => {
+    // Show user-friendly format: 2 decimal places for amounts >= $0.01
+    // Otherwise show up to 6 decimals for very small amounts
+    if (n >= 0.01) {
+      return `$${n.toFixed(2)}`;
+    }
+    return `$${n.toFixed(6)}`;
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">

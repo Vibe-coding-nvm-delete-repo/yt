@@ -245,12 +245,10 @@ export class OpenRouterClient {
   }
 
   calculateTextCost(textLength: number, model: VisionModel): number {
-    const pricePerThousandTokens = this.safeNumber(
-      model.pricing?.completion,
-      0,
-    );
+    const pricePerToken = this.safeNumber(model.pricing?.completion, 0);
     const estimatedTokens = Math.ceil(textLength / 4);
-    return (pricePerThousandTokens * estimatedTokens) / 1000;
+    // OpenRouter pricing is in $/token
+    return pricePerToken * estimatedTokens;
   }
 
   calculateGenerationCost(model: VisionModel, textLength: number) {
