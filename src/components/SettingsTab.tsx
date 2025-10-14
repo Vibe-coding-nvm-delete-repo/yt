@@ -176,18 +176,21 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     settings.pinnedModels,
   ]);
 
-  const handleApiKeyChange = (value: string) => {
-    setApiKey(value);
-    hookUpdateApiKey(value);
+  const handleApiKeyChange = useCallback(
+    (value: string) => {
+      setApiKey(value);
+      hookUpdateApiKey(value);
 
-    if (value !== settings.openRouterApiKey) {
-      setValidationState({
-        isValidating: false,
-        isValid: false,
-        error: null,
-      });
-    }
-  }, [hookUpdateApiKey, settings.openRouterApiKey]);
+      if (value !== settings.openRouterApiKey) {
+        setValidationState({
+          isValidating: false,
+          isValid: false,
+          error: null,
+        });
+      }
+    },
+    [hookUpdateApiKey, settings.openRouterApiKey]
+  );
 
   const validateApiKey = useCallback(async () => {
     if (!apiKey.trim()) {
@@ -309,7 +312,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
 
       event.target.value = "";
     },
-    [],
+    []
   );
 
   const toggleModelExpansion = useCallback((index: number) => {
@@ -440,7 +443,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       validateApiKey,
       exportSettings,
       importSettings,
-    ],
+    ]
   );
 
   const renderCustomPromptsTab = useCallback(
@@ -462,7 +465,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         </p>
       </div>
     ),
-    [customPrompt],
+    [customPrompt]
   );
 
   const renderCategoriesTab = useCallback(
@@ -476,7 +479,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         </p>
       </div>
     ),
-    [],
+    []
   );
 
   const renderModelSelectionTab = useCallback(
@@ -526,7 +529,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             />
           </button>
           {isDropdownOpen && (
-            <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-80 overflow-hidden flex flex-col">
+            <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg maxh-80 overflow-hidden flex flex-col">
               <div className="p-2 border-b border-gray-200 dark:border-gray-600">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -632,9 +635,9 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
               <p className="text-sm text-green-700 dark:text-green-300">
                 ✓ Successfully fetched {modelState.models.length} vision models
-                {settings.lastModelFetch && (
+                {settings.lastApiKeyFetch && (
                   <span className="text-green-600 dark:text-green-400 ml-1">
-                    ({formatTimestamp(settings.lastModelFetch)})
+                    ({formatTimestamp(settings.lastApiKeyFetch)})
                   </span>
                 )}
               </p>
@@ -735,7 +738,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                             </div>
                             {selectedModelData.description && (
                               <div>
-                                <span className="font-medium text-gray-700 dark:text-gray-300">
+                                <span className="font-medium text.gray-700 dark:text-gray-300">
                                   Description:
                                 </span>
                                 <p className="text-gray-600 dark:text-gray-400 mt-1">
@@ -760,10 +763,10 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       validationState.isValid,
       selectedVisionModels,
       expandedModels,
-      settings.lastModelFetch,
+      settings.lastApiKeyFetch,
       fetchModels,
       toggleModelExpansion,
-    ],
+    ]
   );
 
   return (
@@ -790,7 +793,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             className={`py-2 px-4 font-medium text-sm border-b-2 transition-colors ${
               activeSubTab === "model-selection"
                 ? "border-blue-500 text-blue-600 dark:text-blue-400"
-                : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover.text-gray-300"
             }`}
           >
             Model Selection
