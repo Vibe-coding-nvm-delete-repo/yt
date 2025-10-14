@@ -187,10 +187,16 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 }
 
-export const AppErrorBoundary: React.FC<{ children: ReactNode; onError?: Props['onError'] }> = ({ children, onError }) => (
-  <ErrorBoundary level="app" onError={onError}>
-    {children}
-  </ErrorBoundary>
-);
+export const AppErrorBoundary: React.FC<{ children: ReactNode; onError?: Props['onError'] }> = ({ children, onError }) => {
+  const boundaryProps: Omit<Props, 'children'> = { level: 'app' };
+  if (onError) {
+    boundaryProps.onError = onError;
+  }
+  return (
+    <ErrorBoundary {...boundaryProps}>
+      {children}
+    </ErrorBoundary>
+  );
+};
 
 export default ErrorBoundary;
