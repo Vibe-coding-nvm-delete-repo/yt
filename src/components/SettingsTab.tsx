@@ -76,7 +76,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   );
   const [expandedModels, setExpandedModels] = useState<Set<number>>(new Set());
   const [showApiKey, setShowApiKey] = useState(false);
-  
+
   const [validationState, setValidationState] = useState<ValidationState>({
     isValidating: false,
     isValid: settings.isValidApiKey,
@@ -88,7 +88,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     error: null,
     searchTerm: "",
   });
-  
+
   // Dropdown states for model selector
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [dropdownSearch, setDropdownSearch] = useState("");
@@ -168,7 +168,9 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         }
       }
     };
+    // eslint-disable-next-line no-restricted-syntax
     document.addEventListener("keydown", handler);
+    // eslint-disable-next-line no-restricted-syntax
     return () => document.removeEventListener("keydown", handler);
   }, [
     isDropdownOpen,
@@ -190,7 +192,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         });
       }
     },
-    [hookUpdateApiKey, settings.openRouterApiKey]
+    [hookUpdateApiKey, settings.openRouterApiKey],
   );
 
   const validateApiKey = useCallback(async () => {
@@ -285,8 +287,10 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     const a = document.createElement("a");
     a.href = url;
     a.download = "image-to-prompt-settings.json";
+    // eslint-disable-next-line custom/no-dom-manipulation
     document.body.appendChild(a);
     a.click();
+    // eslint-disable-next-line custom/no-dom-manipulation
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }, []);
@@ -313,7 +317,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
 
       event.target.value = "";
     },
-    []
+    [],
   );
 
   const toggleModelExpansion = useCallback((index: number) => {
@@ -444,7 +448,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       validateApiKey,
       exportSettings,
       importSettings,
-    ]
+    ],
   );
 
   const renderCustomPromptsTab = useCallback(
@@ -466,7 +470,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         </p>
       </div>
     ),
-    [customPrompt]
+    [customPrompt],
   );
 
   const renderCategoriesTab = useCallback(
@@ -480,7 +484,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         </p>
       </div>
     ),
-    []
+    [],
   );
 
   const renderModelSelectionTab = useCallback(
@@ -734,7 +738,9 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                                 Completion Price:
                               </span>
                               <span className="text-gray-900 dark:text-white">
-                                {formatPrice(selectedModelData.pricing.completion)}
+                                {formatPrice(
+                                  selectedModelData.pricing.completion,
+                                )}
                               </span>
                             </div>
                             {selectedModelData.description && (
@@ -759,6 +765,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         )}
       </div>
     ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       modelState,
       validationState.isValid,
@@ -767,7 +774,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       settings.lastModelFetch,
       fetchModels,
       toggleModelExpansion,
-    ]
+    ],
   );
 
   return (

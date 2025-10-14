@@ -4,22 +4,22 @@
  */
 
 export enum ErrorType {
-  NETWORK = 'NETWORK',
-  API = 'API',
-  VALIDATION = 'VALIDATION',
-  STORAGE = 'STORAGE',
-  TIMEOUT = 'TIMEOUT',
-  PERMISSION = 'PERMISSION',
-  RATE_LIMIT = 'RATE_LIMIT',
-  AUTHENTICATION = 'AUTHENTICATION',
-  UNKNOWN = 'UNKNOWN'
+  NETWORK = "NETWORK",
+  API = "API",
+  VALIDATION = "VALIDATION",
+  STORAGE = "STORAGE",
+  TIMEOUT = "TIMEOUT",
+  PERMISSION = "PERMISSION",
+  RATE_LIMIT = "RATE_LIMIT",
+  AUTHENTICATION = "AUTHENTICATION",
+  UNKNOWN = "UNKNOWN",
 }
 
 export enum ErrorSeverity {
-  LOW = 'LOW',
-  MEDIUM = 'MEDIUM',
-  HIGH = 'HIGH',
-  CRITICAL = 'CRITICAL'
+  LOW = "LOW",
+  MEDIUM = "MEDIUM",
+  HIGH = "HIGH",
+  CRITICAL = "CRITICAL",
 }
 
 export interface ErrorContext {
@@ -34,7 +34,7 @@ export interface ErrorContext {
   userAgent?: string | undefined;
   url?: string | undefined;
   statusCode?: number | undefined;
-  metadata?: Record<string, any> | undefined;
+  metadata?: Record<string, unknown> | undefined;
   errorId?: string | undefined;
 }
 
@@ -67,29 +67,35 @@ export class AppError extends Error {
       retryable?: boolean;
       retryConfig?: RetryConfig;
       originalError?: Error;
-    }
+    },
   ) {
     super(message);
-    this.name = 'AppError';
+    this.name = "AppError";
     this.type = type;
     this.severity = options?.severity || this.getDefaultSeverity(type);
-    this.code = options?.code;
+    if (options?.code !== undefined) {
+      this.code = options.code;
+    }
     this.userMessage = userMessage || this.getDefaultUserMessage(type);
     this.retryable = options?.retryable ?? this.getDefaultRetryable(type);
-    this.retryConfig = options?.retryConfig;
-    this.originalError = options?.originalError;
-    
+    if (options?.retryConfig !== undefined) {
+      this.retryConfig = options.retryConfig;
+    }
+    if (options?.originalError !== undefined) {
+      this.originalError = options.originalError;
+    }
+
     // Fix for exactOptionalPropertyTypes: Build context carefully without
     // introducing incompatible defaults that force optional properties to concrete types
     const baseContext: ErrorContext = {
       timestamp: Date.now(),
       retryable: this.retryable,
       retryCount: 0,
-      stackTrace: this.stack ?? undefined
+      stackTrace: this.stack ?? undefined,
     };
-    
+
     // Only spread provided context if it exists, preserving undefined values
-    this.context = options?.context 
+    this.context = options?.context
       ? { ...baseContext, ...options.context }
       : baseContext;
 
@@ -108,22 +114,26 @@ export class AppError extends Error {
       [ErrorType.PERMISSION]: ErrorSeverity.HIGH,
       [ErrorType.RATE_LIMIT]: ErrorSeverity.MEDIUM,
       [ErrorType.AUTHENTICATION]: ErrorSeverity.HIGH,
-      [ErrorType.UNKNOWN]: ErrorSeverity.MEDIUM
+      [ErrorType.UNKNOWN]: ErrorSeverity.MEDIUM,
     };
     return severityMap[type];
   }
 
   private getDefaultUserMessage(type: ErrorType): string {
     const messages: Record<ErrorType, string> = {
-      [ErrorType.NETWORK]: 'Connection issue. Please check your internet and try again.',
-      [ErrorType.API]: 'Service temporarily unavailable. Please try again in a moment.',
-      [ErrorType.VALIDATION]: 'The information provided is invalid. Please check your input.',
-      [ErrorType.STORAGE]: 'Unable to save your data. Please try again.',
-      [ErrorType.TIMEOUT]: 'Request timed out. Please try again.',
-      [ErrorType.PERMISSION]: 'Access denied. Please check your permissions.',
-      [ErrorType.RATE_LIMIT]: 'Too many requests. Please wait a moment and try again.',
-      [ErrorType.AUTHENTICATION]: 'Authentication failed. Please log in again.',
-      [ErrorType.UNKNOWN]: 'An unexpected error occurred. Please try again.'
+      [ErrorType.NETWORK]:
+        "Connection issue. Please check your internet and try again.",
+      [ErrorType.API]:
+        "Service temporarily unavailable. Please try again in a moment.",
+      [ErrorType.VALIDATION]:
+        "The information provided is invalid. Please check your input.",
+      [ErrorType.STORAGE]: "Unable to save your data. Please try again.",
+      [ErrorType.TIMEOUT]: "Request timed out. Please try again.",
+      [ErrorType.PERMISSION]: "Access denied. Please check your permissions.",
+      [ErrorType.RATE_LIMIT]:
+        "Too many requests. Please wait a moment and try again.",
+      [ErrorType.AUTHENTICATION]: "Authentication failed. Please log in again.",
+      [ErrorType.UNKNOWN]: "An unexpected error occurred. Please try again.",
     };
     return messages[type];
   }
@@ -133,23 +143,25 @@ export class AppError extends Error {
       ErrorType.NETWORK,
       ErrorType.API,
       ErrorType.TIMEOUT,
-      ErrorType.RATE_LIMIT
+      ErrorType.RATE_LIMIT,
     ];
     return retryableTypes.includes(type);
   }
 
   public withRetryCount(count: number): AppError {
     return new AppError(this.type, this.message, this.userMessage, {
-      code: this.code,
+      ...(this.code !== undefined && { code: this.code }),
       severity: this.severity,
       context: { ...this.context, retryCount: count },
       retryable: this.retryable,
-      retryConfig: this.retryConfig,
-      originalError: this.originalError
+      ...(this.retryConfig !== undefined && { retryConfig: this.retryConfig }),
+      ...(this.originalError !== undefined && {
+        originalError: this.originalError,
+      }),
     });
   }
 
-  public toJSON(): Record<string, any> {
+  public toJSON(): Record<string, unknown> {
     return {
       name: this.name,
       type: this.type,
@@ -159,23 +171,27 @@ export class AppError extends Error {
       code: this.code,
       retryable: this.retryable,
       context: this.context,
-      stack: this.stack
+      stack: this.stack,
     };
   }
 }
 
 // Specific error classes unchanged...
 export class NetworkError extends AppError {
-  constructor(message: string, userMessage?: string, context?: Partial<ErrorContext>) {
+  constructor(
+    message: string,
+    userMessage?: string,
+    context?: Partial<ErrorContext>,
+  ) {
     super(ErrorType.NETWORK, message, userMessage, {
-      context,
+      ...(context !== undefined && { context }),
       retryable: true,
       retryConfig: {
         maxRetries: 3,
         initialDelay: 1000,
         maxDelay: 10000,
-        backoffMultiplier: 2
-      }
+        backoffMultiplier: 2,
+      },
     });
   }
 }
@@ -185,12 +201,12 @@ export class APIError extends AppError {
     message: string,
     statusCode?: number,
     userMessage?: string,
-    context?: Partial<ErrorContext>
+    context?: Partial<ErrorContext>,
   ) {
     super(ErrorType.API, message, userMessage, {
       context: { ...context, statusCode },
       retryable: statusCode ? statusCode >= 500 : true,
-      code: statusCode ? `HTTP_${statusCode}` : undefined
+      ...(statusCode && { code: `HTTP_${statusCode}` }),
     });
   }
 }
@@ -200,30 +216,44 @@ export class ValidationError extends AppError {
     message: string,
     field?: string,
     userMessage?: string,
-    context?: Partial<ErrorContext>
+    context?: Partial<ErrorContext>,
   ) {
     super(ErrorType.VALIDATION, message, userMessage, {
-      context: { ...context, metadata: { field } },
-      retryable: false
+      ...(context !== undefined && {
+        context: { ...context, metadata: { field } },
+      }),
+      retryable: false,
     });
   }
 }
 
 export class StorageError extends AppError {
-  constructor(message: string, operation?: string, context?: Partial<ErrorContext>) {
+  constructor(
+    message: string,
+    operation?: string,
+    context?: Partial<ErrorContext>,
+  ) {
     super(ErrorType.STORAGE, message, undefined, {
-      context: { ...context, operation },
+      ...(context !== undefined || operation !== undefined
+        ? { context: { ...context, operation } }
+        : {}),
       retryable: true,
-      severity: ErrorSeverity.HIGH
+      severity: ErrorSeverity.HIGH,
     });
   }
 }
 
 export class TimeoutError extends AppError {
-  constructor(message: string, timeout?: number, context?: Partial<ErrorContext>) {
+  constructor(
+    message: string,
+    timeout?: number,
+    context?: Partial<ErrorContext>,
+  ) {
     super(ErrorType.TIMEOUT, message, undefined, {
-      context: { ...context, metadata: { timeout } },
-      retryable: true
+      ...(context !== undefined || timeout !== undefined
+        ? { context: { ...context, metadata: { timeout } } }
+        : {}),
+      retryable: true,
     });
   }
 }
@@ -232,17 +262,19 @@ export class RateLimitError extends AppError {
   constructor(
     message: string,
     retryAfter?: number,
-    context?: Partial<ErrorContext>
+    context?: Partial<ErrorContext>,
   ) {
     super(ErrorType.RATE_LIMIT, message, undefined, {
-      context: { ...context, metadata: { retryAfter } },
+      ...(context !== undefined || retryAfter !== undefined
+        ? { context: { ...context, metadata: { retryAfter } } }
+        : {}),
       retryable: true,
       retryConfig: {
         maxRetries: 3,
         initialDelay: retryAfter ? retryAfter * 1000 : 5000,
         maxDelay: 60000,
-        backoffMultiplier: 1.5
-      }
+        backoffMultiplier: 1.5,
+      },
     });
   }
 }
@@ -250,9 +282,9 @@ export class RateLimitError extends AppError {
 export class AuthenticationError extends AppError {
   constructor(message: string, context?: Partial<ErrorContext>) {
     super(ErrorType.AUTHENTICATION, message, undefined, {
-      context,
+      ...(context !== undefined && { context }),
       retryable: false,
-      severity: ErrorSeverity.HIGH
+      severity: ErrorSeverity.HIGH,
     });
   }
 }
@@ -260,91 +292,85 @@ export class AuthenticationError extends AppError {
 // Error factory functions
 export const createErrorFromResponse = (
   response: Response,
-  message?: string
+  message?: string,
 ): AppError => {
   const status = response.status;
   const statusText = response.statusText;
   const url = response.url;
-  
+
   if (status === 401 || status === 403) {
     return new AuthenticationError(
       message || `Authentication failed: ${statusText}`,
-      { url, statusCode: status }
+      { url, statusCode: status },
     );
   }
-  
+
   if (status === 429) {
-    const retryAfter = response.headers.get('Retry-After');
+    const retryAfter = response.headers.get("Retry-After");
     return new RateLimitError(
       message || `Rate limit exceeded: ${statusText}`,
       retryAfter ? parseInt(retryAfter, 10) : undefined,
-      { url, statusCode: status }
+      { url, statusCode: status },
     );
   }
-  
+
   if (status >= 400 && status < 500) {
     return new ValidationError(
       message || `Client error: ${statusText}`,
       undefined,
       undefined,
-      { url, statusCode: status }
+      { url, statusCode: status },
     );
   }
-  
+
   if (status >= 500) {
     return new APIError(
       message || `Server error: ${statusText}`,
       status,
       undefined,
-      { url }
+      { url },
     );
   }
-  
+
   return new NetworkError(
     message || `Network error: ${statusText}`,
     undefined,
-    { url, statusCode: status }
+    { url, statusCode: status },
   );
 };
 
 export const createErrorFromException = (
   error: unknown,
-  context?: Partial<ErrorContext>
+  context?: Partial<ErrorContext>,
 ): AppError => {
   if (error instanceof AppError) {
     return error;
   }
-  
-  if (error instanceof TypeError && error.message.includes('fetch')) {
+
+  if (error instanceof TypeError && error.message.includes("fetch")) {
     return new NetworkError(
-      'Network connection failed',
-      'Unable to connect to the server. Please check your connection.',
-      context
+      "Network connection failed",
+      "Unable to connect to the server. Please check your connection.",
+      context,
     );
   }
-  
+
   if (error instanceof Error) {
-    return new AppError(
-      ErrorType.UNKNOWN,
-      error.message,
-      undefined,
-      {
-        // Fix for exactOptionalPropertyTypes: do not coerce undefined to {}
-        // This preserves undefined values without forcing concrete types
-        context: context ?? undefined,
-        originalError: error
-      }
-    );
+    return new AppError(ErrorType.UNKNOWN, error.message, undefined, {
+      // Fix for exactOptionalPropertyTypes: only include context if defined
+      ...(context !== undefined && { context }),
+      originalError: error,
+    });
   }
-  
+
   return new AppError(
     ErrorType.UNKNOWN,
-    'An unknown error occurred',
+    "An unknown error occurred",
     undefined,
-    { 
-      // Fix for exactOptionalPropertyTypes: preserve undefined
-      context: context ?? undefined 
-    }
+    {
+      // Fix for exactOptionalPropertyTypes: only include context if defined
+      ...(context !== undefined && { context }),
+    },
   );
 };
 
