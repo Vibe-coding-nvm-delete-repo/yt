@@ -1,7 +1,4 @@
-import type {
-  AppSettings,
-  VisionModel,
-} from "@/types";
+import type { AppSettings, VisionModel } from "@/types";
 
 const STORAGE_KEY = "image-to-prompt-settings";
 
@@ -10,7 +7,7 @@ type SettingsKey = keyof AppSettings;
 type SubscriptionCallback = (
   newValue: AppSettings,
   oldValue: AppSettings,
-  changedKeys?: SettingsKey[]
+  changedKeys?: SettingsKey[],
 ) => void;
 type UnsubscribeFunction = () => void;
 
@@ -25,7 +22,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   openRouterApiKey: "",
   selectedModel: "",
   selectedVisionModels: [],
-  customPrompt: "Describe this image in detail and suggest a good prompt for generating similar images.",
+  customPrompt:
+    "Describe this image in detail and suggest a good prompt for generating similar images.",
   isValidApiKey: false,
   lastApiKeyValidation: null,
   lastModelFetch: null,
@@ -78,10 +76,18 @@ export class PerformanceSettingsStorage {
       return {
         ...DEFAULT_SETTINGS,
         ...parsed,
-        availableModels: Array.isArray(parsed.availableModels) ? parsed.availableModels : [],
-        preferredModels: Array.isArray(parsed.preferredModels) ? parsed.preferredModels : [],
-        lastApiKeyValidation: parsed.lastApiKeyValidation ? Number(parsed.lastApiKeyValidation) : null,
-        lastModelFetch: parsed.lastModelFetch ? Number(parsed.lastModelFetch) : null,
+        availableModels: Array.isArray(parsed.availableModels)
+          ? parsed.availableModels
+          : [],
+        preferredModels: Array.isArray(parsed.preferredModels)
+          ? parsed.preferredModels
+          : [],
+        lastApiKeyValidation: parsed.lastApiKeyValidation
+          ? Number(parsed.lastApiKeyValidation)
+          : null,
+        lastModelFetch: parsed.lastModelFetch
+          ? Number(parsed.lastModelFetch)
+          : null,
       };
     } catch (error) {
       console.warn("Failed to load settings from localStorage:", error);
@@ -99,7 +105,9 @@ export class PerformanceSettingsStorage {
 
     if (Array.isArray(a)) {
       if (!Array.isArray(b) || a.length !== b.length) return false;
-      return a.every((item, index) => this.isEqual(item, (b as unknown[])[index]));
+      return a.every((item, index) =>
+        this.isEqual(item, (b as unknown[])[index]),
+      );
     }
 
     if (typeof a === "object") {
@@ -132,7 +140,8 @@ export class PerformanceSettingsStorage {
       // Only notify relevant subscribers
       this.subscriptions.forEach((subscription) => {
         const { callback, keys } = subscription;
-        const shouldNotify = !keys || keys.some((key) => allChangedKeys.includes(key));
+        const shouldNotify =
+          !keys || keys.some((key) => allChangedKeys.includes(key));
 
         if (shouldNotify) {
           try {
@@ -153,7 +162,7 @@ export class PerformanceSettingsStorage {
    */
   public subscribe(
     callback: SubscriptionCallback,
-    options: { keys?: SettingsKey[]; immediate?: boolean } = {}
+    options: { keys?: SettingsKey[]; immediate?: boolean } = {},
   ): UnsubscribeFunction {
     const { keys, immediate = false } = options;
     const id = `sub_${++this.subscriptionCounter}`;
@@ -161,8 +170,8 @@ export class PerformanceSettingsStorage {
     const subscription: Subscription = {
       id,
       callback,
-      keys,
-      immediate,
+      ...(keys && { keys }),
+      ...(immediate && { immediate }),
     };
 
     this.subscriptions.set(id, subscription);
@@ -187,7 +196,7 @@ export class PerformanceSettingsStorage {
   public subscribeToKey<K extends SettingsKey>(
     key: K,
     callback: (newValue: AppSettings[K], oldValue: AppSettings[K]) => void,
-    immediate = false
+    immediate = false,
   ): UnsubscribeFunction {
     return this.subscribe(
       (newSettings, oldSettings) => {
@@ -197,7 +206,7 @@ export class PerformanceSettingsStorage {
           callback(newValue, oldValue);
         }
       },
-      { keys: [key], immediate }
+      { keys: [key], immediate },
     );
   }
 

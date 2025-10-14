@@ -112,6 +112,22 @@ export interface BatchEntry {
 }
 
 /**
+ * Model Result for Single-Image Multi-Model Generation
+ */
+export interface ModelResult {
+  modelId: string;
+  modelName: string;
+  prompt: string | null;
+  cost: number | null;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  inputCost: number | null;
+  outputCost: number | null;
+  isProcessing: boolean;
+  error: string | null;
+}
+
+/**
  * Enhanced Persisted Image State with Multi-Image Support
  */
 export interface PersistedImageState {
@@ -120,13 +136,44 @@ export interface PersistedImageState {
   fileSize: number | null;
   fileType: string | null;
   generatedPrompt: string | null;
+  modelResults?: ModelResult[]; // Current generation results
+  isGenerating?: boolean; // Track if generation is in progress
   batchHistory?: BatchEntry[]; // Legacy multi-model batches
   imageBatchHistory?: ImageBatchEntry[]; // New multi-image batches
   schemaVersion: 1; // For storage migrations
 }
 
 export interface TabState {
-  activeTab: "image-to-prompt" | "settings";
+  activeTab: "image-to-prompt" | "settings" | "best-practices";
+}
+
+/**
+ * Best Practices Types
+ */
+export type BestPracticeType = "mandatory" | "optional" | "conditional";
+export type BestPracticeCategory =
+  | "words-phrases"
+  | "photography"
+  | "youtube-engagement"
+  | "youtube-thumbnail"
+  | "our-unique-channel";
+
+export interface BestPractice {
+  id: string;
+  name: string;
+  description: string;
+  leonardoAiLanguage: string;
+  images: string[]; // Array of base64 image data URLs
+  importance: number; // 1-10 scale
+  type: BestPracticeType;
+  typeExplanation: string;
+  category: BestPracticeCategory;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface BestPracticesState {
+  practices: BestPractice[];
 }
 
 export class ApiError extends Error {
@@ -136,8 +183,12 @@ export class ApiError extends Error {
   constructor(message: string, code?: string, details?: unknown) {
     super(message);
     this.name = "ApiError";
-    this.code = code;
-    this.details = details;
+    if (code !== undefined) {
+      this.code = code;
+    }
+    if (details !== undefined) {
+      this.details = details;
+    }
 
     // Maintain proper stack trace (only available on V8)
     if (Error.captureStackTrace) {
@@ -180,7 +231,8 @@ export interface QueueResult<T> {
 }
 
 // Export standardized validation types
-export * from './validation';
+export * from "./validation";
 
 // Provide backward compatibility alias
+import type { BaseValidationState } from "./validation";
 export type { BaseValidationState as ValidationState };

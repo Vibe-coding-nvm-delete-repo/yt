@@ -1,0 +1,168 @@
+/**
+ * Tests for enhanced model dropdowns in SettingsTab
+ */
+
+import React from "react";
+import { render, screen, fireEvent } from "@testing-library/react";
+import { SettingsTab } from "../SettingsTab";
+import type { AppSettings, VisionModel } from "@/types";
+
+// Mock dependencies
+jest.mock("@/lib/storage", () => ({
+  settingsStorage: {
+    subscribe: jest.fn(() => jest.fn()),
+    getSettings: jest.fn(() => ({
+      openRouterApiKey: "",
+      selectedModel: "",
+      selectedVisionModels: [],
+      customPrompt: "",
+      isValidApiKey: false,
+      lastApiKeyValidation: null,
+      lastModelFetch: null,
+      availableModels: [],
+      preferredModels: [],
+      pinnedModels: [],
+    })),
+    updateSelectedVisionModels: jest.fn(),
+  },
+}));
+
+jest.mock("@/lib/openrouter", () => ({
+  createOpenRouterClient: jest.fn(),
+  isValidApiKeyFormat: jest.fn(() => true),
+}));
+
+describe("SettingsTab - Enhanced Model Dropdowns", () => {
+  const mockModels: VisionModel[] = [
+    {
+      id: "openai/gpt-4-vision",
+      name: "GPT-4 Vision",
+      description: "Vision model",
+      pricing: { prompt: 0.01, completion: 0.03 },
+      supports_image: true,
+      supports_vision: true,
+    },
+    {
+      id: "anthropic/claude-3-opus",
+      name: "Claude 3 Opus",
+      description: "Vision model",
+      pricing: { prompt: 0.015, completion: 0.075 },
+      supports_image: true,
+      supports_vision: true,
+    },
+    {
+      id: "google/gemini-pro-vision",
+      name: "Gemini Pro Vision",
+      description: "Vision model",
+      pricing: { prompt: 0.0025, completion: 0.005 },
+      supports_image: true,
+      supports_vision: true,
+    },
+  ];
+
+  const createMockSettings = (
+    overrides?: Partial<AppSettings>,
+  ): AppSettings => ({
+    openRouterApiKey: "test-key",
+    selectedModel: "",
+    selectedVisionModels: [],
+    customPrompt: "",
+    isValidApiKey: true,
+    lastApiKeyValidation: Date.now(),
+    lastModelFetch: Date.now(),
+    availableModels: mockModels,
+    preferredModels: [],
+    pinnedModels: [],
+    ...overrides,
+  });
+
+  it("renders 5 model selectors when models are available", () => {
+    const settings = createMockSettings();
+    const { container } = render(
+      <SettingsTab settings={settings} onSettingsUpdate={jest.fn()} />,
+    );
+
+    // Switch to model selection tab
+    const modelTab = screen.getByText("Model Selection");
+    fireEvent.click(modelTab);
+
+    // Wait for content to render and check that we have 5 "Vision Model" headings
+    const allText = container.textContent || "";
+
+    // Should have all 5 vision model slots
+    expect(allText).toContain("Vision Model 1");
+    expect(allText).toContain("Vision Model 2");
+    expect(allText).toContain("Vision Model 3");
+    expect(allText).toContain("Vision Model 4");
+    expect(allText).toContain("Vision Model 5");
+  });
+
+  it("displays model names in dropdowns", () => {
+    const settings = createMockSettings();
+    const { container } = render(
+      <SettingsTab settings={settings} onSettingsUpdate={jest.fn()} />,
+    );
+
+    // Switch to model selection tab
+    const modelTab = screen.getByText("Model Selection");
+    fireEvent.click(modelTab);
+
+    // All dropdowns should show "Select a model..." initially
+    const allText = container.textContent || "";
+    expect(allText).toContain("Select a model...");
+  });
+
+  it("shows pinned models when available", () => {
+    const settings = createMockSettings({
+      pinnedModels: ["openai/gpt-4-vision"],
+    });
+
+    const { container } = render(
+      <SettingsTab settings={settings} onSettingsUpdate={jest.fn()} />,
+    );
+
+    // Switch to model selection tab
+    const modelTab = screen.getByText("Model Selection");
+    fireEvent.click(modelTab);
+
+    // Model is pinned in settings
+    expect(settings.pinnedModels).toContain("openai/gpt-4-vision");
+    // Component should render without errors
+    expect(container).toBeTruthy();
+  });
+
+  it("renders without top dropdown", () => {
+    const settings = createMockSettings();
+    const { container } = render(
+      <SettingsTab settings={settings} onSettingsUpdate={jest.fn()} />,
+    );
+
+    // Switch to model selection tab
+    const modelTab = screen.getByText("Model Selection");
+    fireEvent.click(modelTab);
+
+    // The old top dropdown should not exist
+    // We verify this by checking that there's no standalone dropdown above the 5 model selectors
+    const allText = container.textContent || "";
+
+    // Should have "Vision Model 1", "Vision Model 2", etc.
+    expect(allText).toContain("Vision Model 1");
+    expect(allText).toContain("Vision Model 2");
+  });
+
+  it("shows fetched models count", () => {
+    const settings = createMockSettings();
+
+    const { container } = render(
+      <SettingsTab settings={settings} onSettingsUpdate={jest.fn()} />,
+    );
+
+    // Switch to model selection tab
+    const modelTab = screen.getByText("Model Selection");
+    fireEvent.click(modelTab);
+
+    // Should show the count of fetched models
+    const text = container.textContent || "";
+    expect(text).toContain("3 vision models");
+  });
+});

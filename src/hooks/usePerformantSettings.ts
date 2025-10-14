@@ -25,10 +25,11 @@ export const usePerformantSettings = (subscribeToKeys?: (keyof AppSettings)[]) =
   });
 
   const [isInitialized, setIsInitialized] = useState(false);
-  const previousSettingsRef = useRef<AppSettings>();
+  const previousSettingsRef = useRef<AppSettings | null>(null);
   const settingsHashRef = useRef<string>("");
 
   // PERFORMANCE: Memoize settings to prevent unnecessary re-renders
+  // eslint-disable-next-line react-hooks/refs
   const memoizedSettings = useMemo(() => {
     const currentHash = JSON.stringify(settings);
     
@@ -64,7 +65,7 @@ export const usePerformantSettings = (subscribeToKeys?: (keyof AppSettings)[]) =
         }
       },
       {
-        keys: subscribeToKeys,
+        ...(subscribeToKeys ? { keys: subscribeToKeys } : {}),
         immediate: false
       }
     );

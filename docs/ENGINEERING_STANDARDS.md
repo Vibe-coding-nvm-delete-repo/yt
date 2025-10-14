@@ -79,3 +79,30 @@ This document defines the minimal, enforceable standards for this repository to 
 - Tests: `npm test`
 - Build: `npm run build`
 - Dev: `npm run dev`
+
+## 11) Feature Development Definition of Done (DoD)
+
+Use this section when building any new feature or changing behavior.
+
+- Planning & Scope
+  - Acceptance criteria defined and linked to issue/epic
+  - Decision captured (ADR) for non-trivial design choices or state "N/A"
+- Compatibility & Rollout
+  - Backward compatible by default; document breaking changes and migration path if unavoidable
+  - Prefer feature flag/toggle with safe defaults and a kill switch
+  - Rollout plan and rollback plan defined (how to disable or revert)
+- Observability & Performance
+  - Logging/metrics/traces updated where useful; avoid noisy logs in production
+  - Performance budgets respected; verify no obvious regressions locally
+- Security, Privacy, Accessibility
+  - No secrets/PII in code or logs; run dependency audit if deps change
+  - UI changes meet a11y basics (labels, keyboard nav, color contrast)
+- Data & APIs
+  - API/schema changes documented; dependent consumers updated or coordinated
+  - Data/storage migrations include scripts, tests, and rollback plan or "N/A"
+- Quality & Documentation
+  - Tests added/updated (unit/integration/e2e as appropriate)
+  - Developer and user docs updated where applicable
+  - PR includes clear What/Why/How to verify + Risks + Size
+
+See also: `docs/P0_ENFORCEMENT_SYSTEM.md` and `docs/MERGE_CONFLICT_PREVENTION.md` for automated and procedural safeguards.
