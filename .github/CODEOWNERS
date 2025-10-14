@@ -1,1 +1,15 @@
-*  @pixel-pilot
+# Code ownership for critical paths requiring review
+# Changes to these files require explicit CODEOWNER approval
+
+# Core type contracts - prevent drift like Issue #83
+/src/types/validation.ts   @Vibe-coding-nvm-delete-repo
+/src/types/index.ts        @Vibe-coding-nvm-delete-repo
+
+# Storage layer - prevent regressions in data integrity
+/src/lib/storage.ts        @Vibe-coding-nvm-delete-repo
+
+# CI/Build configuration - prevent build system corruption
+/.github/workflows/        @Vibe-coding-nvm-delete-repo
+/package.json              @Vibe-coding-nvm-delete-repo
+/tsconfig.json             @Vibe-coding-nvm-delete-repo
+/eslint.config.mjs         @Vibe-coding-nvm-delete-repo
