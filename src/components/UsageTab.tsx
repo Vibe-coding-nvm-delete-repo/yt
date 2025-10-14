@@ -16,7 +16,14 @@ import Image from "next/image";
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface UsageTabProps {}
 
-const formatCurrency = (n: number) => `$${n.toFixed(6)}`;
+const formatCurrency = (n: number) => {
+  // Show user-friendly format: 2 decimal places for amounts >= $0.01
+  // Otherwise show up to 6 decimals for very small amounts
+  if (n >= 0.01) {
+    return `$${n.toFixed(2)}`;
+  }
+  return `$${n.toFixed(6)}`;
+};
 
 export const UsageTab: React.FC<UsageTabProps> = () => {
   const [from, setFrom] = useState<string>("");

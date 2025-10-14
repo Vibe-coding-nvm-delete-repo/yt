@@ -1,11 +1,12 @@
 import type { VisionModel } from "@/types";
 
 /**
- * Calculate prompt/text cost given token count and pricing per 1k tokens.
+ * Calculate prompt/text cost given token count and pricing per 1M tokens (OpenRouter format).
+ * OpenRouter API returns pricing in $/1M tokens, so we divide by 1,000,000.
  * This is a pure helper used by UI and tests.
  */
-export function calcTextCost(tokens: number, pricePerK: number): number {
-  return +((tokens / 1000) * pricePerK).toFixed(6);
+export function calcTextCost(tokens: number, pricePerMillion: number): number {
+  return +((tokens / 1000000) * pricePerMillion).toFixed(6);
 }
 
 /**

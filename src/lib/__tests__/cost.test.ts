@@ -7,8 +7,8 @@ describe("cost calculation", () => {
     name: "Test Model",
     description: "Test",
     pricing: {
-      prompt: 0.001,
-      completion: 0.002,
+      prompt: 1.0,  // $1.00 per 1M tokens (OpenRouter format)
+      completion: 2.0,  // $2.00 per 1M tokens (OpenRouter format)
     },
     supports_image: true,
     supports_vision: true,

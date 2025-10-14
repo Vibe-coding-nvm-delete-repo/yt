@@ -92,7 +92,14 @@ export const HistoryTab: React.FC = () => {
     }
   };
 
-  const formatCost = (cost: number) => `$${cost.toFixed(6)}`;
+  const formatCost = (cost: number) => {
+    // Show user-friendly format: 2 decimal places for amounts >= $0.01
+    // Otherwise show up to 6 decimals for very small amounts
+    if (cost >= 0.01) {
+      return `$${cost.toFixed(2)}`;
+    }
+    return `$${cost.toFixed(6)}`;
+  };
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp);
     return date.toLocaleString();
