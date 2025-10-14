@@ -10,8 +10,9 @@ import {
   AlertCircle,
   Image as ImageIcon,
   Loader2,
-  Calculator,
   DollarSign,
+  Copy,
+  Check,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -42,6 +43,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   const [modelResults, setModelResults] = useState<ModelResult[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [copiedModelId, setCopiedModelId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const dropZoneRef = useRef<HTMLDivElement | null>(null);
 
@@ -344,9 +346,26 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
     return `$${cost.toFixed(6)}`;
   }, []);
 
-  const formatTokens = useCallback((tokens: number | null): string => {
-    if (tokens === null) return "—";
-    return tokens.toLocaleString();
+  const copyToClipboard = useCallback(async (text: string, modelId: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedModelId(modelId);
+      setTimeout(() => setCopiedModelId(null), 2000);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
+  }, []);
+
+  const getCharCountColor = useCallback((charCount: number): string => {
+    return charCount <= 1500
+      ? "text-green-600 dark:text-green-400"
+      : "text-red-600 dark:text-red-400";
+  }, []);
+
+  const getCharCountBgColor = useCallback((charCount: number): string => {
+    return charCount <= 1500
+      ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
+      : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800";
   }, []);
 
   // Calculate total cost across all models
@@ -487,162 +506,116 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
         </div>
       )}
 
-      {/* Overall Cost Summary - Always Visible */}
+      {/* Overall Cost Summary - Minimalist */}
       {modelResults.length > 0 && (
-        <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
-          <div className="flex items-center mb-3">
-            <Calculator className="mr-2 h-5 w-5 text-green-600 dark:text-green-400" />
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Generation Metrics
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg border">
-              <div className="text-sm text-gray-500 dark:text-gray-400">
-                Models Selected
-              </div>
-              <div className="text-xl font-bold text-gray-900 dark:text-white">
-                {modelResults.length}
-              </div>
+        <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between text-xs">
+            <div className="flex items-center gap-3">
+              <span className="text-gray-600 dark:text-gray-400">
+                Models:{" "}
+                <span className="font-semibold text-gray-900 dark:text-white">
+                  {modelResults.length}
+                </span>
+              </span>
+              <span className="text-gray-600 dark:text-gray-400">
+                Completed:{" "}
+                <span className="font-semibold text-gray-900 dark:text-white">
+                  {modelResults.filter((r) => r.prompt).length}
+                </span>
+              </span>
             </div>
-
-            <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg border">
-              <div className="text-sm text-gray-500 dark:text-gray-400">
-                Completed
-              </div>
-              <div className="text-xl font-bold text-gray-900 dark:text-white">
-                {modelResults.filter((r) => r.prompt).length}
-              </div>
-            </div>
-
-            <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg border">
-              <div className="flex items-center justify-center">
-                <DollarSign className="h-4 w-4 text-green-600 dark:text-green-400 mr-1" />
-                <div className="text-sm text-gray-500 dark:text-gray-400">
-                  Total Cost
-                </div>
-              </div>
-              <div className="text-xl font-bold text-green-600 dark:text-green-400">
+            <div className="flex items-center">
+              <DollarSign className="h-3 w-3 text-green-600 dark:text-green-400 mr-1" />
+              <span className="font-semibold text-green-600 dark:text-green-400">
                 {formatCost(totalCostAllModels)}
-              </div>
+              </span>
             </div>
           </div>
         </div>
       )}
 
-      {/* Model Results */}
+      {/* Model Results - Vertical Minimalist Layout */}
       {modelResults.length > 0 && (
-        <div className="space-y-4">
+        <div className="space-y-2">
           {modelResults.map((result) => (
             <div
               key={result.modelId}
-              className="p-4 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+              className="p-3 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800"
+              style={{ minHeight: "20vh" }}
             >
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                  {result.modelName}
-                </h3>
-                <div className="text-xs text-gray-500 dark:text-gray-400">
-                  {result.modelId}
-                </div>
+              {/* Model Name */}
+              <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-2">
+                {result.modelName}
+              </h3>
+
+              {/* Cost Breakdown - Single Line */}
+              <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                Input: {formatCost(result.inputCost)} | Output:{" "}
+                {formatCost(result.outputCost)}
               </div>
 
-              {/* Detailed Metrics - Always Visible */}
-              <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border">
-                <div className="flex items-center mb-2">
-                  <Calculator className="h-4 w-4 text-blue-600 dark:text-blue-400 mr-2" />
-                  <h4 className="font-semibold text-gray-900 dark:text-white">
-                    Cost Breakdown
-                  </h4>
-                </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                  <div>
-                    <div className="text-gray-500 dark:text-gray-400">
-                      Input Tokens
-                    </div>
-                    <div className="font-medium text-gray-900 dark:text-white">
-                      {formatTokens(result.inputTokens)}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="text-gray-500 dark:text-gray-400">
-                      Output Tokens
-                    </div>
-                    <div className="font-medium text-gray-900 dark:text-white">
-                      {formatTokens(result.outputTokens)}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="text-gray-500 dark:text-gray-400">
-                      Input Cost
-                    </div>
-                    <div className="font-medium text-blue-600 dark:text-blue-400">
-                      {formatCost(result.inputCost)}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="text-gray-500 dark:text-gray-400">
-                      Output Cost
-                    </div>
-                    <div className="font-medium text-blue-600 dark:text-blue-400">
-                      {formatCost(result.outputCost)}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
-                  <div className="flex justify-between items-center">
-                    <span className="font-semibold text-gray-900 dark:text-white">
-                      Total Request Cost:
-                    </span>
-                    <span className="text-lg font-bold text-green-600 dark:text-green-400">
-                      {formatCost(result.cost)}
-                    </span>
-                  </div>
-                </div>
+              {/* Total Cost */}
+              <div className="text-sm font-semibold text-green-600 dark:text-green-400 mb-3">
+                Total: {formatCost(result.cost)}
               </div>
 
               {result.isProcessing && (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-blue-600 dark:text-blue-400" />
-                  <span className="ml-3 text-gray-6 00 dark:text-gray-400">
+                <div className="flex items-center py-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-blue-600 dark:text-blue-400" />
+                  <span className="ml-2 text-xs text-gray-600 dark:text-gray-400">
                     Processing...
                   </span>
                 </div>
               )}
 
               {result.error && (
-                <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded">
-                  <p className="text-sm text-red-600 dark:text-red-400">
+                <div className="p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded">
+                  <p className="text-xs text-red-600 dark:text-red-400">
                     {result.error}
                   </p>
                 </div>
               )}
 
               {result.prompt && !result.isProcessing && (
-                <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600">
-                  <div className="flex items-center justify-between mb-2">
-                    <h5 className="font-medium text-gray-900 dark:text-white">
-                      Generated Prompt
-                    </h5>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {result.prompt.length} characters
-                    </div>
+                <div className="space-y-2">
+                  {/* Character Count Indicator */}
+                  <div
+                    className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold border ${getCharCountBgColor(result.prompt.length)}`}
+                  >
+                    <span className={getCharCountColor(result.prompt.length)}>
+                      {result.prompt.length} / 1500 chars
+                      {result.prompt.length <= 1500 ? " ✓" : " ⚠"}
+                    </span>
                   </div>
-                  <p className="text-sm text-gray-900 dark:text-white whitespace-pre-wrap">
-                    {result.prompt}
-                  </p>
+
+                  {/* Generated Prompt - Small Scrollable Window */}
+                  <div className="relative">
+                    <div className="h-16 overflow-y-auto p-2 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600">
+                      <p className="text-xs text-gray-900 dark:text-white whitespace-pre-wrap">
+                        {result.prompt}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() =>
+                        copyToClipboard(result.prompt || "", result.modelId)
+                      }
+                      className="absolute top-1 right-1 p-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                      aria-label="Copy prompt"
+                      title="Copy prompt"
+                    >
+                      {copiedModelId === result.modelId ? (
+                        <Check className="h-3 w-3" />
+                      ) : (
+                        <Copy className="h-3 w-3" />
+                      )}
+                    </button>
+                  </div>
                 </div>
               )}
 
               {!result.isProcessing && !result.prompt && !result.error && (
-                <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600">
-                  <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+                <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 italic">
                     Waiting to generate...
                   </p>
                 </div>
