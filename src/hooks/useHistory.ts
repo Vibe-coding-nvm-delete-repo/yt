@@ -17,12 +17,12 @@ export const useHistory = () => {
 
   const addEntry = useCallback((entry: HistoryEntry) => {
     historyStorage.addEntry(entry);
-    setState(historyStorage.getState());
+    // No need to manually setState - subscription will handle it
   }, []);
 
   const setFilterModelIds = useCallback((modelIds: string[]) => {
     historyStorage.setFilterModelIds(modelIds);
-    setState(historyStorage.getState());
+    // No need to manually setState - subscription will handle it
   }, []);
 
   const filtered = useMemo(() => {
