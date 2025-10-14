@@ -29,6 +29,7 @@ export const usePerformantSettings = (subscribeToKeys?: (keyof AppSettings)[]) =
   const settingsHashRef = useRef<string>("");
 
   // PERFORMANCE: Memoize settings to prevent unnecessary re-renders
+  // eslint-disable-next-line react-hooks/refs
   const memoizedSettings = useMemo(() => {
     const currentHash = JSON.stringify(settings);
     
