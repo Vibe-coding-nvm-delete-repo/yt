@@ -32,7 +32,6 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 ## Project Standards and Workflows
 
 - Engineering Standards: see `docs/ENGINEERING_STANDARDS.md`
-- Autonomous Agent Policy & Escalation Ladder: see `docs/AUTONOMOUS_AGENT_POLICY.md`
 - P0 Enforcement System (architecture guards, pre-commit, CI): see `docs/P0_ENFORCEMENT_SYSTEM.md`
 - Merge Conflict Prevention and required checks: see `docs/MERGE_CONFLICT_PREVENTION.md`
 
