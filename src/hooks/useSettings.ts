@@ -72,7 +72,7 @@ export const useSettings = (subscribeToKeys?: (keyof AppSettings)[]) => {
         }
       },
       {
-        keys: subscribeToKeys, // Only subscribe to specific keys if provided
+        ...(subscribeToKeys ? { keys: subscribeToKeys } : {}),
         immediate: false
       }
     );
