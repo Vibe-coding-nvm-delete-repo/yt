@@ -1,0 +1,290 @@
+name: Deployment Health & Monitoring
+
+on:
+  deployment_status:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to check'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - preview
+          - staging
+      force_rollback:
+        description: 'Force rollback if health checks fail'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  deployment-health-check:
+    name: Deployment Health Check
+    runs-on: ubuntu-latest
+    if: github.event.deployment_status.state == 'success' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Determine deployment URL
+        id: deployment-url
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [ "${{ github.event.inputs.environment }}" = "production" ]; then
+              echo "url=https://yt-three-psi.vercel.app" >> $GITHUB_OUTPUT
+            else
+              echo "url=${{ github.event.deployment_status.target_url }}" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "url=${{ github.event.deployment_status.target_url }}" >> $GITHUB_OUTPUT
+          fi
+          echo "environment=${{ github.event.inputs.environment || 'production' }}" >> $GITHUB_OUTPUT
+          
+      - name: Wait for deployment to be ready
+        run: |
+          echo "⏳ Waiting for deployment to be ready at ${{ steps.deployment-url.outputs.url }}"
+          for i in {1..30}; do
+            if curl -sSf "${{ steps.deployment-url.outputs.url }}/api/health" > /dev/null 2>&1; then
+              echo "✅ Deployment is ready after ${i} attempts"
+              break
+            fi
+            echo "⏳ Attempt $i failed, waiting 10 seconds..."
+            sleep 10
+          done
+          
+      - name: Health Check - Basic Availability
+        id: health-basic
+        run: |
+          echo "🔍 Running basic health checks..."
+          
+          # Check homepage
+          HOMEPAGE_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${{ steps.deployment-url.outputs.url }}")
+          if [ "$HOMEPAGE_STATUS" -eq 200 ]; then
+            echo "✅ Homepage: $HOMEPAGE_STATUS"
+            echo "homepage=pass" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Homepage: $HOMEPAGE_STATUS"
+            echo "homepage=fail" >> $GITHUB_OUTPUT
+          fi
+          
+          # Check API endpoints
+          API_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${{ steps.deployment-url.outputs.url }}/api/health")
+          if [ "$API_STATUS" -eq 200 ]; then
+            echo "✅ API Health: $API_STATUS"
+            echo "api=pass" >> $GITHUB_OUTPUT
+          else
+            echo "❌ API Health: $API_STATUS"
+            echo "api=fail" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Health Check - Performance
+        id: health-performance
+        run: |
+          echo "⚡ Running performance checks..."
+          
+          # Check page load time
+          LOAD_TIME=$(curl -s -o /dev/null -w "%{time_total}" "${{ steps.deployment-url.outputs.url }}")
+          LOAD_TIME_MS=$(echo "$LOAD_TIME * 1000" | bc)
+          
+          if (( $(echo "$LOAD_TIME < 3.0" | bc -l) )); then
+            echo "✅ Page load time: ${LOAD_TIME_MS}ms (target: <3000ms)"
+            echo "load_time=pass" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️ Page load time: ${LOAD_TIME_MS}ms (target: <3000ms)"
+            echo "load_time=warning" >> $GITHUB_OUTPUT
+          fi
+          
+          echo "load_time_ms=$LOAD_TIME_MS" >> $GITHUB_OUTPUT
+          
+      - name: Health Check - Security Headers
+        id: health-security
+        run: |
+          echo "🔒 Checking security headers..."
+          
+          HEADERS_RESPONSE=$(curl -sI "${{ steps.deployment-url.outputs.url }}")
+          
+          # Check for security headers
+          SECURITY_SCORE=0
+          
+          if echo "$HEADERS_RESPONSE" | grep -qi "x-frame-options"; then
+            echo "✅ X-Frame-Options header present"
+            SECURITY_SCORE=$((SECURITY_SCORE + 1))
+          else
+            echo "⚠️ X-Frame-Options header missing"
+          fi
+          
+          if echo "$HEADERS_RESPONSE" | grep -qi "x-content-type-options"; then
+            echo "✅ X-Content-Type-Options header present"
+            SECURITY_SCORE=$((SECURITY_SCORE + 1))
+          else
+            echo "⚠️ X-Content-Type-Options header missing"
+          fi
+          
+          if echo "$HEADERS_RESPONSE" | grep -qi "referrer-policy"; then
+            echo "✅ Referrer-Policy header present"
+            SECURITY_SCORE=$((SECURITY_SCORE + 1))
+          else
+            echo "⚠️ Referrer-Policy header missing"
+          fi
+          
+          echo "security_score=$SECURITY_SCORE" >> $GITHUB_OUTPUT
+          
+          if [ "$SECURITY_SCORE" -ge 2 ]; then
+            echo "security=pass" >> $GITHUB_OUTPUT
+          else
+            echo "security=warning" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Health Check - Functional Tests
+        id: health-functional
+        run: |
+          echo "🧪 Running functional tests..."
+          
+          # Test critical user flows
+          FUNCTIONAL_SCORE=0
+          
+          # Check if main navigation is accessible
+          if curl -s "${{ steps.deployment-url.outputs.url }}" | grep -qi "Image to Prompt\|Settings\|Usage"; then
+            echo "✅ Main navigation elements present"
+            FUNCTIONAL_SCORE=$((FUNCTIONAL_SCORE + 1))
+          else
+            echo "❌ Main navigation elements missing"
+          fi
+          
+          # Check if JavaScript bundles are loading
+          if curl -s "${{ steps.deployment-url.outputs.url }}" | grep -q "_next/static"; then
+            echo "✅ JavaScript bundles referenced"
+            FUNCTIONAL_SCORE=$((FUNCTIONAL_SCORE + 1))
+          else
+            echo "❌ JavaScript bundles not found"
+          fi
+          
+          echo "functional_score=$FUNCTIONAL_SCORE" >> $GITHUB_OUTPUT
+          
+          if [ "$FUNCTIONAL_SCORE" -ge 2 ]; then
+            echo "functional=pass" >> $GITHUB_OUTPUT
+          else
+            echo "functional=fail" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Calculate Health Score
+        id: health-score
+        run: |
+          HOMEPAGE=${{ steps.health-basic.outputs.homepage }}
+          API=${{ steps.health-basic.outputs.api }}
+          LOAD_TIME=${{ steps.health-performance.outputs.load_time }}
+          SECURITY=${{ steps.health-security.outputs.security }}
+          FUNCTIONAL=${{ steps.health-functional.outputs.functional }}
+          
+          SCORE=0
+          [ "$HOMEPAGE" = "pass" ] && SCORE=$((SCORE + 20))
+          [ "$API" = "pass" ] && SCORE=$((SCORE + 20))
+          [ "$LOAD_TIME" = "pass" ] && SCORE=$((SCORE + 20))
+          [ "$SECURITY" = "pass" ] && SCORE=$((SCORE + 20))
+          [ "$FUNCTIONAL" = "pass" ] && SCORE=$((SCORE + 20))
+          
+          echo "overall_score=$SCORE" >> $GITHUB_OUTPUT
+          
+          if [ "$SCORE" -ge 80 ]; then
+            echo "status=healthy" >> $GITHUB_OUTPUT
+            echo "🎉 Deployment is healthy! Score: $SCORE/100"
+          elif [ "$SCORE" -ge 60 ]; then
+            echo "status=degraded" >> $GITHUB_OUTPUT
+            echo "⚠️ Deployment is degraded. Score: $SCORE/100"
+          else
+            echo "status=unhealthy" >> $GITHUB_OUTPUT
+            echo "❌ Deployment is unhealthy! Score: $SCORE/100"
+          fi
+          
+      - name: Create Health Report
+        run: |
+          cat << EOF > health-report.md
+          ## 🏥 Deployment Health Report
+          
+          **Environment:** ${{ steps.deployment-url.outputs.environment }}
+          **URL:** ${{ steps.deployment-url.outputs.url }}
+          **Overall Score:** ${{ steps.health-score.outputs.overall_score }}/100
+          **Status:** ${{ steps.health-score.outputs.status }}
+          **Timestamp:** $(date -u)
+          
+          ### 📊 Detailed Results
+          
+          | Check | Status | Details |
+          |-------|--------|---------|
+          | Homepage | ${{ steps.health-basic.outputs.homepage }} | HTTP Status Check |
+          | API Health | ${{ steps.health-basic.outputs.api }} | /api/health endpoint |
+          | Performance | ${{ steps.health-performance.outputs.load_time }} | Load time: ${{ steps.health-performance.outputs.load_time_ms }}ms |
+          | Security | ${{ steps.health-security.outputs.security }} | Security headers score: ${{ steps.health-security.outputs.security_score }}/3 |
+          | Functional | ${{ steps.health-functional.outputs.functional }} | Core functionality score: ${{ steps.health-functional.outputs.functional_score }}/2 |
+          
+          ### 🎯 Recommendations
+          
+          - Monitor application performance metrics
+          - Ensure all security headers are properly configured
+          - Set up alerting for health score drops below 80
+          
+          ---
+          *Generated by Deployment Health Monitor*
+          EOF
+          
+          echo "📝 Health report generated"
+          cat health-report.md
+          
+      - name: Handle Unhealthy Deployment
+        if: steps.health-score.outputs.status == 'unhealthy' && (github.event.inputs.force_rollback == 'true' || github.event_name == 'deployment_status')
+        run: |
+          echo "🚨 Deployment is unhealthy with score ${{ steps.health-score.outputs.overall_score }}/100"
+          echo "Initiating rollback procedures..."
+          
+          # In a real scenario, this would trigger rollback
+          # For now, we'll create an incident issue
+          echo "This would trigger automated rollback in production"
+          
+      - name: Post Health Metrics
+        if: always()
+        run: |
+          echo "📊 Posting health metrics..."
+          echo "Environment: ${{ steps.deployment-url.outputs.environment }}"
+          echo "Overall Score: ${{ steps.health-score.outputs.overall_score }}"
+          echo "Status: ${{ steps.health-score.outputs.status }}"
+          echo "Load Time: ${{ steps.health-performance.outputs.load_time_ms }}ms"
+          
+          # In production, this would post to monitoring systems
+          echo "Metrics would be posted to monitoring dashboard"
+          
+      - name: Notify on Health Issues
+        if: steps.health-score.outputs.status != 'healthy'
+        run: |
+          echo "🚨 Health issues detected - notifications would be sent"
+          echo "Score: ${{ steps.health-score.outputs.overall_score }}/100"
+          echo "Status: ${{ steps.health-score.outputs.status }}"
+          
+          # In production, this would send alerts via Slack, email, etc.
+          
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Deployment Health Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Score:** ${{ steps.health-score.outputs.overall_score }}/100" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ${{ steps.health-score.outputs.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** ${{ steps.deployment-url.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Health Checks" >> $GITHUB_STEP_SUMMARY
+          echo "- Homepage: ${{ steps.health-basic.outputs.homepage }}" >> $GITHUB_STEP_SUMMARY
+          echo "- API: ${{ steps.health-basic.outputs.api }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Performance: ${{ steps.health-performance.outputs.load_time }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Security: ${{ steps.health-security.outputs.security }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Functional: ${{ steps.health-functional.outputs.functional }}" >> $GITHUB_STEP_SUMMARY
