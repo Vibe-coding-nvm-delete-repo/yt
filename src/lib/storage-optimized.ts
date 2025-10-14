@@ -15,12 +15,17 @@ export const STORAGE_EVENTS = {
 } as const;
 
 type SettingsKey = keyof AppSettings;
-type SubscriptionCallback<T = AppSettings> = (newValue: T, oldValue: T, changedKeys?: SettingsKey[]) => void;
+// Pin the public callback contract to AppSettings to prevent drift
+type SubscriptionCallback = (
+  newValue: AppSettings,
+  oldValue: AppSettings,
+  changedKeys?: SettingsKey[]
+) => void;
 type UnsubscribeFunction = () => void;
 
-interface Subscription<T = AppSettings> {
+interface Subscription {
   id: string;
-  callback: SubscriptionCallback<T>;
+  callback: SubscriptionCallback;
   keys?: SettingsKey[]; // If undefined, subscribe to all changes
   immediate?: boolean; // Call immediately with current value
 }
@@ -105,21 +110,23 @@ export class OptimizedSettingsStorage {
   /**
    * Deep equality check for preventing unnecessary updates
    */
-  private isEqual(a: any, b: any): boolean {
+  private isEqual(a: unknown, b: unknown): boolean {
     if (a === b) return true;
     if (a == null || b == null) return false;
     if (typeof a !== typeof b) return false;
     
     if (Array.isArray(a)) {
       if (!Array.isArray(b) || a.length !== b.length) return false;
-      return a.every((item, index) => this.isEqual(item, b[index]));
+      return a.every((item, index) => this.isEqual(item, (b as unknown[])[index]));
     }
     
     if (typeof a === "object") {
-      const keysA = Object.keys(a);
-      const keysB = Object.keys(b);
+      const A = a as Record<string, unknown>;
+      const B = b as Record<string, unknown>;
+      const keysA = Object.keys(A);
+      const keysB = Object.keys(B);
       if (keysA.length !== keysB.length) return false;
-      return keysA.every(key => this.isEqual(a[key], b[key]));
+      return keysA.every(key => this.isEqual(A[key], B[key]));
     }
     
     return false;
@@ -168,8 +175,8 @@ export class OptimizedSettingsStorage {
   /**
    * Subscribe to specific settings changes with selective updates
    */
-  public subscribe<T = AppSettings>(
-    callback: SubscriptionCallback<T>,
+  public subscribe(
+    callback: SubscriptionCallback,
     options: {
       keys?: SettingsKey[];
       immediate?: boolean;
@@ -178,9 +185,9 @@ export class OptimizedSettingsStorage {
     const { keys, immediate = false } = options;
     const id = `sub_${++this.subscriptionCounter}`;
     
-    const subscription: Subscription<T> = {
+    const subscription: Subscription = {
       id,
-      callback: callback as SubscriptionCallback,
+      callback,
       keys,
       immediate
     };
@@ -191,7 +198,7 @@ export class OptimizedSettingsStorage {
     if (immediate) {
       const currentSettings = { ...this.settings };
       try {
-        (callback as SubscriptionCallback)(currentSettings, currentSettings, []);
+        callback(currentSettings, currentSettings, []);
       } catch (error) {
         console.error("Error in immediate subscription callback:", error);
       }
