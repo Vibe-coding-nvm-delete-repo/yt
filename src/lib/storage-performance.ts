@@ -6,12 +6,17 @@ import type {
 const STORAGE_KEY = "image-to-prompt-settings";
 
 type SettingsKey = keyof AppSettings;
-type SubscriptionCallback<T = AppSettings> = (newValue: T, oldValue: T, changedKeys?: SettingsKey[]) => void;
+// Pin the public callback contract to AppSettings to prevent drift
+type SubscriptionCallback = (
+  newValue: AppSettings,
+  oldValue: AppSettings,
+  changedKeys?: SettingsKey[]
+) => void;
 type UnsubscribeFunction = () => void;
 
-interface Subscription<T = AppSettings> {
+interface Subscription {
   id: string;
-  callback: SubscriptionCallback<T>;
+  callback: SubscriptionCallback;
   keys?: SettingsKey[];
   immediate?: boolean;
 }
@@ -87,23 +92,25 @@ export class PerformanceSettingsStorage {
   /**
    * Deep equality check to prevent unnecessary updates
    */
-  private isEqual(a: any, b: any): boolean {
+  private isEqual(a: unknown, b: unknown): boolean {
     if (a === b) return true;
     if (a == null || b == null) return false;
     if (typeof a !== typeof b) return false;
-    
+
     if (Array.isArray(a)) {
       if (!Array.isArray(b) || a.length !== b.length) return false;
-      return a.every((item, index) => this.isEqual(item, b[index]));
+      return a.every((item, index) => this.isEqual(item, (b as unknown[])[index]));
     }
-    
+
     if (typeof a === "object") {
-      const keysA = Object.keys(a);
-      const keysB = Object.keys(b);
+      const A = a as Record<string, unknown>;
+      const B = b as Record<string, unknown>;
+      const keysA = Object.keys(A);
+      const keysB = Object.keys(B);
       if (keysA.length !== keysB.length) return false;
-      return keysA.every(key => this.isEqual(a[key], b[key]));
+      return keysA.every((key) => this.isEqual(A[key], B[key]));
     }
-    
+
     return false;
   }
 
@@ -111,22 +118,22 @@ export class PerformanceSettingsStorage {
    * Debounced notification system (50ms) to prevent excessive updates
    */
   private notifySubscribers(changedKeys: SettingsKey[] = []): void {
-    changedKeys.forEach(key => this.pendingNotifications.add(key));
-    
+    changedKeys.forEach((key) => this.pendingNotifications.add(key));
+
     if (this.notificationTimeout) {
       clearTimeout(this.notificationTimeout);
     }
-    
+
     this.notificationTimeout = setTimeout(() => {
       const currentSettings = { ...this.settings };
       const previousSettings = this.lastSettings || currentSettings;
       const allChangedKeys = Array.from(this.pendingNotifications);
-      
+
       // Only notify relevant subscribers
-      this.subscriptions.forEach(subscription => {
+      this.subscriptions.forEach((subscription) => {
         const { callback, keys } = subscription;
-        const shouldNotify = !keys || keys.some(key => allChangedKeys.includes(key));
-        
+        const shouldNotify = !keys || keys.some((key) => allChangedKeys.includes(key));
+
         if (shouldNotify) {
           try {
             callback(currentSettings, previousSettings, allChangedKeys);
@@ -135,7 +142,7 @@ export class PerformanceSettingsStorage {
           }
         }
       });
-      
+
       this.lastSettings = { ...currentSettings };
       this.pendingNotifications.clear();
     }, 50);
@@ -144,31 +151,31 @@ export class PerformanceSettingsStorage {
   /**
    * Subscribe to specific settings changes - KEY PERFORMANCE FEATURE
    */
-  public subscribe<T = AppSettings>(
-    callback: SubscriptionCallback<T>,
+  public subscribe(
+    callback: SubscriptionCallback,
     options: { keys?: SettingsKey[]; immediate?: boolean } = {}
   ): UnsubscribeFunction {
     const { keys, immediate = false } = options;
     const id = `sub_${++this.subscriptionCounter}`;
-    
-    const subscription: Subscription<T> = {
+
+    const subscription: Subscription = {
       id,
-      callback: callback as SubscriptionCallback,
+      callback,
       keys,
-      immediate
+      immediate,
     };
-    
+
     this.subscriptions.set(id, subscription);
-    
+
     if (immediate) {
       const currentSettings = { ...this.settings };
       try {
-        (callback as SubscriptionCallback)(currentSettings, currentSettings, []);
+        callback(currentSettings, currentSettings, []);
       } catch (error) {
         console.error("Error in immediate subscription callback:", error);
       }
     }
-    
+
     return () => {
       this.subscriptions.delete(id);
     };
@@ -201,13 +208,13 @@ export class PerformanceSettingsStorage {
     const currentSettings = { ...this.settings };
     const newSettings = { ...currentSettings, ...updates };
     const changedKeys: SettingsKey[] = [];
-    
-    (Object.keys(updates) as SettingsKey[]).forEach(key => {
+
+    (Object.keys(updates) as SettingsKey[]).forEach((key) => {
       if (!this.isEqual(currentSettings[key], newSettings[key])) {
         changedKeys.push(key);
       }
     });
-    
+
     if (changedKeys.length > 0) {
       this.settings = newSettings;
       this.saveSettings(changedKeys);
@@ -230,16 +237,16 @@ export class PerformanceSettingsStorage {
       try {
         const newSettings = JSON.parse(event.newValue);
         const previousSettings = { ...this.settings };
-        
+
         this.settings = { ...DEFAULT_SETTINGS, ...newSettings };
-        
+
         const changedKeys: SettingsKey[] = [];
-        (Object.keys(this.settings) as SettingsKey[]).forEach(key => {
+        (Object.keys(this.settings) as SettingsKey[]).forEach((key) => {
           if (!this.isEqual(previousSettings[key], this.settings[key])) {
             changedKeys.push(key);
           }
         });
-        
+
         this.notifySubscribers(changedKeys);
       } catch (error) {
         console.warn("Failed to handle storage event:", error);
@@ -253,16 +260,16 @@ export class PerformanceSettingsStorage {
 
   // Optimized individual update methods
   updateApiKey(apiKey: string): void {
-    this.batchUpdate({ 
+    this.batchUpdate({
       openRouterApiKey: apiKey,
-      isValidApiKey: false
+      isValidApiKey: false,
     });
   }
 
   validateApiKey(isValid: boolean): void {
     this.batchUpdate({
       isValidApiKey: isValid,
-      lastApiKeyValidation: isValid ? Date.now() : null
+      lastApiKeyValidation: isValid ? Date.now() : null,
     });
   }
 
@@ -277,15 +284,15 @@ export class PerformanceSettingsStorage {
   updateModels(models: VisionModel[]): void {
     this.batchUpdate({
       availableModels: models,
-      lastModelFetch: Date.now()
+      lastModelFetch: Date.now(),
     });
   }
 
   pinModel(modelId: string): void {
-    const currentPinned = Array.isArray(this.settings.pinnedModels) 
+    const currentPinned = Array.isArray(this.settings.pinnedModels)
       ? [...this.settings.pinnedModels]
       : [];
-    
+
     if (!currentPinned.includes(modelId)) {
       const newPinned = [modelId, ...currentPinned].slice(0, 9);
       this.batchUpdate({ pinnedModels: newPinned });
@@ -293,11 +300,11 @@ export class PerformanceSettingsStorage {
   }
 
   unpinModel(modelId: string): void {
-    const currentPinned = Array.isArray(this.settings.pinnedModels) 
+    const currentPinned = Array.isArray(this.settings.pinnedModels)
       ? [...this.settings.pinnedModels]
       : [];
-    
-    const newPinned = currentPinned.filter(id => id !== modelId);
+
+    const newPinned = currentPinned.filter((id) => id !== modelId);
     this.batchUpdate({ pinnedModels: newPinned });
   }
 }
