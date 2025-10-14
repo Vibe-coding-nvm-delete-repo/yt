@@ -15,7 +15,12 @@ export const STORAGE_EVENTS = {
 } as const;
 
 type SettingsKey = keyof AppSettings;
-type SubscriptionCallback = (newValue: AppSettings, oldValue: AppSettings, changedKeys?: SettingsKey[]) => void;
+// Pin the public callback contract to AppSettings to prevent drift
+type SubscriptionCallback = (
+  newValue: AppSettings,
+  oldValue: AppSettings,
+  changedKeys?: SettingsKey[]
+) => void;
 type UnsubscribeFunction = () => void;
 
 interface Subscription {
@@ -39,8 +44,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   pinnedModels: [],
 };
 
-export class SettingsStorage {
-  private static instance: SettingsStorage;
+export class OptimizedSettingsStorage {
+  private static instance: OptimizedSettingsStorage;
   private settings: AppSettings;
   private subscriptions = new Map<string, Subscription>();
   private subscriptionCounter = 0;
@@ -60,11 +65,11 @@ export class SettingsStorage {
     }
   }
 
-  static getInstance(): SettingsStorage {
-    if (!SettingsStorage.instance) {
-      SettingsStorage.instance = new SettingsStorage();
+  static getInstance(): OptimizedSettingsStorage {
+    if (!OptimizedSettingsStorage.instance) {
+      OptimizedSettingsStorage.instance = new OptimizedSettingsStorage();
     }
-    return SettingsStorage.instance;
+    return OptimizedSettingsStorage.instance;
   }
 
   private loadSettings(): AppSettings {
@@ -80,18 +85,15 @@ export class SettingsStorage {
 
       const parsed = JSON.parse(stored);
 
-      // Validate and merge with defaults to ensure all properties exist
       return {
         ...DEFAULT_SETTINGS,
         ...parsed,
-        // Ensure arrays are properly initialized
         availableModels: Array.isArray(parsed.availableModels)
           ? parsed.availableModels
           : [],
         preferredModels: Array.isArray(parsed.preferredModels)
           ? parsed.preferredModels
           : [],
-        // Ensure numeric values are correct
         lastApiKeyValidation: parsed.lastApiKeyValidation
           ? Number(parsed.lastApiKeyValidation)
           : null,
@@ -115,14 +117,16 @@ export class SettingsStorage {
     
     if (Array.isArray(a)) {
       if (!Array.isArray(b) || a.length !== b.length) return false;
-      return a.every((item, index) => this.isEqual(item, b[index]));
+      return a.every((item, index) => this.isEqual(item, (b as unknown[])[index]));
     }
     
     if (typeof a === "object") {
-      const keysA = Object.keys(a);
-      const keysB = Object.keys(b);
+      const A = a as Record<string, unknown>;
+      const B = b as Record<string, unknown>;
+      const keysA = Object.keys(A);
+      const keysB = Object.keys(B);
       if (keysA.length !== keysB.length) return false;
-      return keysA.every(key => this.isEqual((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key]));
+      return keysA.every(key => this.isEqual(A[key], B[key]));
     }
     
     return false;
@@ -331,10 +335,6 @@ export class SettingsStorage {
     this.batchUpdate({ selectedModel: modelId });
   }
 
-  updateSelectedVisionModels(modelIds: string[]): void {
-    this.batchUpdate({ selectedVisionModels: modelIds.slice(0, 5) });
-  }
-
   updateCustomPrompt(prompt: string): void {
     this.batchUpdate({ customPrompt: prompt });
   }
@@ -346,333 +346,25 @@ export class SettingsStorage {
     });
   }
 
-  updatePreferredModels(modelIds: string[]): void {
-    this.batchUpdate({
-      preferredModels: Array.isArray(modelIds) ? modelIds.slice(0, 5) : []
-    });
-  }
-
-  updatePinnedModels(modelIds: string[]): void {
-    this.batchUpdate({
-      pinnedModels: Array.isArray(modelIds) ? modelIds.slice(0, 9) : []
-    });
-  }
-
-  clearSettings(): void {
-    const allKeys = Object.keys(DEFAULT_SETTINGS) as SettingsKey[];
-    this.settings = { ...DEFAULT_SETTINGS };
-    this.saveSettings(allKeys);
-  }
-
-  importSettings(settingsJson: string): boolean {
-    try {
-      const imported = JSON.parse(settingsJson);
-
-      if (typeof imported !== "object" || imported === null) {
-        throw new Error("Invalid settings format");
-      }
-
-      const validatedSettings = {
-        ...DEFAULT_SETTINGS,
-        ...imported,
-        availableModels: Array.isArray(imported.availableModels)
-          ? imported.availableModels
-          : [],
-        preferredModels: Array.isArray(imported.preferredModels)
-          ? imported.preferredModels
-          : [],
-        lastApiKeyValidation: imported.lastApiKeyValidation
-          ? Number(imported.lastApiKeyValidation)
-          : null,
-        lastModelFetch: imported.lastModelFetch
-          ? Number(imported.lastModelFetch)
-          : null,
-      };
-
-      const allKeys = Object.keys(validatedSettings) as SettingsKey[];
-      this.settings = validatedSettings;
-      this.saveSettings(allKeys);
-      return true;
-    } catch (error) {
-      console.error("Failed to import settings:", error);
-      return false;
-    }
-  }
-
-  /**
-   * Export current settings as a JSON string.
-   * This is a safe-serializable snapshot suitable for download or copying.
-   */
-  exportSettings(): string {
-    try {
-      return JSON.stringify(this.settings);
-    } catch (err) {
-      console.error("Failed to export settings:", err);
-      return "{}";
-    }
-  }
-
-  shouldRefreshModels(): boolean {
-    if (!this.settings.lastModelFetch) {
-      return true;
-    }
-
-    // Refresh if older than 24 hours
-    const oneDayInMs = 24 * 60 * 60 * 1000;
-    return Date.now() - this.settings.lastModelFetch > oneDayInMs;
-  }
-
-  getModelById(modelId: string): VisionModel | null {
-    return (
-      this.settings.availableModels.find((model) => model.id === modelId) ||
-      null
-    );
-  }
-
-  getSelectedModel(): VisionModel | null {
-    if (!this.settings.selectedModel) {
-      return null;
-    }
-    return this.getModelById(this.settings.selectedModel);
-  }
-
-  getPreferredModels(): string[] {
-    return Array.isArray(this.settings.preferredModels)
-      ? [...this.settings.preferredModels]
-      : [];
-  }
-
-  // Pin/unpin models for quick access favorites
   pinModel(modelId: string): void {
-    const currentPinned = this.getPinnedModels();
+    const currentPinned = Array.isArray(this.settings.pinnedModels) 
+      ? [...this.settings.pinnedModels]
+      : [];
+    
     if (!currentPinned.includes(modelId)) {
-      // Add to front and cap at 9
       const newPinned = [modelId, ...currentPinned].slice(0, 9);
       this.batchUpdate({ pinnedModels: newPinned });
     }
   }
 
   unpinModel(modelId: string): void {
-    const currentPinned = this.getPinnedModels();
-    const newPinned = currentPinned.filter((id) => id !== modelId);
-    this.batchUpdate({ pinnedModels: newPinned });
-  }
-
-  togglePinnedModel(modelId: string): void {
-    if (this.isModelPinned(modelId)) {
-      this.unpinModel(modelId);
-    } else {
-      this.pinModel(modelId);
-    }
-  }
-
-  getPinnedModels(): string[] {
-    return Array.isArray(this.settings.pinnedModels)
+    const currentPinned = Array.isArray(this.settings.pinnedModels) 
       ? [...this.settings.pinnedModels]
       : [];
-  }
-
-  isModelPinned(modelId: string): boolean {
-    return (
-      Array.isArray(this.settings.pinnedModels) &&
-      this.settings.pinnedModels.includes(modelId)
-    );
-  }
-
-  updatePinnedModels(modelIds: string[]): void {
-    this.settings.pinnedModels = Array.isArray(modelIds)
-      ? Array.from(new Set(modelIds)).slice(0, 9)
-      : [];
-    this.saveSettings();
-  }
-
-  togglePinnedModel(modelId: string): void {
-    if (!modelId) return;
-    const current = Array.isArray(this.settings.pinnedModels)
-      ? this.settings.pinnedModels
-      : [];
-    if (current.includes(modelId)) {
-      this.unpinModel(modelId);
-    } else {
-      this.pinModel(modelId);
-    }
+    
+    const newPinned = currentPinned.filter(id => id !== modelId);
+    this.batchUpdate({ pinnedModels: newPinned });
   }
 }
 
-// Image State Storage for persisting uploaded images and generated prompts
-const DEFAULT_IMAGE_STATE: PersistedImageState = {
-  preview: null,
-  fileName: null,
-  fileSize: null,
-  fileType: null,
-  generatedPrompt: null,
-  schemaVersion: 1,
-};
-
-export class ImageStateStorage {
-  private static instance: ImageStateStorage;
-  private imageState: PersistedImageState;
-  private listeners: Set<() => void> = new Set();
-
-  private constructor() {
-    this.imageState = this.loadImageState();
-  }
-
-  static getInstance(): ImageStateStorage {
-    if (!ImageStateStorage.instance) {
-      ImageStateStorage.instance = new ImageStateStorage();
-    }
-    return ImageStateStorage.instance;
-  }
-
-  private loadImageState(): PersistedImageState {
-    if (typeof window === "undefined") {
-      return DEFAULT_IMAGE_STATE;
-    }
-
-    try {
-      const stored = localStorage.getItem(IMAGE_STATE_KEY);
-      if (!stored) {
-        return DEFAULT_IMAGE_STATE;
-      }
-
-      const parsed = JSON.parse(stored);
-      return {
-        ...DEFAULT_IMAGE_STATE,
-        ...parsed,
-      };
-    } catch (error) {
-      console.warn("Failed to load image state from localStorage:", error);
-      return DEFAULT_IMAGE_STATE;
-    }
-  }
-
-  private saveImageState(): void {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    try {
-      localStorage.setItem(IMAGE_STATE_KEY, JSON.stringify(this.imageState));
-      this.notifyListeners();
-
-      // Dispatch custom event for other components
-      window.dispatchEvent(
-        new CustomEvent(STORAGE_EVENTS.IMAGE_STATE_UPDATED, {
-          detail: this.imageState,
-        }),
-      );
-    } catch (error) {
-      console.error("Failed to save image state to localStorage:", error);
-    }
-  }
-
-  private notifyListeners(): void {
-    this.listeners.forEach((listener) => {
-      try {
-        listener();
-      } catch (error) {
-        console.error("Error in image state listener:", error);
-      }
-    });
-  }
-
-  subscribe(listener: () => void): () => void {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
-  }
-
-  getImageState(): PersistedImageState {
-    return { ...this.imageState };
-  }
-
-  saveUploadedImage(
-    preview: string,
-    fileName: string,
-    fileSize: number,
-    fileType: string,
-  ): void {
-    this.imageState = {
-      ...this.imageState,
-      preview,
-      fileName,
-      fileSize,
-      fileType,
-    };
-    this.saveImageState();
-  }
-
-  saveGeneratedPrompt(prompt: string): void {
-    this.imageState = {
-      ...this.imageState,
-      generatedPrompt: prompt,
-    };
-    this.saveImageState();
-  }
-
-  clearGeneratedPrompt(): void {
-    this.imageState = {
-      ...this.imageState,
-      generatedPrompt: null,
-    };
-    this.saveImageState();
-  }
-
-  clearImageState(): void {
-    this.imageState = { ...DEFAULT_IMAGE_STATE };
-    this.saveImageState();
-  }
-
-  saveBatchEntry(batchEntry: BatchEntry): void {
-    const currentHistory = Array.isArray(this.imageState.batchHistory)
-      ? this.imageState.batchHistory
-      : [];
-    this.imageState = {
-      ...this.imageState,
-      batchHistory: [batchEntry, ...currentHistory].slice(0, 50),
-    };
-    this.saveImageState();
-  }
-
-  getBatchHistory(): BatchEntry[] {
-    return Array.isArray(this.imageState.batchHistory)
-      ? [...this.imageState.batchHistory]
-      : [];
-  }
-
-  clearBatchHistory(): void {
-    this.imageState = {
-      ...this.imageState,
-      batchHistory: [],
-    };
-    this.saveImageState();
-  }
-
-  saveImageBatchEntry(entry: ImageBatchEntry): void {
-    const current = Array.isArray(this.imageState.imageBatchHistory)
-      ? this.imageState.imageBatchHistory
-      : [];
-    this.imageState = {
-      ...this.imageState,
-      imageBatchHistory: [entry, ...current].slice(0, 50),
-    };
-    this.saveImageState();
-  }
-
-  getImageBatchHistory(): ImageBatchEntry[] {
-    return Array.isArray(this.imageState.imageBatchHistory)
-      ? [...this.imageState.imageBatchHistory]
-      : [];
-  }
-
-  clearImageBatchHistory(): void {
-    this.imageState = {
-      ...this.imageState,
-      imageBatchHistory: [],
-    };
-    this.saveImageState();
-  }
-}
-
-export const settingsStorage = SettingsStorage.getInstance();
-export const imageStateStorage = ImageStateStorage.getInstance();
+export const optimizedSettingsStorage = OptimizedSettingsStorage.getInstance();

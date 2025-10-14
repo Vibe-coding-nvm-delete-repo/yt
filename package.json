@@ -14,7 +14,8 @@
     "format": "prettier --write .",
     "test": "jest",
     "typecheck": "tsc --noEmit",
-    "check:ci": "npm run lint && npm run typecheck && npm test"
+    "check:ci": "npm run lint && npm run typecheck && npm test",
+    "lint-commit": "commitlint --from=origin/main --to=HEAD"
   },
   "dependencies": {
     "@radix-ui/react-tooltip": "^1.2.8",
@@ -25,6 +26,8 @@
     "react-dom": "19.1.0"
   },
   "devDependencies": {
+    "@commitlint/cli": "^18.4.3",
+    "@commitlint/config-conventional": "^18.4.3",
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6",
@@ -35,9 +38,11 @@
     "@types/react-dom": "^19",
     "@typescript-eslint/eslint-plugin": "^8.46.0",
     "@typescript-eslint/parser": "^8.46.0",
+    "@typescript-eslint/utils": "^8.46.0",
     "eslint": "^9",
     "eslint-config-next": "15.5.4",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-react": "^7.32.2",
     "eslint-plugin-react-hooks": "^7.0.0",
     "eslint-plugin-unused-imports": "^4.2.0",

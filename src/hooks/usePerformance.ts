@@ -18,6 +18,12 @@ interface PerformanceMetrics {
   lifespan: number;
 }
 
+interface MemoryInfo {
+  usedJSHeapSize: number;
+  totalJSHeapSize: number;
+  jsHeapSizeLimit: number;
+}
+
 /**
  * Development hook for monitoring component re-renders
  * Helps identify performance issues and excessive re-rendering
@@ -142,7 +148,7 @@ export const useComponentLifecycle = (
     mountTimeRef.current = mountTime;
     
     if (logMount) {
-      console.log(`🔧 [Lifecycle] ${componentName} mounted at ${new Date(mountTime).toLocaleTimeString()}`);
+      console.warn(`🔧 [Lifecycle] ${componentName} mounted at ${new Date(mountTime).toLocaleTimeString()}`);
     }
     
     return () => {
@@ -158,7 +164,7 @@ export const useComponentLifecycle = (
       };
       
       if (logUnmount) {
-        console.log(
+        console.warn(
           `🔧 [Lifecycle] ${componentName} unmounted after ${lifespan}ms ` +
           `(${new Date(unmountTime).toLocaleTimeString()})`
         );
@@ -207,7 +213,7 @@ export const useOperationTimer = (
 
     if (logResult) {
       const emoji = duration > 1000 ? '🐌' : duration > 500 ? '⏳' : '⚡';
-      console.log(`${emoji} [Performance] ${operationName}: ${duration.toFixed(2)}ms`);
+      console.warn(`${emoji} [Performance] ${operationName}: ${duration.toFixed(2)}ms`);
     }
 
     return duration;
@@ -266,7 +272,7 @@ export const useMemoryMonitor = (
     }
 
     const checkMemory = () => {
-      const memory = (performance as any).memory;
+      const memory = (performance as { memory?: MemoryInfo }).memory;
       if (!memory) return;
 
       const usedJSMemory = memory.usedJSHeapSize;
@@ -296,7 +302,7 @@ export const useMemoryMonitor = (
       return null;
     }
 
-    const memory = (performance as any).memory;
+    const memory = (performance as { memory?: MemoryInfo }).memory;
     if (!memory) return null;
 
     return {

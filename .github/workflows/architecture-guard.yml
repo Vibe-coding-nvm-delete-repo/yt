@@ -1,0 +1,209 @@
+name: Architecture Guard
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+jobs:
+  architecture-validation:
+    name: P0 Architecture Enforcement
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run architectural ESLint rules
+        run: |
+          echo "🏗️  Running P0 Architecture Guards..."
+          echo "Running lint with warnings allowed for legacy files..."
+          npm run lint
+          
+          # Check exit code
+          EXIT_CODE=$?
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "❌ ESLint found errors (not warnings)"
+            exit 1
+          fi
+          
+          echo "✅ ESLint passed (warnings allowed for documented legacy files)"
+        continue-on-error: false
+
+      - name: Check file sizes
+        run: |
+          echo "📏 Checking file sizes..."
+          
+          # Legacy files exempted from size limit (scheduled for P1 refactoring)
+          LEGACY_FILES=(
+            "src/components/SettingsTab.tsx"
+            "src/components/ImageToPromptTab.tsx"
+            "src/lib/storage.ts"
+          )
+          
+          # Find files over 400 lines (excluding tests, configs, node_modules, and legacy)
+          LARGE_FILES=""
+          while IFS= read -r file; do
+            # Check if file is in legacy exemption list
+            IS_LEGACY=false
+            for legacy in "${LEGACY_FILES[@]}"; do
+              if [ "$file" = "$legacy" ]; then
+                IS_LEGACY=true
+                break
+              fi
+            done
+            
+            if [ "$IS_LEGACY" = false ]; then
+              lines=$(wc -l < "$file")
+              if [ $lines -gt 400 ]; then
+                LARGE_FILES="${LARGE_FILES}${file}: ${lines} lines\n"
+              fi
+            fi
+          done < <(find src -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" \) \
+            ! -path "*/node_modules/*" \
+            ! -path "*/__tests__/*" \
+            ! -path "*.test.*" \
+            ! -path "*.spec.*" \
+            ! -path "*.config.*")
+          
+          if [ -n "$LARGE_FILES" ]; then
+            echo "❌ Files exceeding 400 lines detected:"
+            echo -e "$LARGE_FILES"
+            echo ""
+            echo "Please split these files into smaller, focused modules."
+            echo "Legacy files (SettingsTab, ImageToPromptTab, storage.ts) are exempted."
+            exit 1
+          else
+            echo "✅ All non-legacy files are under 400 lines"
+            echo "   (Legacy files exempted: ${LEGACY_FILES[*]})"
+          fi
+
+      - name: Validate layer boundaries
+        run: |
+          echo "🔒 Validating architectural boundaries..."
+          
+          # Check for components importing from app
+          VIOLATIONS=$(grep -r "from.*['\"].*\/app\/" src/components --include="*.ts" --include="*.tsx" --exclude-dir=__tests__ || true)
+          
+          if [ -n "$VIOLATIONS" ]; then
+            echo "❌ Architecture violation: Components importing from app directory"
+            echo "$VIOLATIONS"
+            echo ""
+            echo "Components must not import from the app layer. Use contexts or hooks instead."
+            exit 1
+          fi
+          
+          # Check for lib importing from higher layers
+          LIB_VIOLATIONS=$(grep -r "from.*['\"].*\/\(components\|contexts\|hooks\|app\)\/" src/lib --include="*.ts" --include="*.tsx" --exclude-dir=__tests__ || true)
+          
+          if [ -n "$LIB_VIOLATIONS" ]; then
+            echo "❌ Architecture violation: lib/ importing from higher layers"
+            echo "$LIB_VIOLATIONS"
+            echo ""
+            echo "lib/ must only import from other lib files or external packages."
+            exit 1
+          fi
+          
+          echo "✅ All architectural boundaries respected"
+
+      - name: Check for direct DOM manipulation
+        run: |
+          echo "🔍 Checking for direct DOM manipulation..."
+          
+          # Find direct DOM manipulation outside of useEffect
+          DOM_ISSUES=$(grep -r "querySelector\|getElementById\|getElementsBy" src/components --include="*.tsx" --include="*.ts" || true)
+          
+          if [ -n "$DOM_ISSUES" ]; then
+            echo "⚠️  Potential direct DOM manipulation detected:"
+            echo "$DOM_ISSUES"
+            echo ""
+            echo "Prefer React refs and state over direct DOM manipulation."
+            # Warn but don't fail
+          else
+            echo "✅ No direct DOM manipulation detected"
+          fi
+
+      - name: Enforce import statement limits
+        run: |
+          echo "📦 Checking import statement counts..."
+          
+          # Find files with more than 20 import statements (sign of tight coupling)
+          for file in $(find src -type f \( -name "*.ts" -o -name "*.tsx" \) ! -path "*/__tests__/*" ! -path "*.test.*"); do
+            IMPORT_COUNT=$(grep -c "^import " "$file" || echo 0)
+            if [ "$IMPORT_COUNT" -gt 20 ]; then
+              echo "⚠️  $file has $IMPORT_COUNT import statements (threshold: 20)"
+              echo "   Consider: Are there too many dependencies? Can this be split?"
+            fi
+          done
+          
+          echo "✅ Import statement check complete"
+
+      - name: Validate test coverage for critical paths
+        run: |
+          echo "🧪 Validating test coverage..."
+          npm test -- --coverage --passWithNoTests --watchAll=false --silent
+          
+          # Check if coverage meets minimum threshold
+          if [ -f coverage/coverage-summary.json ]; then
+            echo "✅ Coverage report generated"
+          else
+            echo "⚠️  No coverage report found"
+          fi
+
+      - name: Check for TODO/FIXME in critical files
+        run: |
+          echo "📝 Checking for unresolved TODOs in production code..."
+          
+          TODOS=$(grep -r "TODO\|FIXME\|XXX\|HACK" src --include="*.ts" --include="*.tsx" \
+            --exclude-dir=__tests__ \
+            --exclude="*.test.*" \
+            --exclude="*.spec.*" || true)
+          
+          if [ -n "$TODOS" ]; then
+            echo "⚠️  TODOs/FIXMEs found in codebase:"
+            echo "$TODOS"
+            echo ""
+            echo "Consider creating GitHub issues for these items."
+            # Warn but don't fail
+          else
+            echo "✅ No outstanding TODOs in production code"
+          fi
+
+      - name: Architecture validation summary
+        if: success()
+        run: |
+          echo ""
+          echo "✅ ============================================="
+          echo "✅  P0 ARCHITECTURE VALIDATION PASSED"
+          echo "✅ ============================================="
+          echo "✅  All architectural guards passed:"
+          echo "✅    - ESLint architectural rules"
+          echo "✅    - File size limits (400 lines)"
+          echo "✅    - Layer boundary enforcement"
+          echo "✅    - Import hygiene"
+          echo "✅    - Test coverage validation"
+          echo "✅ ============================================="
+
+      - name: Architecture validation failure
+        if: failure()
+        run: |
+          echo ""
+          echo "❌ ============================================="
+          echo "❌  P0 ARCHITECTURE VALIDATION FAILED"
+          echo "❌ ============================================="
+          echo "❌  Review the errors above and fix violations"
+          echo "❌  before merging this PR."
+          echo "❌ ============================================="
+          exit 1

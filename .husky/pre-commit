@@ -1,1 +1,9 @@
+#!/bin/sh
+# P0 Enforcement: Architecture Guards + Lint-Staged
+# This pre-commit hook prevents committing code that violates our standards
+
+# Run lint-staged (ESLint + Prettier on staged files)
 npx lint-staged
+
+# Exit with lint-staged's exit code
+exit $?
