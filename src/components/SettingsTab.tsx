@@ -292,9 +292,12 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     return parts.length > 0 ? parts[0] || "Other" : "Other";
   }, []);
 
-  // Helper function to calculate total cost per model
-  const getModelTotalCost = useCallback((model: VisionModel): number => {
-    return (model.pricing.prompt || 0) + (model.pricing.completion || 0);
+  // Helper function to calculate average cost per token for sorting/comparison
+  // Uses average of prompt and completion pricing since both are used in vision tasks
+  const getModelAverageCost = useCallback((model: VisionModel): number => {
+    const promptCost = model.pricing.prompt || 0;
+    const completionCost = model.pricing.completion || 0;
+    return (promptCost + completionCost) / 2;
   }, []);
 
   const renderApiKeysTab = useCallback(
@@ -601,8 +604,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                                     if (providerModels) {
                                       providerModels.sort(
                                         (a, b) =>
-                                          getModelTotalCost(b) -
-                                          getModelTotalCost(a),
+                                          getModelAverageCost(b) -
+                                          getModelAverageCost(a),
                                       );
                                     }
                                   });
@@ -648,10 +651,10 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                                           {model.name}
                                         </div>
                                         <div className="text-xs text-gray-500 dark:text-gray-400">
-                                          {formatPrice(
-                                            getModelTotalCost(model),
+                                          ~{formatPrice(
+                                            getModelAverageCost(model),
                                           )}
-                                          /token
+                                          /token avg
                                         </div>
                                       </div>
                                       <button
@@ -801,7 +804,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       fetchModels,
       toggleModelExpansion,
       getModelProvider,
-      getModelTotalCost,
+      getModelAverageCost,
       hookTogglePinnedModel,
     ],
   );

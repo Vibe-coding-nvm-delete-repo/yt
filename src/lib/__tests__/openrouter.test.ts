@@ -103,12 +103,23 @@ describe("OpenRouterClient", () => {
       supports_vision: true,
     };
 
-    it("calculates generation cost correctly", () => {
+    it("calculateGenerationCost (deprecated) - returns consistent results", () => {
+      // NOTE: This method is deprecated. Use calculateDetailedCost from @/lib/cost instead.
+      // This test verifies the method still works for backward compatibility.
+      const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();
+      
       const result = client.calculateGenerationCost(mockModel, 12); // 12 character prompt
-      expect(result.inputCost).toBe(0); // Image cost not implemented
+      expect(result.inputCost).toBe(0); // Image cost not implemented (known limitation)
       expect(result.outputCost).toBeGreaterThan(0); // Text cost should be calculated
       expect(result.totalCost).toBeGreaterThan(0);
       expect(result.totalCost).toBe(result.inputCost + result.outputCost);
+      
+      // Verify deprecation warnings are shown
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining("deprecated"),
+      );
+      
+      consoleWarnSpy.mockRestore();
     });
   });
 });

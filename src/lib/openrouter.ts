@@ -240,18 +240,47 @@ export class OpenRouterClient {
     }
   }
 
+  /**
+   * @deprecated Use calculateDetailedCost from @/lib/cost instead.
+   * This method doesn't account for image tokens properly.
+   * For vision models, use: calculateDetailedCost(model, imageDataUrl, outputText)
+   */
   calculateImageCost(_model: VisionModel): number {
+    console.warn(
+      "OpenRouterClient.calculateImageCost is deprecated. Use calculateDetailedCost from @/lib/cost instead.",
+    );
     return 0;
   }
 
+  /**
+   * @deprecated Use calculateDetailedCost from @/lib/cost instead.
+   * This method only estimates output cost, not input (image) cost.
+   * For vision models, use: calculateDetailedCost(model, imageDataUrl, outputText)
+   */
   calculateTextCost(textLength: number, model: VisionModel): number {
+    console.warn(
+      "OpenRouterClient.calculateTextCost is deprecated. Use calculateDetailedCost from @/lib/cost instead.",
+    );
     const pricePerToken = this.safeNumber(model.pricing?.completion, 0);
     const estimatedTokens = Math.ceil(textLength / 4);
     // OpenRouter pricing is in $/token
     return pricePerToken * estimatedTokens;
   }
 
+  /**
+   * @deprecated Use calculateDetailedCost from @/lib/cost instead.
+   * This method doesn't account for image tokens properly.
+   * For vision models, use: calculateDetailedCost(model, imageDataUrl, outputText)
+   *
+   * Example:
+   * import { calculateDetailedCost } from '@/lib/cost';
+   * const costs = calculateDetailedCost(model, imageDataUrl, generatedText);
+   * // Returns: { inputTokens, outputTokens, inputCost, outputCost, totalCost }
+   */
   calculateGenerationCost(model: VisionModel, textLength: number) {
+    console.warn(
+      "OpenRouterClient.calculateGenerationCost is deprecated. Use calculateDetailedCost from @/lib/cost instead.",
+    );
     const inputCost = this.calculateImageCost(model);
     const outputCost = this.calculateTextCost(textLength, model);
     const totalCost = inputCost + outputCost;
