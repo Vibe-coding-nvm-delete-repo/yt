@@ -1,8 +1,9 @@
-name: PR Guard (forbidden paths)
+name: PR Guard (Critical Paths Protection)
 
 on:
   pull_request:
     branches: [ main, develop ]
+    types: [opened, synchronize, reopened, ready_for_review]
 
 jobs:
   guard:
@@ -10,20 +11,48 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Detect forbidden path changes
-        id: filter
-        uses: dorny/paths-filter@v3
         with:
-          filters: |
-            forbidden:
-              - ".github/**"
-              - "**/*.env"
-              - ".env*"
-              - "**/secrets/**"
+          fetch-depth: 0
 
-      - name: Allow restoration PR or enforce maintainer override
-        if: steps.filter.outputs.forbidden == 'true'
+      - name: Read critical paths configuration
+        id: critical
+        run: |
+          if [ -f .github/CRITICAL_PATHS.txt ]; then
+            # Remove comments and empty lines
+            grep -v '^\s*#' .github/CRITICAL_PATHS.txt | grep -v '^\s*$' > critical.txt || touch critical.txt
+          else
+            touch critical.txt
+          fi
+          echo "Critical paths loaded:"
+          cat critical.txt
+          echo "paths<<EOF" >> $GITHUB_OUTPUT
+          cat critical.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Detect changes in critical paths
+        id: changes
+        run: |
+          git diff --name-only origin/${{ github.base_ref }}...HEAD > changed.txt
+          echo "Files changed in this PR:"
+          cat changed.txt
+          
+          # Find intersection of critical paths and changed files
+          CRITICAL_CHANGED=$(comm -12 <(sort critical.txt) <(sort changed.txt) || true)
+          
+          if [ -n "$CRITICAL_CHANGED" ]; then
+            echo "critical_changed=true" >> $GITHUB_OUTPUT
+            echo "Critical paths modified:"
+            echo "$CRITICAL_CHANGED"
+            echo "files<<EOF" >> $GITHUB_OUTPUT
+            echo "$CRITICAL_CHANGED" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "critical_changed=false" >> $GITHUB_OUTPUT
+            echo "No critical paths modified."
+          fi
+
+      - name: Enforce CODEOWNER approval for critical changes
+        if: steps.changes.outputs.critical_changed == 'true'
         uses: actions/github-script@v7
         with:
           script: |
@@ -31,16 +60,36 @@ jobs:
             const labels = pr.labels?.map(l => l.name) ?? [];
             const actor = context.actor;
             const branchName = pr.head.ref;
-            const allowedActors = ['pixel-pilot', 'Vibe-coding-nvm-delete-repo']; // repo owner/maintainer
-            const hasOverride = labels.includes('maintainer-override');
-            const isRestoration = branchName.includes('restore-clean-main') || branchName.includes('fix/restore');
             
-            if (hasOverride || allowedActors.includes(actor) || isRestoration) {
+            // Allow specific scenarios
+            const allowedActors = ['Vibe-coding-nvm-delete-repo', 'pixel-pilot'];
+            const hasOverride = labels.includes('maintainer-override') || labels.includes('codeowner-approved');
+            const isRestoration = branchName.includes('restore-clean-main') || branchName.includes('fix/restore');
+            const isMaintenanceActor = allowedActors.includes(actor);
+            
+            const criticalFiles = `${{ steps.changes.outputs.files }}`;
+            
+            if (hasOverride || isMaintenanceActor || isRestoration) {
               if (isRestoration) {
-                core.notice('Main restoration PR - .github changes allowed for merge conflict prevention system.');
+                core.notice(`🔧 Main restoration PR modifying critical paths: ${criticalFiles}`);
+                core.notice('Allowed: restoration branches can modify CI/build config for merge prevention.');
+              } else if (hasOverride) {
+                core.notice(`🏷️ Maintainer override label present for critical path changes: ${criticalFiles}`);
               } else {
-                core.notice('Forbidden paths changed but maintainer override present or actor allowed.');
+                core.notice(`👤 Maintenance actor ${actor} modifying critical paths: ${criticalFiles}`);
               }
             } else {
-              core.setFailed('Forbidden paths changed without maintainer override label or maintainer actor.');
+              core.setFailed(
+                `🚫 Critical paths modified without approval:\n\n` +
+                `Files: ${criticalFiles}\n\n` +
+                `Resolution options:\n` +
+                `1. Add 'maintainer-override' or 'codeowner-approved' label\n` +
+                `2. Request review from CODEOWNER (@Vibe-coding-nvm-delete-repo)\n` +
+                `3. Split non-critical changes into separate PR\n\n` +
+                `This guard prevents accidental changes to core contracts and CI config.`
+              );
             }
+            
+      - name: Log guard status
+        if: steps.changes.outputs.critical_changed == 'false'
+        run: echo "✅ No critical paths modified - guard passed."
