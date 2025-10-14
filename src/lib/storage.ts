@@ -402,50 +402,6 @@ export class SettingsStorage {
     this.saveSettings(allKeys);
   }
 
-  importSettings(settingsJson: string): boolean {
-    try {
-      const imported = JSON.parse(settingsJson);
-
-      if (typeof imported !== "object" || imported === null) {
-        throw new Error("Invalid settings format");
-      }
-
-      const validatedSettings = {
-        ...DEFAULT_SETTINGS,
-        ...imported,
-        availableModels: Array.isArray(imported.availableModels)
-          ? imported.availableModels
-          : [],
-        preferredModels: Array.isArray(imported.preferredModels)
-          ? imported.preferredModels
-          : [],
-        lastApiKeyValidation: imported.lastApiKeyValidation
-          ? Number(imported.lastApiKeyValidation)
-          : null,
-        lastModelFetch: imported.lastModelFetch
-          ? Number(imported.lastModelFetch)
-          : null,
-      };
-
-      const allKeys = Object.keys(validatedSettings) as SettingsKey[];
-      this.settings = validatedSettings;
-      this.saveSettings(allKeys);
-      return true;
-    } catch (error) {
-      console.error("Failed to import settings:", error);
-      return false;
-    }
-  }
-
-  exportSettings(): string {
-    try {
-      return JSON.stringify(this.settings);
-    } catch (err) {
-      console.error("Failed to export settings:", err);
-      return "{}";
-    }
-  }
-
   shouldRefreshModels(): boolean {
     if (!this.settings.lastModelFetch) {
       return true;
