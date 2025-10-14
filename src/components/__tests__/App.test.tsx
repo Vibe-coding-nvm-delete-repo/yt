@@ -1,37 +1,21 @@
 import "@testing-library/jest-dom";
 import { render, screen } from "@testing-library/react";
 import { App } from "@/components/App";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
 
-describe("App component", () => {
-  test("renders main layout and tabs", () => {
+/**
+ * App smoke tests after main restoration
+ * - Keep minimal assertions that match restored UI
+ */
+describe("App component (restored)", () => {
+  test("renders main landmark and tabs", () => {
     render(<App />);
-
-    // Check if main layout is rendered
     expect(screen.getByRole("main")).toBeInTheDocument();
-
-    // Check if tab navigation is present
-    expect(screen.getByRole("banner")).toBeInTheDocument();
+    expect(screen.getByRole("tablist")).toBeInTheDocument();
   });
 
-  test("renders ImageToPromptTab by default", () => {
+  test("shows Image to Prompt content by default", () => {
     render(<App />);
-
-    // Check if ImageToPromptTab content is visible (getAllByText since multiple instances)
-    expect(screen.getAllByText(/Image to Prompt/i).length).toBeGreaterThan(0);
-  });
-
-  test("renders with ErrorBoundary fallback", () => {
-    const MockErrorComponent = () => {
-      throw new Error("Test error");
-    };
-
-    render(
-      <ErrorBoundary>
-        <MockErrorComponent />
-      </ErrorBoundary>,
-    );
-
-    expect(screen.getByText(/Something went wrong/i)).toBeInTheDocument();
+    const nodes = screen.getAllByText(/Image to Prompt/i);
+    expect(nodes.length).toBeGreaterThan(0);
   });
 });

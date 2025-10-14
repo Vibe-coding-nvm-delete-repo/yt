@@ -308,8 +308,34 @@ export class SettingsStorage {
   }
 
   getSettings(): AppSettings {
-    // Return a frozen copy to prevent accidental mutations
-    return Object.freeze({ ...this.settings });
+    // Always attempt to reload from localStorage to reflect the latest persisted state.
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          this.settings = {
+            ...DEFAULT_SETTINGS,
+            ...parsed,
+            availableModels: Array.isArray(parsed.availableModels)
+              ? parsed.availableModels
+              : [],
+            preferredModels: Array.isArray(parsed.preferredModels)
+              ? parsed.preferredModels
+              : [],
+            lastApiKeyValidation: parsed.lastApiKeyValidation
+              ? Number(parsed.lastApiKeyValidation)
+              : null,
+            lastModelFetch: parsed.lastModelFetch
+              ? Number(parsed.lastModelFetch)
+              : null,
+          };
+        }
+      } catch (e) {
+        console.warn("Failed to refresh settings from localStorage:", e);
+      }
+    }
+    return { ...this.settings };
   }
 
   // Individual update methods now use batchUpdate for consistency
@@ -399,10 +425,6 @@ export class SettingsStorage {
     }
   }
 
-  /**
-   * Export current settings as a JSON string.
-   * This is a safe-serializable snapshot suitable for download or copying.
-   */
   exportSettings(): string {
     try {
       return JSON.stringify(this.settings);
@@ -417,7 +439,6 @@ export class SettingsStorage {
       return true;
     }
 
-    // Refresh if older than 24 hours
     const oneDayInMs = 24 * 60 * 60 * 1000;
     return Date.now() - this.settings.lastModelFetch > oneDayInMs;
   }
@@ -442,13 +463,18 @@ export class SettingsStorage {
       : [];
   }
 
-  // Pin/unpin models for quick access favorites
+  // Pin/unpin models for quick access favorites (cap 9, add-to-front)
   pinModel(modelId: string): void {
-    const currentPinned = this.getPinnedModels();
-    if (!currentPinned.includes(modelId)) {
-      // Add to front and cap at 9
-      const newPinned = [modelId, ...currentPinned].slice(0, 9);
-      this.batchUpdate({ pinnedModels: newPinned });
+    if (!Array.isArray(this.settings.pinnedModels)) {
+      this.settings.pinnedModels = [];
+    }
+
+    if (!this.settings.pinnedModels.includes(modelId)) {
+      this.settings.pinnedModels = [
+        modelId,
+        ...this.settings.pinnedModels,
+      ].slice(0, 9);
+      this.saveSettings();
     }
   }
 
@@ -676,3 +702,36 @@ export class ImageStateStorage {
 
 export const settingsStorage = SettingsStorage.getInstance();
 export const imageStateStorage = ImageStateStorage.getInstance();
+
+export const useSettings = () => {
+  const getSettings = () => settingsStorage.getSettings();
+
+  const updateApiKey = (apiKey: string) => settingsStorage.updateApiKey(apiKey);
+  const validateApiKey = (isValid: boolean) =>
+    settingsStorage.validateApiKey(isValid);
+  const updateSelectedModel = (modelId: string) =>
+    settingsStorage.updateSelectedModel(modelId);
+  const updateCustomPrompt = (prompt: string) =>
+    settingsStorage.updateCustomPrompt(prompt);
+  const updateModels = (models: VisionModel[]) =>
+    settingsStorage.updateModels(models);
+  const clearSettings = () => settingsStorage.clearSettings();
+  const shouldRefreshModels = () => settingsStorage.shouldRefreshModels();
+  const getModelById = (modelId: string) =>
+    settingsStorage.getModelById(modelId);
+  const getSelectedModel = () => settingsStorage.getSelectedModel();
+
+  return {
+    getSettings,
+    updateApiKey,
+    validateApiKey,
+    updateSelectedModel,
+    updateCustomPrompt,
+    updateModels,
+    clearSettings,
+    shouldRefreshModels,
+    getModelById,
+    getSelectedModel,
+    subscribe: settingsStorage.subscribe.bind(settingsStorage),
+  };
+};
