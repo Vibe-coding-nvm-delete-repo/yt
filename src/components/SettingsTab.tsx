@@ -113,7 +113,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       setApiKey(updatedSettings.openRouterApiKey);
       setCustomPrompt(updatedSettings.customPrompt);
       setSelectedVisionModels(updatedSettings.selectedVisionModels || []);
-      setValidationState((prev: ValidationState) => ({
+      setValidationState((prev: { isValid: boolean; lastChecked: number | null }) => ({
         ...prev,
         isValid: updatedSettings.isValidApiKey,
       }));
@@ -456,6 +456,126 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
           </div>
         )}
 
+        <div className="relative" ref={dropdownRef}>
+          <button
+            type="button"
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-left flex items-center justify-between"
+            aria-label="Select model"
+          >
+            <span className="text-gray-900 dark:text-white">
+              {selectedModel
+                ? modelState.models.find((m) => m.id === selectedModel)?.name ||
+                  "Select a model..."
+                : "Select a model..."}
+            </span>
+            <ChevronDown
+              className={`h-4 w-4 text-gray-500 transition-transform ${isDropdownOpen ? "transform rotate-180" : ""}`}
+            />
+          </button>
+          {isDropdownOpen && (
+            <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg maxh-80 overflow-hidden flex flex-col">
+              <div className="p-2 border-b border-gray-200 dark:border-gray-600">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder="Search models..."
+                    value={dropdownSearch}
+                    onChange={(e) => setDropdownSearch(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
+              </div>
+
+              <div className="overflow-y-auto flex-1">
+                {(() => {
+                  const query = dropdownSearch.toLowerCase();
+                  const filtered = modelState.models.filter(
+                    (m) =>
+                      m.name.toLowerCase().includes(query) ||
+                      m.id.toLowerCase().includes(query),
+                  );
+                  const pinnedSet = new Set(settings.pinnedModels || []);
+                  const pinnedList = filtered.filter((m) =>
+                    pinnedSet.has(m.id),
+                  );
+                  const otherList = filtered.filter(
+                    (m) => !pinnedSet.has(m.id),
+                  );
+
+                  const renderRow = (model: (typeof filtered)[number]) => (
+                    <button
+                      key={model.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedModel(model.id);
+                        setIsDropdownOpen(false);
+                        setDropdownSearch("");
+                      }}
+                      className={`w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors ${
+                        selectedModel === model.id
+                          ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
+                          : "text-gray-900 dark:text-white"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-sm font-medium">
+                            {model.name}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {formatPrice(
+                              model.pricing.prompt + model.pricing.completion,
+                            )}
+                            /token
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          aria-label={
+                            pinnedSet.has(model.id)
+                              ? "Unpin model"
+                              : "Pin model"
+                          }
+                          className="ml-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // TODO: Re-implement pinned model toggle functionality
+                            console.warn('Pinned model toggle not yet implemented');
+                          }}
+                        >
+                          {pinnedSet.has(model.id) ? (
+                            <Pin className="h-4 w-4 text-blue-600" />
+                          ) : (
+                            <PinOff className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
+                    </button>
+                  );
+
+                  return (
+                    <>
+                      {pinnedList.length > 0 && (
+                        <>
+                          <div className="px-4 py-1 text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                            Pinned
+                          </div>
+                          {pinnedList.map((m) => renderRow(m))}
+                          <div className="my-1 border-t border-gray-200 dark:border-gray-600" />
+                        </>
+                      )}
+                      {otherList.map((m) => renderRow(m))}
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+          )}
+        </div>
         {modelState.models.length > 0 && (
           <>
             <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
@@ -799,8 +919,6 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       selectedVisionModels,
       expandedModels,
       settings.lastModelFetch,
-      settings.pinnedModels,
-      dropdownStates,
       fetchModels,
       toggleModelExpansion,
       getModelProvider,
