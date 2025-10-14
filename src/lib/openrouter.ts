@@ -11,8 +11,11 @@ interface OpenRouterModelResponse {
     image?: string | number;
   };
   context_length?: string | number;
-  supports_image?: boolean;
-  supports_vision?: boolean;
+  architecture?: {
+    modality?: string;
+    input_modalities?: string[];
+    output_modalities?: string[];
+  };
 }
 
 interface OpenRouterModelsResponse {
@@ -190,12 +193,17 @@ export class OpenRouterClient {
           (model): model is OpenRouterModelResponse =>
             Boolean(model?.id) && Boolean(model?.name),
         )
-        .filter(
-          (model) =>
-            Boolean(model.supports_image) || Boolean(model.supports_vision),
-        )
+        .filter((model) => {
+          // Check if model supports vision/image input via input_modalities
+          const hasImageModality =
+            model.architecture?.input_modalities?.includes("image") ?? false;
+          return hasImageModality;
+        })
         .map((model) => {
           const contextLength = this.safeNumber(model.context_length, 0);
+
+          const hasImageModality =
+            model.architecture?.input_modalities?.includes("image") ?? false;
 
           return {
             id: model.id,
@@ -206,10 +214,8 @@ export class OpenRouterClient {
               completion: this.safeNumber(model.pricing?.completion, 0),
             },
             ...(contextLength > 0 && { context_length: contextLength }),
-            supports_image:
-              Boolean(model.supports_image) || Boolean(model.supports_vision),
-            supports_vision:
-              Boolean(model.supports_vision) || Boolean(model.supports_image),
+            supports_image: hasImageModality,
+            supports_vision: hasImageModality,
           };
         })
         .sort((a, b) => a.name.localeCompare(b.name));
