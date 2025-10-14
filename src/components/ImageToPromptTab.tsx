@@ -238,9 +238,18 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
     setIsGenerating(true);
     setErrorMessage(null);
 
+    // Create a snapshot of current results to avoid mutation issues
+    const currentResults = [...modelResults];
+
     // Process each model sequentially
-    for (let i = 0; i < modelResults.length; i++) {
-      const result = modelResults[i];
+    for (let i = 0; i < currentResults.length; i++) {
+      const result = currentResults[i];
+      
+      // Ensure result exists before proceeding
+      if (!result) {
+        console.warn(`Result at index ${i} is undefined, skipping`);
+        continue;
+      }
 
       // Mark as processing
       setModelResults((prev) =>
