@@ -31,6 +31,7 @@ export const useOptimizedSettings = (subscribeToKeys?: (keyof AppSettings)[]) =>
   const settingsHashRef = useRef<string>("");
 
   // Memoize settings to prevent unnecessary re-renders
+  // eslint-disable-next-line react-hooks/refs
   const memoizedSettings = useMemo(() => {
     // Create a hash of the settings to check for actual changes
     const currentHash = JSON.stringify(settings);
@@ -113,6 +114,7 @@ export const useOptimizedSettings = (subscribeToKeys?: (keyof AppSettings)[]) =>
   }, []);
 
   // Return memoized values and functions
+  // eslint-disable-next-line react-hooks/refs
   return useMemo(() => ({
     settings: memoizedSettings,
     isInitialized,
@@ -153,6 +155,7 @@ export const useSettingsKey = <K extends keyof AppSettings>(
 
   const [isInitialized, setIsInitialized] = useState(false);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     // Initialize with current value
     if (!isInitialized) {

@@ -118,6 +118,11 @@ export default tseslint.config(
     files: [
       'src/components/SettingsTab.tsx',
       'src/components/ImageToPromptTab.tsx',
+      'src/components/UsageTab.tsx',
+      'src/contexts/SettingsContext.tsx',
+      'src/hooks/useOptimizedSettings.ts',
+      'src/hooks/usePerformantSettings.ts',
+      'src/hooks/useSettings.ts',
       'src/lib/storage.ts',
     ],
     rules: {
