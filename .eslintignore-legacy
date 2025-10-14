@@ -1,0 +1,11 @@
+# Legacy files that exceed limits - scheduled for refactoring in P1
+# These files are temporarily excluded from P0 enforcement
+
+# SettingsTab.tsx: 760 lines - Scheduled for decomposition in P1
+src/components/SettingsTab.tsx
+
+# ImageToPromptTab.tsx: 405 lines - Scheduled for decomposition in P1
+src/components/ImageToPromptTab.tsx
+
+# storage.ts: 476 lines - Scheduled for decomposition in P1
+src/lib/storage.ts

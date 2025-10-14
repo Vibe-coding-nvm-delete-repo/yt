@@ -1,4 +1,4 @@
-import { settingsStorage } from '../storage';
+import { settingsStorage } from "../storage";
 
 describe("SettingsStorage", () => {
   beforeEach(() => {
@@ -87,7 +87,9 @@ describe("SettingsStorage", () => {
         customPrompt: "test prompt",
         isValidApiKey: true,
         availableModels: [],
-        // Missing lastApiKeyValidation and lastModelFetch
+        preferredModels: [],
+        pinnedModels: [],
+        // Missing lastApiKeyValidation, lastModelFetch, selectedVisionModels
       };
 
       localStorage.setItem(
