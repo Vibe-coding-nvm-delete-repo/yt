@@ -136,8 +136,12 @@ export class ApiError extends Error {
   constructor(message: string, code?: string, details?: unknown) {
     super(message);
     this.name = "ApiError";
-    this.code = code;
-    this.details = details;
+    if (code !== undefined) {
+      this.code = code;
+    }
+    if (details !== undefined) {
+      this.details = details;
+    }
 
     // Maintain proper stack trace (only available on V8)
     if (Error.captureStackTrace) {
@@ -180,7 +184,8 @@ export interface QueueResult<T> {
 }
 
 // Export standardized validation types
-export * from './validation';
+export * from "./validation";
 
 // Provide backward compatibility alias
+import type { BaseValidationState } from "./validation";
 export type { BaseValidationState as ValidationState };

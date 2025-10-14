@@ -56,7 +56,7 @@ function isTouchDevice(): boolean {
   return (
     "ontouchstart" in window ||
     navigator.maxTouchPoints > 0 ||
-    // @ts-ignore - legacy support
+    // @ts-expect-error - legacy support for msMaxTouchPoints
     navigator.msMaxTouchPoints > 0
   );
 }
@@ -151,7 +151,9 @@ export const useResponsive = (): ResponsiveState => {
 
     // Listen for resize events
     window.addEventListener("resize", handleResize, { passive: true });
-    window.addEventListener("orientationchange", handleResize, { passive: true });
+    window.addEventListener("orientationchange", handleResize, {
+      passive: true,
+    });
 
     return () => {
       clearTimeout(timeoutId);

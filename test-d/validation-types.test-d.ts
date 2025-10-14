@@ -4,37 +4,36 @@
  * Any PR that breaks these contracts will fail CI
  */
 
-import { expectType, expectAssignable, expectNotAssignable } from 'tsd';
-import {
+import { expectType, expectAssignable, expectNotAssignable } from "tsd";
+import type {
   ValidationState,
   BaseValidationState,
   ExtendedValidationState,
   ApiValidationState,
+} from "../src/types";
+import {
   createValidationState,
   createExtendedValidationState,
   isValidationStale,
-  canRetryValidation
-} from '../src/types';
+  canRetryValidation,
+} from "../src/types";
 
 // Import error types for contract testing
-import type { 
-  ErrorContext,
-  AppError
-} from '../src/types/errors';
-import { createErrorFromException } from '../src/types/errors';
+import type { ErrorContext, AppError } from "../src/types/errors";
+import { createErrorFromException } from "../src/types/errors";
 
 // CRITICAL: ValidationState must be an alias for BaseValidationState
 expectType<ValidationState>({
   isValidating: false,
   isValid: true,
-  error: null
+  error: null,
 });
 
 // CRITICAL: BaseValidationState shape must be exact
 expectType<BaseValidationState>({
   isValidating: false,
   isValid: true,
-  error: null
+  error: null,
 });
 
 // CRITICAL: ExtendedValidationState must include metadata
@@ -44,7 +43,7 @@ expectType<ExtendedValidationState>({
   error: null,
   lastCheckedAt: Date.now(),
   validationAttempts: 0,
-  isStale: false
+  isStale: false,
 });
 
 // CRITICAL: ApiValidationState must include retry logic
@@ -58,7 +57,7 @@ expectType<ApiValidationState>({
   retryCount: 0,
   maxRetries: 3,
   retryable: true,
-  nextRetryAt: null
+  nextRetryAt: null,
 });
 
 // PREVENT REGRESSION: Optional isValid/error should NOT be assignable
@@ -70,7 +69,7 @@ type BadValidationState = {
 
 // This will fail compilation if someone tries to make isValid/error optional again
 expectNotAssignable<BaseValidationState>({
-  isValidating: false
+  isValidating: false,
   // Missing required isValid and error - should fail
 } as BadValidationState);
 
@@ -80,7 +79,7 @@ expectType<ExtendedValidationState>(createExtendedValidationState());
 
 // Utilities must accept correct types and return expected values
 const extendedState: ExtendedValidationState = createExtendedValidationState({
-  lastCheckedAt: Date.now() - 600000 // 10 minutes ago
+  lastCheckedAt: Date.now() - 600000, // 10 minutes ago
 });
 
 expectType<boolean>(isValidationStale(extendedState));
@@ -91,7 +90,7 @@ const apiState: ApiValidationState = {
   retryCount: 0,
   maxRetries: 3,
   retryable: true,
-  nextRetryAt: null
+  nextRetryAt: null,
 };
 
 expectType<boolean>(canRetryValidation(apiState));
@@ -120,14 +119,14 @@ expectAssignable<ErrorContext>({
   url: undefined,
   statusCode: undefined,
   metadata: undefined,
-  errorId: undefined
+  errorId: undefined,
 });
 
 // CRITICAL: Partial<ErrorContext> must accept mixed undefined and concrete values
 expectAssignable<Partial<ErrorContext>>({
-  component: 'TestComponent',
+  component: "TestComponent",
   operation: undefined,
-  stackTrace: 'test stack trace'
+  stackTrace: "test stack trace",
 });
 
 // CRITICAL: createErrorFromException must accept undefined optionals
@@ -137,38 +136,36 @@ declare const stackTrace: string | undefined;
 
 // Should compile without errors under exactOptionalPropertyTypes
 expectType<AppError>(
-  createErrorFromException(new Error('test'), {
+  createErrorFromException(new Error("test"), {
     component: componentName,
-    operation: 'render',
-    stackTrace: stackTrace
-  })
+    operation: "render",
+    stackTrace: stackTrace,
+  }),
 );
 
 // Should handle fully undefined context without compilation errors
-expectType<AppError>(
-  createErrorFromException(new Error('test'), undefined)
-);
+expectType<AppError>(createErrorFromException(new Error("test"), undefined));
 
 // Should accept context with only some fields defined
 expectType<AppError>(
-  createErrorFromException(new Error('test'), {
-    component: 'ErrorBoundary',
-    operation: 'render'
+  createErrorFromException(new Error("test"), {
+    component: "ErrorBoundary",
+    operation: "render",
     // Other optional fields omitted - should be fine
-  })
+  }),
 );
 
 // PREVENT REGRESSION: Ensure ErrorContext optional fields remain explicit
-type StrictErrorContext = {
-  [K in keyof ErrorContext]-?: ErrorContext[K] extends infer T | undefined 
-    ? T extends undefined 
-      ? never 
-      : T 
-    : ErrorContext[K];
-};
+// Extract only the required (non-optional) keys from ErrorContext
+type RequiredKeys<T> = {
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+  [K in keyof T]-?: {} extends Pick<T, K> ? never : K;
+}[keyof T];
+
+type StrictErrorContext = Pick<ErrorContext, RequiredKeys<ErrorContext>>;
 
 // Only timestamp should be required in strict mode
 expectType<StrictErrorContext>({
-  timestamp: Date.now()
+  timestamp: Date.now(),
   // All other fields should be filtered out since they're optional
 });
