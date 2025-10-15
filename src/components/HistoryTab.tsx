@@ -3,6 +3,7 @@
 import React from "react";
 import { useHistory } from "@/hooks/useHistory";
 import { RatingWidget } from "@/components/RatingWidget";
+import { middleEllipsis } from "@/utils/truncation";
 
 export const HistoryTab: React.FC = () => {
   const { entries, filterModelIds, setFilterModelIds, historyModelOptions } =
@@ -53,7 +54,7 @@ export const HistoryTab: React.FC = () => {
               <span>
                 Cost: ${"{"}item.totalCost.toFixed(4){"}"}
               </span>
-              <span>Model: {item.modelName}</span>
+              <span title={item.modelName}>Model: {middleEllipsis(item.modelName, 30)}</span>
               <span>{new Date(item.createdAt).toLocaleString()}</span>
             </div>
             <RatingWidget

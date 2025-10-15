@@ -296,27 +296,6 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     });
   }, []);
 
-  const handleVisionModelChange = useCallback(
-    (index: number, modelId: string) => {
-      const newSelectedModels = [...selectedVisionModels];
-      if (modelId === "") {
-        // Remove the model at this index
-        newSelectedModels.splice(index, 1);
-      } else {
-        // Update or add the model at this index
-        newSelectedModels[index] = modelId;
-      }
-      setSelectedVisionModels(newSelectedModels);
-
-      // Update settings storage
-      settingsStorage.updateSelectedVisionModels(newSelectedModels);
-
-      // Notify parent component
-      const updatedSettings = settingsStorage.getSettings();
-      onSettingsUpdate(updatedSettings);
-    },
-    [selectedVisionModels, onSettingsUpdate],
-  );
 
   const renderApiKeysTab = useCallback(
     () => (
@@ -344,7 +323,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
               value={apiKey}
               onChange={(e) => handleApiKeyChange(e.target.value)}
               placeholder="sk-or-v1-..."
-              className="w-full px-4 py-2 pr-12 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              className="w-full px-4 py-2 pr-12 border-none rounded-lg focus:ring-2 focus:ring-blue-500/50 bg-white/5 focus:bg-white/10 text-white placeholder:text-gray-500 transition-colors"
             />
             <button
               type="button"
@@ -420,7 +399,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
           onChange={(e) => setCustomPrompt(e.target.value)}
           rows={4}
           placeholder="Enter your custom prompt template..."
-          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none"
+          className="w-full px-4 py-2 border-none rounded-lg focus:ring-2 focus:ring-blue-500/50 bg-white/5 focus:bg-white/10 text-white placeholder:text-gray-500 resize-none transition-colors"
         />
         <p className="text-sm text-gray-500 dark:text-gray-400">
           This prompt will be used when generating prompts from images. Changes
@@ -467,8 +446,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         </div>
 
         {modelState.error && (
-          <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-            <p className="text-sm text-red-600 dark:text-red-400">
+          <div className="p-4 bg-red-900/20 border border-red-800/30 rounded-lg">
+            <p className="text-sm text-red-400">
               {modelState.error}
             </p>
           </div>
@@ -478,7 +457,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
           <button
             type="button"
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-left flex items-center justify-between"
+            className="w-full px-4 py-2 border-none rounded-lg focus:ring-2 focus:ring-blue-500/50 bg-white/5 hover:bg-white/10 text-left flex items-center justify-between transition-colors"
             aria-label="Select model"
           >
             <span
@@ -503,8 +482,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             />
           </button>
           {isDropdownOpen && (
-            <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg maxh-80 overflow-hidden flex flex-col">
-              <div className="p-2 border-b border-gray-200 dark:border-gray-600">
+            <div className="absolute z-10 w-full mt-1 bg-[#1A212A] border border-white/10 rounded-lg shadow-[0_12px_32px_rgba(0,0,0,0.45)] maxh-80 overflow-hidden flex flex-col">
+              <div className="p-2 border-b border-white/6">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <input
@@ -513,7 +492,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                     placeholder="Search models..."
                     value={dropdownSearch}
                     onChange={(e) => setDropdownSearch(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
+                    className="w-full pl-10 pr-4 py-2 border-none rounded-lg focus:ring-2 focus:ring-blue-500/50 bg-white/5 focus:bg-white/10 text-white placeholder:text-gray-500 text-sm transition-colors"
                     onClick={(e) => e.stopPropagation()}
                   />
                 </div>
@@ -544,10 +523,10 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                         setIsDropdownOpen(false);
                         setDropdownSearch("");
                       }}
-                      className={`w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors ${
+                      className={`w-full px-4 py-2 text-left hover:bg-white/5 transition-colors ${
                         selectedModel === model.id
-                          ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
-                          : "text-gray-900 dark:text-white"
+                          ? "bg-blue-900/30 text-blue-400"
+                          : "text-white"
                       }`}
                       title={model.name}
                     >
@@ -556,7 +535,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                           <div className="text-sm font-medium">
                             {middleEllipsis(model.name, 40)}
                           </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                          <div className="text-xs text-gray-400">
                             {formatPrice(
                               model.pricing.prompt + model.pricing.completion,
                             )}
@@ -593,11 +572,11 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                     <>
                       {pinnedList.length > 0 && (
                         <>
-                          <div className="px-4 py-1 text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                          <div className="px-4 py-1 text-xs uppercase tracking-wide text-gray-400">
                             Pinned
                           </div>
                           {pinnedList.map((m) => renderRow(m))}
-                          <div className="my-1 border-t border-gray-200 dark:border-gray-600" />
+                          <div className="my-1 border-t border-white/6" />
                         </>
                       )}
                       {otherList.map((m) => renderRow(m))}
@@ -626,11 +605,11 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                 return (
                   <div
                     key={index}
-                    className="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+                    className="bg-[#151A21] rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.35)]"
                   >
-                    <div className="p-4">
+                    <div className="p-6">
                       <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-semibold text-gray-900 dark:text-white">
+                        <h4 className="font-semibold text-white">
                           Vision Model {index + 1}
                         </h4>
                         {selectedModelData && (
@@ -655,11 +634,13 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                         }}
                       >
                         <select
-                          value={selectedModelId || ""}
-                          onChange={(e) =>
-                            handleVisionModelChange(index, e.target.value)
-                          }
-                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          value={selectedVisionModels[index] || ""}
+                          onChange={(e) => {
+                            const newModels = [...selectedVisionModels];
+                            newModels[index] = e.target.value;
+                            setSelectedVisionModels(newModels.filter(Boolean));
+                          }}
+                          className="w-full px-4 py-2 border-none rounded-lg focus:ring-2 focus:ring-blue-500/50 bg-white/5 focus:bg-white/10 text-white transition-colors"
                         >
                           <option value="">-- Select a model --</option>
                           {modelState.models.map((model) => (
@@ -680,29 +661,29 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
 
                       {/* Collapsible Model Info */}
                       {selectedModelData && isExpanded && (
-                        <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600 text-sm">
+                        <div className="mt-3 p-4 bg-white/5 rounded-lg border border-white/10 text-sm">
                           <div className="space-y-2">
                             <div className="flex justify-between">
-                              <span className="font-medium text-gray-700 dark:text-gray-300">
+                              <span className="font-medium text-gray-300">
                                 Model:
                               </span>
-                              <span className="text-gray-900 dark:text-white">
+                              <span className="text-white">
                                 {selectedModelData.name}
                               </span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="font-medium text-gray-700 dark:text-gray-300">
+                              <span className="font-medium text-gray-300">
                                 Prompt Price:
                               </span>
-                              <span className="text-gray-900 dark:text-white">
+                              <span className="text-white">
                                 {formatPrice(selectedModelData.pricing.prompt)}
                               </span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="font-medium text-gray-700 dark:text-gray-300">
+                              <span className="font-medium text-gray-300">
                                 Completion Price:
                               </span>
-                              <span className="text-gray-900 dark:text-white">
+                              <span className="text-white">
                                 {formatPrice(
                                   selectedModelData.pricing.completion,
                                 )}
@@ -710,10 +691,10 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                             </div>
                             {selectedModelData.description && (
                               <div>
-                                <span className="font-medium text.gray-700 dark:text-gray-300">
+                                <span className="font-medium text-gray-300">
                                   Description:
                                 </span>
-                                <p className="text-gray-600 dark:text-gray-400 mt-1">
+                                <p className="text-gray-400 mt-1">
                                   {selectedModelData.description}
                                 </p>
                               </div>

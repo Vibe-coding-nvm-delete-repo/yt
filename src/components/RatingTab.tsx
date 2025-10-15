@@ -19,6 +19,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import Image from "next/image";
+import { middleEllipsis } from "@/utils/truncation";
 
 export const RatingTab: React.FC = () => {
   const [ratings, setRatings] = useState<Rating[]>([]);
@@ -181,8 +182,8 @@ export const RatingTab: React.FC = () => {
               >
                 <option value="">All Models</option>
                 {uniqueModels.map((model) => (
-                  <option key={model.id} value={model.id}>
-                    {model.name}
+                  <option key={model.id} value={model.id} title={model.name}>
+                    {middleEllipsis(model.name, 40)}
                   </option>
                 ))}
               </select>
@@ -268,8 +269,8 @@ export const RatingTab: React.FC = () => {
                   className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
                 >
                   <div className="flex-1">
-                    <p className="font-medium text-gray-900 dark:text-white">
-                      {modelStats.modelName}
+                    <p className="font-medium text-gray-900 dark:text-white" title={modelStats.modelName}>
+                      {middleEllipsis(modelStats.modelName, 40)}
                     </p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       {modelStats.count} rating
@@ -342,8 +343,8 @@ export const RatingTab: React.FC = () => {
                 <div className="flex-1 space-y-3">
                   <div className="flex items-start justify-between">
                     <div>
-                      <h4 className="font-semibold text-gray-900 dark:text-white">
-                        {rating.modelName}
+                      <h4 className="font-semibold text-gray-900 dark:text-white" title={rating.modelName}>
+                        {middleEllipsis(rating.modelName, 40)}
                       </h4>
                       <p className="text-sm text-gray-500 dark:text-gray-400">
                         {new Date(rating.createdAt).toLocaleString()}

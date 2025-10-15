@@ -12,6 +12,7 @@ import {
   Image as ImageIcon,
 } from "lucide-react";
 import Image from "next/image";
+import { middleEllipsis } from "@/utils/truncation";
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface UsageTabProps {}
@@ -59,51 +60,51 @@ export const UsageTab: React.FC<UsageTabProps> = () => {
       </h1>
 
       {/* Filters */}
-      <div className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-        <div className="flex items-center gap-3 mb-3 text-sm text-gray-700 dark:text-gray-300">
+      <div className="bg-[#151A21] rounded-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
+        <div className="flex items-center gap-3 mb-3 text-sm text-gray-300">
           <Filter className="h-4 w-4" /> Filters
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <label className="block">
-            <span className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+            <span className="block text-xs text-gray-400 mb-1">
               From
             </span>
             <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-gray-500" />
+              <Calendar className="h-4 w-4 text-gray-400" />
               <input
                 type="date"
                 value={from}
                 onChange={(e) => setFrom(e.target.value)}
-                className="flex-1 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded px-2 py-1 text-sm"
+                className="flex-1 bg-white/5 border-none rounded-lg px-3 py-2 text-sm text-white focus:bg-white/10 focus:ring-2 focus:ring-blue-500/50 transition-colors"
               />
             </div>
           </label>
           <label className="block">
-            <span className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+            <span className="block text-xs text-gray-400 mb-1">
               To
             </span>
             <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-gray-500" />
+              <Calendar className="h-4 w-4 text-gray-400" />
               <input
                 type="date"
                 value={to}
                 onChange={(e) => setTo(e.target.value)}
-                className="flex-1 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded px-2 py-1 text-sm"
+                className="flex-1 bg-white/5 border-none rounded-lg px-3 py-2 text-sm text-white focus:bg-white/10 focus:ring-2 focus:ring-blue-500/50 transition-colors"
               />
             </div>
           </label>
           <label className="block">
-            <span className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+            <span className="block text-xs text-gray-400 mb-1">
               Model IDs (comma-separated)
             </span>
             <div className="flex items-center gap-2">
-              <SlidersHorizontal className="h-4 w-4 text-gray-500" />
+              <SlidersHorizontal className="h-4 w-4 text-gray-400" />
               <input
                 type="text"
                 placeholder="modelA, modelB"
                 value={modelFilter}
                 onChange={(e) => setModelFilter(e.target.value)}
-                className="flex-1 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded px-2 py-1 text-sm"
+                className="flex-1 bg-white/5 border-none rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:bg-white/10 focus:ring-2 focus:ring-blue-500/50 transition-colors"
               />
             </div>
           </label>
@@ -111,20 +112,20 @@ export const UsageTab: React.FC<UsageTabProps> = () => {
       </div>
 
       {/* Total */}
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex items-center justify-between">
-        <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
-          <DollarSign className="h-5 w-5 text-green-600" />
+      <div className="bg-[#151A21] rounded-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)] flex items-center justify-between">
+        <div className="flex items-center gap-2 text-gray-300">
+          <DollarSign className="h-5 w-5 text-green-400" />
           <span className="text-sm">Total Spend</span>
         </div>
-        <div className="text-lg font-semibold text-green-600 dark:text-green-400">
+        <div className="text-lg font-semibold text-green-400">
           {formatCurrency(totalSpend)}
         </div>
       </div>
 
       {/* List */}
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg divide-y divide-gray-200 dark:divide-gray-700">
+      <div className="bg-[#151A21] rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.35)] divide-y divide-white/6">
         {list.length === 0 && (
-          <div className="p-6 text-sm text-gray-500 dark:text-gray-400">
+          <div className="p-6 text-sm text-gray-400">
             No usage yet. Generate prompts to see entries here.
           </div>
         )}
@@ -152,23 +153,23 @@ export const UsageTab: React.FC<UsageTabProps> = () => {
                   />
                 </a>
               ) : (
-                <div className="flex-shrink-0 w-16 h-16 rounded border border-gray-300 dark:border-gray-600 flex items-center justify-center bg-gray-100 dark:bg-gray-700">
+                <div className="flex-shrink-0 w-16 h-16 rounded-lg border border-white/10 flex items-center justify-center bg-white/5">
                   <ImageIcon className="h-6 w-6 text-gray-400" />
                 </div>
               )}
               <div className="min-w-0 flex-1">
-                <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                  {e.modelName}{" "}
+                <div className="text-sm font-medium text-white truncate" title={e.modelName}>
+                  {middleEllipsis(e.modelName, 40)}{" "}
                   <span className="text-xs text-gray-500">({e.modelId})</span>
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">
+                <div className="text-xs text-gray-400">
                   {new Date(e.timestamp).toLocaleString()}
                 </div>
-                <div className="mt-1 text-xs text-gray-600 dark:text-gray-300">
+                <div className="mt-1 text-xs text-gray-300">
                   Input: {e.inputTokens} • Output: {e.outputTokens}
                 </div>
                 {!e.success && e.error && (
-                  <div className="mt-1 text-xs text-red-600 dark:text-red-400">
+                  <div className="mt-1 text-xs text-red-400">
                     Error: {e.error}
                   </div>
                 )}
@@ -176,7 +177,7 @@ export const UsageTab: React.FC<UsageTabProps> = () => {
             </div>
             <div className="text-right flex-shrink-0">
               <div
-                className={`text-sm font-semibold ${e.success ? "text-green-600 dark:text-green-400" : "text-gray-400"}`}
+                className={`text-sm font-semibold ${e.success ? "text-green-400" : "text-gray-400"}`}
               >
                 {formatCurrency(e.totalCost)}
               </div>
