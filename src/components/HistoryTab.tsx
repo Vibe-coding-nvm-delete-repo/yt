@@ -1,43 +1,33 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React from "react";
 import { useHistory } from "@/hooks/useHistory";
-import { useSettings } from "@/hooks/useSettings";
 import { RatingWidget } from "@/components/RatingWidget";
 
 export const HistoryTab: React.FC = () => {
-  const { entries, filterModelIds, setFilterModelIds } = useHistory();
-  const { settings } = useSettings(["availableModels"]);
-
-  const modelOptions = useMemo(
-    () => settings.availableModels.map((m) => ({ id: m.id, name: m.name })),
-    [settings.availableModels],
-  );
+  const { entries, filterModelIds, setFilterModelIds, historyModelOptions } =
+    useHistory();
+  const options = historyModelOptions ?? [];
 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <label className="text-sm">Filter models:</label>
-        <div className="inline-flex flex-wrap gap-2">
-          {modelOptions.map((opt) => (
-            <label
-              key={opt.id}
-              className="inline-flex items-center gap-1 text-sm"
-            >
-              <input
-                type="checkbox"
-                checked={filterModelIds.includes(opt.id)}
-                onChange={(e) => {
-                  const next = e.target.checked
-                    ? [...filterModelIds, opt.id]
-                    : filterModelIds.filter((id) => id !== opt.id);
-                  setFilterModelIds(next);
-                }}
-              />
-              <span>{opt.name}</span>
-            </label>
+        <label className="text-sm font-medium">Filter Models</label>
+        <select
+          className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-800"
+          value={filterModelIds[0] || ""}
+          onChange={(e) => {
+            const value = e.target.value;
+            setFilterModelIds(value ? [value] : []);
+          }}
+        >
+          <option value="">All models in history</option>
+          {options.map((opt) => (
+            <option key={opt.id} value={opt.id}>
+              {opt.name}
+            </option>
           ))}
-        </div>
+        </select>
       </div>
 
       <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
