@@ -298,7 +298,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
 
   const renderApiKeysTab = useCallback(
     () => (
-      <div className="space-y-4">
+      <div className="bg-[#151A21] rounded-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)] space-y-4">
         <div className="flex items-center text-white">
           <Key className="mr-2 h-5 w-5" />
           <h3 className="text-lg font-semibold">OpenRouter API Key</h3>
@@ -309,7 +309,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
           />
           {validationState.isValid && (
             <CheckCircle
-              className="ml-2 h-4 w-4 text-green-600"
+              className="ml-2 h-4 w-4 text-green-400"
               aria-hidden="true"
             />
           )}
@@ -389,7 +389,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
 
   const renderCustomPromptsTab = useCallback(
     () => (
-      <div className="space-y-4">
+      <div className="bg-[#151A21] rounded-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)] space-y-4">
         <h3 className="text-lg font-semibold text-white">
           Custom Prompt Templates
         </h3>
@@ -411,7 +411,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
 
   const renderCategoriesTab = useCallback(
     () => (
-      <div className="space-y-4">
+      <div className="bg-[#151A21] rounded-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)] space-y-4">
         <h3 className="text-lg font-semibold text-gray-400">Categories</h3>
         <p className="text-sm text-gray-500 italic">
           This feature is coming soon.
@@ -722,8 +722,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   );
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-white mb-6">Settings</h1>
+    <div className="space-y-4">
+      <h1 className="text-2xl font-bold text-white">Settings</h1>
 
       {/* Sub-tabs Navigation */}
       <div className="border-b border-white/10">
