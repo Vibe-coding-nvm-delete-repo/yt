@@ -54,6 +54,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const dropZoneRef = useRef<HTMLDivElement | null>(null);
   const [copiedMap, setCopiedMap] = useState<Record<string, boolean>>({});
+  const [expandedMap, setExpandedMap] = useState<Record<string, boolean>>({});
 
   // Initialize model results when selected models change
   // CRITICAL: Only reset when the actual selected models change, not when availableModels updates
@@ -648,9 +649,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
 
         {errorMessage && (
           <div className="mt-3 p-3 bg-red-900/20 border border-red-800/30 rounded-lg">
-            <p className="text-sm text-red-400">
-              {errorMessage}
-            </p>
+            <p className="text-sm text-red-400">{errorMessage}</p>
           </div>
         )}
       </div>
@@ -672,18 +671,14 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
       {modelResults.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-[#151A21] rounded-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
-            <div className="text-sm text-gray-400 mb-2">
-              Models Selected
-            </div>
+            <div className="text-sm text-gray-400 mb-2">Models Selected</div>
             <div className="text-xl font-bold text-white">
               {modelResults.length}
             </div>
           </div>
 
           <div className="bg-[#151A21] rounded-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
-            <div className="text-sm text-gray-400 mb-2">
-              Completed
-            </div>
+            <div className="text-sm text-gray-400 mb-2">Completed</div>
             <div className="text-xl font-bold text-white">
               {modelResults.filter((r) => r.prompt).length}
             </div>
@@ -726,8 +721,8 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
               <div className="flex-1 flex flex-col min-h-0">
                 {result.prompt && !result.isProcessing && (
                   <>
-                    {/* Prompt Output - Scrollable */}
-                    <div className="relative flex-1 overflow-y-auto p-4 bg-white/5 min-h-[200px] max-h-[300px]">
+                    {/* Prompt Output - Truncated with Show More/Less */}
+                    <div className="relative flex-1 p-4 bg-white/5">
                       <div className="flex items-center justify-between mb-3">
                         <h5 className="font-medium text-white text-xs">
                           Generated Prompt
@@ -755,13 +750,35 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
                         </button>
                       </div>
                       <p className="text-sm text-white whitespace-pre-wrap leading-relaxed">
-                        {result.prompt}
+                        {expandedMap[result.id] || result.prompt.length <= 300
+                          ? result.prompt
+                          : `${result.prompt.slice(0, 300)}...`}
                       </p>
-                      {/* Character Count - Bottom Right */}
-                      <div className="flex justify-end mt-3 pt-2 border-t border-white/10">
-                        <span className="text-xs text-gray-400">
+                      {/* Character Count with Color Coding */}
+                      <div className="flex items-center justify-between mt-3 pt-2 border-t border-white/10">
+                        <span
+                          className={`text-xs font-semibold ${
+                            result.prompt.length > 1500
+                              ? "text-red-400"
+                              : "text-green-400"
+                          }`}
+                        >
                           {result.prompt.length} chars
                         </span>
+                        {result.prompt.length > 300 && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setExpandedMap((prev) => ({
+                                ...prev,
+                                [result.id]: !prev[result.id],
+                              }))
+                            }
+                            className="text-xs text-blue-400 hover:text-blue-300 transition-colors font-medium"
+                          >
+                            {expandedMap[result.id] ? "Show Less" : "Show More"}
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -769,18 +786,14 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
                     <div className="p-3 bg-white/5 border-t border-white/10">
                       <div className="grid grid-cols-2 gap-2 text-xs">
                         <div>
-                          <div className="text-gray-400">
-                            Tokens
-                          </div>
+                          <div className="text-gray-400">Tokens</div>
                           <div className="font-medium text-white">
                             {formatTokens(result.inputTokens)} /{" "}
                             {formatTokens(result.outputTokens)}
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="text-gray-400">
-                            Total Cost
-                          </div>
+                          <div className="text-gray-400">Total Cost</div>
                           <div className="font-semibold text-green-400">
                             {formatCost(result.cost)}
                           </div>
