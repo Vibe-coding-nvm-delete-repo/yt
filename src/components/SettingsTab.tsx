@@ -1,12 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import type {
-  AppSettings,
-  ValidationState,
-  ModelState,
-  VisionModel,
-} from "@/types";
+import type { AppSettings, ValidationState, ModelState } from "@/types";
 import { settingsStorage } from "@/lib/storage";
 import { createOpenRouterClient, isValidApiKeyFormat } from "@/lib/openrouter";
 import {
@@ -322,20 +317,6 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     },
     [selectedVisionModels, onSettingsUpdate],
   );
-
-  // Helper function to extract provider/company from model ID
-  const getModelProvider = useCallback((modelId: string): string => {
-    const parts = modelId.split("/");
-    return parts.length > 0 ? parts[0] || "Other" : "Other";
-  }, []);
-
-  // Helper function to calculate average cost per token for sorting/comparison
-  // Uses average of prompt and completion pricing since both are used in vision tasks
-  const getModelAverageCost = useCallback((model: VisionModel): number => {
-    const promptCost = model.pricing.prompt || 0;
-    const completionCost = model.pricing.completion || 0;
-    return (promptCost + completionCost) / 2;
-  }, []);
 
   const renderApiKeysTab = useCallback(
     () => (
