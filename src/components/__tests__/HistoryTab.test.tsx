@@ -42,8 +42,10 @@ describe("HistoryTab", () => {
 
     render(<HistoryTab />);
 
-    expect(screen.getByText("Generation History")).toBeInTheDocument();
-    expect(screen.getByText("No history entries found.")).toBeInTheDocument();
+    expect(screen.getByText("History")).toBeInTheDocument();
+    expect(
+      screen.getByText("No history yet. Generate prompts to see entries here."),
+    ).toBeInTheDocument();
   });
 
   it("renders history entries in table format", () => {
@@ -74,11 +76,12 @@ describe("HistoryTab", () => {
 
     render(<HistoryTab />);
 
-    expect(screen.getByText("Test Model")).toBeInTheDocument();
+    // Check that history entries are displayed
     expect(screen.getByText("A test prompt")).toBeInTheDocument();
+    expect(screen.getAllByText(/Test Model/i).length).toBeGreaterThan(0);
   });
 
-  it("displays table headers correctly", () => {
+  it("displays filter controls", () => {
     mockUseHistory.mockReturnValue({
       entries: [],
       filterModelIds: [],
@@ -89,14 +92,7 @@ describe("HistoryTab", () => {
 
     render(<HistoryTab />);
 
-    expect(screen.getByText("Date/Time")).toBeInTheDocument();
-    expect(screen.getByText("Model")).toBeInTheDocument();
-    expect(screen.getByText("Image")).toBeInTheDocument();
-    expect(screen.getByText("Prompt")).toBeInTheDocument();
-    expect(screen.getByText("Input Tokens")).toBeInTheDocument();
-    expect(screen.getByText("Output Tokens")).toBeInTheDocument();
-    expect(screen.getByText("Input Cost")).toBeInTheDocument();
-    expect(screen.getByText("Output Cost")).toBeInTheDocument();
-    expect(screen.getByText("Total Cost")).toBeInTheDocument();
+    // Check that filter section exists
+    expect(screen.getByText("Filter")).toBeInTheDocument();
   });
 });

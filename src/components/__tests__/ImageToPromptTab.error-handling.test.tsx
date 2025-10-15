@@ -48,8 +48,8 @@ describe("ImageToPromptTab", () => {
     render(<ImageToPromptTab settings={mockSettings} />);
 
     // Check that the compact metrics are displayed
-    expect(screen.getByText(/Models:/i)).toBeInTheDocument();
-    expect(screen.getByText(/Completed:/i)).toBeInTheDocument();
+    expect(screen.getByText(/Models Selected/i)).toBeInTheDocument();
+    expect(screen.getByText(/Completed/i)).toBeInTheDocument();
   });
 
   test("character count indicator displays for prompts", () => {

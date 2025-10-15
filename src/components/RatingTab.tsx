@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { middleEllipsis } from "@/utils/truncation";
+import { renderStars, renderThumbsIcon } from "./rating/RatingHelpers";
 
 export const RatingTab: React.FC = () => {
   const [filter, setFilter] = useState<RatingFilter>({});
@@ -54,43 +55,6 @@ export const RatingTab: React.FC = () => {
       setStatsState(newStats);
     }
   };
-
-  const renderStars = (
-    rating: RatingValue | null,
-    size: "sm" | "md" = "md",
-  ) => {
-    const sizeClass = size === "sm" ? "h-4 w-4" : "h-5 w-5";
-    return (
-      <div className="flex gap-1">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <Star
-            key={star}
-            className={`${sizeClass} ${
-              rating && star <= rating
-                ? "fill-yellow-400 text-yellow-400"
-                : "text-gray-300 dark:text-gray-600"
-            }`}
-          />
-        ))}
-      </div>
-    );
-  };
-
-  const renderThumbsIcon = (thumbs: ThumbsRating, size: "sm" | "md" = "md") => {
-    const sizeClass = size === "sm" ? "h-4 w-4" : "h-5 w-5";
-    if (thumbs === "up") {
-      return (
-        <ThumbsUp className={`${sizeClass} text-green-500 fill-green-500`} />
-      );
-    }
-    if (thumbs === "down") {
-      return (
-        <ThumbsDown className={`${sizeClass} text-red-500 fill-red-500`} />
-      );
-    }
-    return null;
-  };
-
   const uniqueModels = useMemo(() => {
     const allRatings = ratingStorage.getAllRatings();
     const modelMap = new Map<string, string>();
@@ -103,10 +67,10 @@ export const RatingTab: React.FC = () => {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Model Ratings
+        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          <Star className="h-6 w-6" /> Model Ratings
         </h1>
         <button
           onClick={() => setShowFilters(!showFilters)}
@@ -116,65 +80,63 @@ export const RatingTab: React.FC = () => {
           {showFilters ? "Hide Filters" : "Show Filters"}
         </button>
       </div>
-
       {/* Statistics Summary */}
       {statsState && statsState.totalRatings > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 mb-2">
+          <div className="bg-[#151A21] p-6 rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
+            <div className="flex items-center gap-2 text-gray-400 mb-2">
               <TrendingUp className="h-4 w-4" />
               <span className="text-sm">Total Ratings</span>
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+            <p className="text-2xl font-bold text-white">
               {statsState.totalRatings}
             </p>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 mb-2">
+          <div className="bg-[#151A21] p-6 rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
+            <div className="flex items-center gap-2 text-gray-400 mb-2">
               <Star className="h-4 w-4" />
               <span className="text-sm">Average Rating</span>
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+            <p className="text-2xl font-bold text-white">
               {statsState.averageStars > 0
                 ? statsState.averageStars.toFixed(1)
                 : "N/A"}
             </p>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-2 text-green-500 mb-2">
+          <div className="bg-[#151A21] p-6 rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
+            <div className="flex items-center gap-2 text-green-400 mb-2">
               <ThumbsUp className="h-4 w-4" />
               <span className="text-sm">Thumbs Up</span>
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+            <p className="text-2xl font-bold text-white">
               {statsState.thumbsUp}
             </p>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-2 text-red-500 mb-2">
+          <div className="bg-[#151A21] p-6 rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
+            <div className="flex items-center gap-2 text-red-400 mb-2">
               <ThumbsDown className="h-4 w-4" />
               <span className="text-sm">Thumbs Down</span>
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+            <p className="text-2xl font-bold text-white">
               {statsState.thumbsDown}
             </p>
           </div>
         </div>
       )}
-
       {/* Filter Panel */}
       {showFilters && (
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 space-y-4">
-          <h3 className="font-semibold text-gray-900 dark:text-white">
-            Filters
+        <div className="bg-[#151A21] rounded-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)] space-y-4">
+          <h3 className="font-semibold text-white flex items-center gap-2">
+            <Filter className="h-4 w-4" /> Filters
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Model Filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 Model
               </label>
               <select
@@ -189,7 +151,7 @@ export const RatingTab: React.FC = () => {
                     setFilter(rest);
                   }
                 }}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="w-full px-3 py-2 border-none rounded-lg bg-white/5 focus:bg-white/10 focus:ring-2 focus:ring-blue-500/50 text-white transition-colors"
               >
                 <option value="">All Models</option>
                 {uniqueModels.map((model) => (
@@ -202,7 +164,7 @@ export const RatingTab: React.FC = () => {
 
             {/* Min Stars */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 Min Stars
               </label>
               <select
@@ -220,7 +182,7 @@ export const RatingTab: React.FC = () => {
                     setFilter(rest);
                   }
                 }}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="w-full px-3 py-2 border-none rounded-lg bg-white/5 focus:bg-white/10 focus:ring-2 focus:ring-blue-500/50 text-white transition-colors"
               >
                 <option value="">Any</option>
                 <option value="1">1+</option>
@@ -233,7 +195,7 @@ export const RatingTab: React.FC = () => {
 
             {/* Thumbs Filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 Thumbs
               </label>
               <select
@@ -248,7 +210,7 @@ export const RatingTab: React.FC = () => {
                     setFilter(rest);
                   }
                 }}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="w-full px-3 py-2 border-none rounded-lg bg-white/5 focus:bg-white/10 focus:ring-2 focus:ring-blue-500/50 text-white transition-colors"
               >
                 <option value="">All</option>
                 <option value="up">Thumbs Up</option>
@@ -260,19 +222,18 @@ export const RatingTab: React.FC = () => {
           <div className="flex gap-2">
             <button
               onClick={() => setFilter({})}
-              className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+              className="px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors"
             >
               Clear Filters
             </button>
           </div>
         </div>
       )}
-
       {/* Model Statistics */}
       {statsState && Object.keys(statsState.byModel).length > 0 && (
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-          <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
-            Statistics by Model
+        <div className="bg-[#151A21] rounded-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
+          <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
+            <TrendingUp className="h-4 w-4" /> Statistics by Model
           </h3>
           <div className="space-y-3">
             {Object.entries(statsState.byModel)
@@ -280,16 +241,16 @@ export const RatingTab: React.FC = () => {
               .map(([modelId, modelStats]) => (
                 <div
                   key={modelId}
-                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+                  className="flex items-center justify-between p-3 bg-white/5 rounded-lg"
                 >
                   <div className="flex-1">
                     <p
-                      className="font-medium text-gray-900 dark:text-white"
+                      className="font-medium text-white"
                       title={modelStats.modelName}
                     >
                       {middleEllipsis(modelStats.modelName, 40)}
                     </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                    <p className="text-sm text-gray-400">
                       {modelStats.count} rating
                       {modelStats.count !== 1 ? "s" : ""}
                     </p>
@@ -302,19 +263,19 @@ export const RatingTab: React.FC = () => {
                           : null,
                         "sm",
                       )}
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">
+                      <span className="text-sm font-medium text-white">
                         {modelStats.averageStars.toFixed(1)}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <ThumbsUp className="h-4 w-4 text-green-500" />
-                      <span className="text-sm text-gray-900 dark:text-white">
+                      <ThumbsUp className="h-4 w-4 text-green-400" />
+                      <span className="text-sm text-white">
                         {modelStats.thumbsUp}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <ThumbsDown className="h-4 w-4 text-red-500" />
-                      <span className="text-sm text-gray-900 dark:text-white">
+                      <ThumbsDown className="h-4 w-4 text-red-400" />
+                      <span className="text-sm text-white">
                         {modelStats.thumbsDown}
                       </span>
                     </div>
@@ -326,21 +287,18 @@ export const RatingTab: React.FC = () => {
       )}
 
       {/* Ratings List */}
-      <div className="space-y-4">
+      <div className="bg-[#151A21] rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.35)] divide-y divide-white/6">
         {ratingsState.length === 0 ? (
           <div className="text-center py-12">
             <Star className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500 dark:text-gray-400">
+            <p className="text-gray-400">
               No ratings yet. Rate model outputs in the Generate Prompt or
               History tabs.
             </p>
           </div>
         ) : (
           ratingsState.map((rating) => (
-            <div
-              key={rating.id}
-              className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700"
-            >
+            <div key={rating.id} className="p-4">
               <div className="flex gap-4">
                 {/* Image Preview */}
                 {rating.imagePreview && (
@@ -361,21 +319,21 @@ export const RatingTab: React.FC = () => {
                   <div className="flex items-start justify-between">
                     <div>
                       <h4
-                        className="font-semibold text-gray-900 dark:text-white"
+                        className="font-semibold text-white"
                         title={rating.modelName}
                       >
                         {middleEllipsis(rating.modelName, 40)}
                       </h4>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                      <p className="text-sm text-gray-400">
                         {new Date(rating.createdAt).toLocaleString()}
                       </p>
                     </div>
                     <button
                       onClick={() => handleDeleteRating(rating.id)}
-                      className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                      className="p-2 hover:bg-red-900/20 rounded-lg transition-colors"
                       title="Delete rating"
                     >
-                      <Trash2 className="h-4 w-4 text-red-500" />
+                      <Trash2 className="h-4 w-4 text-red-400" />
                     </button>
                   </div>
 
@@ -387,8 +345,8 @@ export const RatingTab: React.FC = () => {
 
                   {/* Prompt */}
                   {rating.prompt && (
-                    <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                      <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">
+                    <div className="p-3 bg-white/5 rounded-lg">
+                      <p className="text-sm text-gray-300 line-clamp-2">
                         {rating.prompt}
                       </p>
                     </div>
@@ -396,11 +354,9 @@ export const RatingTab: React.FC = () => {
 
                   {/* Comment */}
                   {rating.comment && (
-                    <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                      <MessageSquare className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
-                      <p className="text-sm text-gray-700 dark:text-gray-300">
-                        {rating.comment}
-                      </p>
+                    <div className="flex items-start gap-2 p-3 bg-blue-900/20 rounded-lg">
+                      <MessageSquare className="h-4 w-4 text-blue-400 flex-shrink-0 mt-0.5" />
+                      <p className="text-sm text-gray-300">{rating.comment}</p>
                     </div>
                   )}
                 </div>

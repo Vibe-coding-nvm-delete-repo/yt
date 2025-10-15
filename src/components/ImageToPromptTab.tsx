@@ -537,20 +537,20 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   }, 0);
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-        Image to Prompt
+    <div className="space-y-4">
+      <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+        <ImageIcon className="h-6 w-6" /> Image to Prompt
       </h1>
 
       {!settings.isValidApiKey && (
-        <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+        <div className="bg-[#151A21] rounded-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)] border border-yellow-600/30">
           <div className="flex items-center">
-            <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mr-3" />
+            <AlertCircle className="h-5 w-5 text-yellow-400 mr-3" />
             <div>
-              <h2 className="text-sm font-medium text-yellow-800 dark:text-yellow-300">
+              <h2 className="text-sm font-medium text-yellow-300">
                 API Key Required
               </h2>
-              <p className="text-sm text-yellow-700 dark:text-yellow-400 mt-1">
+              <p className="text-sm text-yellow-400 mt-1">
                 Please add and validate your OpenRouter API key in the Settings
                 tab.
               </p>
@@ -561,14 +561,14 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
 
       {(!settings.selectedVisionModels ||
         settings.selectedVisionModels.length === 0) && (
-        <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+        <div className="bg-[#151A21] rounded-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)] border border-blue-600/30">
           <div className="flex items-center">
-            <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 mr-3" />
+            <AlertCircle className="h-5 w-5 text-blue-400 mr-3" />
             <div>
-              <h2 className="text-sm font-medium text-blue-800 dark:text-blue-300">
+              <h2 className="text-sm font-medium text-blue-300">
                 No Models Selected
               </h2>
-              <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
+              <p className="text-sm text-blue-400 mt-1">
                 Please select up to 5 vision models in the Settings tab.
               </p>
             </div>
@@ -577,12 +577,10 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
       )}
 
       {/* Drag and Drop Zone */}
-      <div>
-        <div className="flex items-center mb-3">
-          <ImageIcon className="mr-2 h-5 w-5 text-gray-700 dark:text-gray-300" />
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Upload Image
-          </h2>
+      <div className="bg-[#151A21] rounded-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
+        <div className="flex items-center gap-3 mb-3 text-sm text-gray-300">
+          <ImageIcon className="h-4 w-4" />
+          Upload Image
         </div>
 
         {!uploadedImage ? (
@@ -591,15 +589,15 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
             onDragOver={handleDragOver}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
-            className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-12 text-center cursor-pointer hover:border-blue-500 dark:hover:border-blue-400 transition-colors bg-gray-50 dark:bg-gray-800"
+            className="border-2 border-dashed border-white/20 rounded-lg p-12 text-center cursor-pointer hover:border-blue-500 transition-colors bg-white/5"
             role="button"
             tabIndex={0}
           >
-            <ImageIcon className="mx-auto h-16 w-16 text-gray-400 dark:text-gray-500 mb-4" />
-            <p className="text-lg text-gray-700 dark:text-gray-300 mb-2">
+            <ImageIcon className="mx-auto h-16 w-16 text-gray-400 mb-4" />
+            <p className="text-lg text-gray-300 mb-2">
               Drop your image here or click to browse
             </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-gray-400">
               Supports JPEG, PNG, WebP, and GIF (max 10MB)
             </p>
             <input
@@ -611,7 +609,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
             />
           </div>
         ) : (
-          <div className="relative rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800">
+          <div className="relative rounded-lg overflow-hidden border border-white/10 bg-white/5">
             <div className="w-full max-h-[600px] flex items-center justify-center p-4">
               <Image
                 src={uploadedImage.preview}
@@ -649,8 +647,8 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
         )}
 
         {errorMessage && (
-          <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-            <p className="text-sm text-red-600 dark:text-red-400">
+          <div className="mt-3 p-3 bg-red-900/20 border border-red-800/30 rounded-lg">
+            <p className="text-sm text-red-400">
               {errorMessage}
             </p>
           </div>
@@ -670,46 +668,34 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
         </div>
       )}
 
-      {/* Overall Cost Summary - Ultra Minimalist */}
+      {/* Overall Cost Summary */}
       {modelResults.length > 0 && (
-        <div className="flex items-center justify-center gap-8 py-3 text-sm">
-          <div className="flex items-center gap-2">
-            <span className="text-gray-500 dark:text-gray-400">Models:</span>
-            <span className="font-medium text-gray-900 dark:text-white">
-              {modelResults.filter((r) => r.prompt).length}/
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-[#151A21] rounded-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
+            <div className="text-sm text-gray-400 mb-2">
+              Models Selected
+            </div>
+            <div className="text-xl font-bold text-white">
               {modelResults.length}
-            </span>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm">
-              <div className="text-sm text-gray-500 dark:text-gray-400">
-                Models Selected
-              </div>
-              <div className="text-xl font-bold text-gray-900 dark:text-white">
-                {modelResults.length}
-              </div>
+          <div className="bg-[#151A21] rounded-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
+            <div className="text-sm text-gray-400 mb-2">
+              Completed
             </div>
-
-            <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm">
-              <div className="text-sm text-gray-500 dark:text-gray-400">
-                Completed
-              </div>
-              <div className="text-xl font-bold text-gray-900 dark:text-white">
-                {modelResults.filter((r) => r.prompt).length}
-              </div>
+            <div className="text-xl font-bold text-white">
+              {modelResults.filter((r) => r.prompt).length}
             </div>
+          </div>
 
-            <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm">
-              <div className="flex items-center justify-center">
-                <DollarSign className="h-4 w-4 text-green-600 dark:text-green-400 mr-1" />
-                <div className="text-sm text-gray-500 dark:text-gray-400">
-                  Total Cost
-                </div>
-              </div>
-              <div className="text-xl font-bold text-green-600 dark:text-green-400">
-                {formatCost(totalCostAllModels)}
-              </div>
+          <div className="bg-[#151A21] rounded-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
+            <div className="flex items-center gap-2 text-gray-400 mb-2">
+              <DollarSign className="h-4 w-4 text-green-400" />
+              <span className="text-sm">Total Cost</span>
+            </div>
+            <div className="text-xl font-bold text-green-400">
+              {formatCost(totalCostAllModels)}
             </div>
           </div>
         </div>
@@ -721,17 +707,17 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
           {modelResults.map((result) => (
             <div
               key={result.modelId}
-              className="flex flex-col rounded-xl bg-white dark:bg-gray-800 overflow-hidden shadow-sm border border-gray-200 dark:border-gray-700"
+              className="flex flex-col rounded-xl bg-[#151A21] overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.35)] border border-white/10"
             >
               {/* Model Header */}
-              <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+              <div className="p-4 border-b border-white/10">
                 <h3
-                  className="font-semibold text-gray-900 dark:text-white text-sm mb-1 truncate"
+                  className="font-semibold text-white text-sm mb-1 truncate"
                   title={result.modelName}
                 >
                   {middleEllipsis(result.modelName, 30)}
                 </h3>
-                <div className="text-xs text-gray-400 dark:text-gray-500 truncate">
+                <div className="text-xs text-gray-400 truncate">
                   {result.modelId}
                 </div>
               </div>
@@ -741,16 +727,16 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
                 {result.prompt && !result.isProcessing && (
                   <>
                     {/* Prompt Output - Scrollable */}
-                    <div className="relative flex-1 overflow-y-auto p-4 bg-gray-50 dark:bg-gray-900/50 min-h-[200px] max-h-[300px]">
+                    <div className="relative flex-1 overflow-y-auto p-4 bg-white/5 min-h-[200px] max-h-[300px]">
                       <div className="flex items-center justify-between mb-3">
-                        <h5 className="font-medium text-gray-900 dark:text-white text-xs">
+                        <h5 className="font-medium text-white text-xs">
                           Generated Prompt
                         </h5>
                         <button
                           type="button"
                           aria-label="Copy prompt"
                           title="Copy prompt"
-                          className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-white dark:bg-gray-800 shadow-sm hover:shadow-md text-gray-700 dark:text-gray-200 text-xs transition-shadow"
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-white/10 hover:bg-white/20 text-gray-200 text-xs transition-colors"
                           onClick={() =>
                             copyToClipboard(result.prompt!, result.id)
                           }
@@ -768,34 +754,34 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
                           )}
                         </button>
                       </div>
-                      <p className="text-sm text-gray-900 dark:text-white whitespace-pre-wrap leading-relaxed">
+                      <p className="text-sm text-white whitespace-pre-wrap leading-relaxed">
                         {result.prompt}
                       </p>
                       {/* Character Count - Bottom Right */}
-                      <div className="flex justify-end mt-3 pt-2 border-t border-gray-200 dark:border-gray-700">
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                      <div className="flex justify-end mt-3 pt-2 border-t border-white/10">
+                        <span className="text-xs text-gray-400">
                           {result.prompt.length} chars
                         </span>
                       </div>
                     </div>
 
                     {/* Compact Cost Summary */}
-                    <div className="p-3 bg-gray-50/50 dark:bg-gray-800/50 border-t border-gray-200 dark:border-gray-700">
+                    <div className="p-3 bg-white/5 border-t border-white/10">
                       <div className="grid grid-cols-2 gap-2 text-xs">
                         <div>
-                          <div className="text-gray-500 dark:text-gray-400">
+                          <div className="text-gray-400">
                             Tokens
                           </div>
-                          <div className="font-medium text-gray-900 dark:text-white">
+                          <div className="font-medium text-white">
                             {formatTokens(result.inputTokens)} /{" "}
                             {formatTokens(result.outputTokens)}
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="text-gray-500 dark:text-gray-400">
+                          <div className="text-gray-400">
                             Total Cost
                           </div>
-                          <div className="font-semibold text-green-600 dark:text-green-400">
+                          <div className="font-semibold text-green-400">
                             {formatCost(result.cost)}
                           </div>
                         </div>
@@ -806,7 +792,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
 
                 {result.error && (
                   <div className="flex-1 p-4 flex items-center justify-center">
-                    <p className="text-xs text-red-600 dark:text-red-400 text-center">
+                    <p className="text-xs text-red-400 text-center">
                       {result.error}
                     </p>
                   </div>
@@ -814,14 +800,14 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
 
                 {result.isProcessing && (
                   <div className="flex-1 flex items-center justify-center p-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-blue-600 dark:text-blue-400" />
+                    <Loader2 className="h-6 w-6 animate-spin text-blue-400" />
                   </div>
                 )}
               </div>
 
               {/* Rating Widget - Always at Bottom */}
               {result.prompt && !result.isProcessing && (
-                <div className="p-3 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+                <div className="p-3 bg-[#151A21] border-t border-white/10">
                   <RatingWidget
                     historyEntryId={result.id}
                     modelId={result.modelId}
