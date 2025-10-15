@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useHistory } from "@/hooks/useHistory";
 import { RatingWidget } from "@/components/RatingWidget";
 import { middleEllipsis } from "@/utils/truncation";
-import { Filter, History, Image as ImageIcon, DollarSign } from "lucide-react";
+import { Filter, History } from "lucide-react";
 import Image from "next/image";
 
 export const HistoryTab: React.FC = () => {

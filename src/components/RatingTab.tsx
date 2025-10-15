@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { middleEllipsis } from "@/utils/truncation";
+import { renderStars, renderThumbsIcon } from "./rating/RatingHelpers";
 
 export const RatingTab: React.FC = () => {
   const [filter, setFilter] = useState<RatingFilter>({});
@@ -54,43 +55,6 @@ export const RatingTab: React.FC = () => {
       setStatsState(newStats);
     }
   };
-
-  const renderStars = (
-    rating: RatingValue | null,
-    size: "sm" | "md" = "md",
-  ) => {
-    const sizeClass = size === "sm" ? "h-4 w-4" : "h-5 w-5";
-    return (
-      <div className="flex gap-1">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <Star
-            key={star}
-            className={`${sizeClass} ${
-              rating && star <= rating
-                ? "fill-yellow-400 text-yellow-400"
-                : "text-gray-300 dark:text-gray-600"
-            }`}
-          />
-        ))}
-      </div>
-    );
-  };
-
-  const renderThumbsIcon = (thumbs: ThumbsRating, size: "sm" | "md" = "md") => {
-    const sizeClass = size === "sm" ? "h-4 w-4" : "h-5 w-5";
-    if (thumbs === "up") {
-      return (
-        <ThumbsUp className={`${sizeClass} text-green-500 fill-green-500`} />
-      );
-    }
-    if (thumbs === "down") {
-      return (
-        <ThumbsDown className={`${sizeClass} text-red-500 fill-red-500`} />
-      );
-    }
-    return null;
-  };
-
   const uniqueModels = useMemo(() => {
     const allRatings = ratingStorage.getAllRatings();
     const modelMap = new Map<string, string>();
@@ -116,7 +80,6 @@ export const RatingTab: React.FC = () => {
           {showFilters ? "Hide Filters" : "Show Filters"}
         </button>
       </div>
-
       {/* Statistics Summary */}
       {statsState && statsState.totalRatings > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -163,7 +126,6 @@ export const RatingTab: React.FC = () => {
           </div>
         </div>
       )}
-
       {/* Filter Panel */}
       {showFilters && (
         <div className="bg-[#151A21] rounded-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)] space-y-4">
@@ -267,7 +229,6 @@ export const RatingTab: React.FC = () => {
           </div>
         </div>
       )}
-
       {/* Model Statistics */}
       {statsState && Object.keys(statsState.byModel).length > 0 && (
         <div className="bg-[#151A21] rounded-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
@@ -337,10 +298,7 @@ export const RatingTab: React.FC = () => {
           </div>
         ) : (
           ratingsState.map((rating) => (
-            <div
-              key={rating.id}
-              className="p-4"
-            >
+            <div key={rating.id} className="p-4">
               <div className="flex gap-4">
                 {/* Image Preview */}
                 {rating.imagePreview && (
@@ -398,9 +356,7 @@ export const RatingTab: React.FC = () => {
                   {rating.comment && (
                     <div className="flex items-start gap-2 p-3 bg-blue-900/20 rounded-lg">
                       <MessageSquare className="h-4 w-4 text-blue-400 flex-shrink-0 mt-0.5" />
-                      <p className="text-sm text-gray-300">
-                        {rating.comment}
-                      </p>
+                      <p className="text-sm text-gray-300">{rating.comment}</p>
                     </div>
                   )}
                 </div>
