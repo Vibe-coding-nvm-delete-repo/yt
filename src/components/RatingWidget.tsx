@@ -36,10 +36,11 @@ export const RatingWidget: React.FC<RatingWidgetProps> = ({
   const [saved, setSaved] = useState(false);
 
   // Load existing rating - this is initialization from external storage, not cascading renders
-  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     const existing = ratingStorage.getRatingByHistoryId(historyEntryId);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setRating(existing);
+
     setComment(existing?.comment || "");
   }, [historyEntryId]);
 
