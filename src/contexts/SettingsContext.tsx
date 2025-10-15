@@ -3,7 +3,6 @@
 import React, {
   createContext,
   useContext,
-  useEffect,
   useState,
   type ReactNode,
 } from "react";
@@ -56,50 +55,46 @@ const DEFAULT_SETTINGS: AppSettings = {
 export const SettingsProvider: React.FC<SettingsProviderProps> = ({
   children,
 }) => {
-  const [settings, setSettings] = useState<AppSettings>(() => ({
-    ...DEFAULT_SETTINGS,
-  }));
-
-  // Load initial settings
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => {
-    if (typeof window === "undefined") return;
+  const [settings, setSettings] = useState<AppSettings>(() => {
+    // Initialize from localStorage if available
+    if (typeof window === "undefined") return DEFAULT_SETTINGS;
 
     try {
       const stored = localStorage.getItem("image-to-prompt-settings");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setSettings({
-          ...DEFAULT_SETTINGS,
-          ...parsed,
-          openRouterApiKey: parsed.openRouterApiKey || "",
-          selectedModel: parsed.selectedModel || "",
-          selectedVisionModels: Array.isArray(parsed.selectedVisionModels)
-            ? parsed.selectedVisionModels
-            : [],
-          customPrompt: parsed.customPrompt || DEFAULT_SETTINGS.customPrompt,
-          isValidApiKey: Boolean(parsed.isValidApiKey),
-          lastApiKeyValidation: parsed.lastApiKeyValidation
-            ? Number(parsed.lastApiKeyValidation)
-            : null,
-          lastModelFetch: parsed.lastModelFetch
-            ? Number(parsed.lastModelFetch)
-            : null,
-          availableModels: Array.isArray(parsed.availableModels)
-            ? parsed.availableModels
-            : [],
-          preferredModels: Array.isArray(parsed.preferredModels)
-            ? parsed.preferredModels
-            : [],
-          pinnedModels: Array.isArray(parsed.pinnedModels)
-            ? parsed.pinnedModels
-            : [],
-        });
-      }
+      if (!stored) return DEFAULT_SETTINGS;
+
+      const parsed = JSON.parse(stored);
+      return {
+        ...DEFAULT_SETTINGS,
+        ...parsed,
+        openRouterApiKey: parsed.openRouterApiKey || "",
+        selectedModel: parsed.selectedModel || "",
+        selectedVisionModels: Array.isArray(parsed.selectedVisionModels)
+          ? parsed.selectedVisionModels
+          : [],
+        customPrompt: parsed.customPrompt || DEFAULT_SETTINGS.customPrompt,
+        isValidApiKey: Boolean(parsed.isValidApiKey),
+        lastApiKeyValidation: parsed.lastApiKeyValidation
+          ? Number(parsed.lastApiKeyValidation)
+          : null,
+        lastModelFetch: parsed.lastModelFetch
+          ? Number(parsed.lastModelFetch)
+          : null,
+        availableModels: Array.isArray(parsed.availableModels)
+          ? parsed.availableModels
+          : [],
+        preferredModels: Array.isArray(parsed.preferredModels)
+          ? parsed.preferredModels
+          : [],
+        pinnedModels: Array.isArray(parsed.pinnedModels)
+          ? parsed.pinnedModels
+          : [],
+      };
     } catch (error) {
       console.warn("Failed to load settings from localStorage:", error);
+      return DEFAULT_SETTINGS;
     }
-  }, []);
+  });
 
   // Persist settings to localStorage
   const saveSettings = (newSettings: AppSettings) => {
