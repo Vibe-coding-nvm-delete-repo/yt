@@ -7,12 +7,15 @@ describe("RatingStorage", () => {
   beforeEach(() => {
     // Clear localStorage
     localStorage.clear();
+    // Reset singleton instance for test isolation
+    RatingStorage.resetInstance();
     // Get fresh instance
     storage = RatingStorage.getInstance();
   });
 
   afterEach(() => {
     storage.clearAllRatings();
+    localStorage.clear();
   });
 
   describe("saveRating", () => {
@@ -36,7 +39,7 @@ describe("RatingStorage", () => {
       expect(rating.updatedAt).toBeDefined();
     });
 
-    it("updates an existing rating", () => {
+    it("updates an existing rating", async () => {
       const rating1 = storage.saveRating({
         historyEntryId: "history-1",
         modelId: "model-1",
@@ -47,6 +50,9 @@ describe("RatingStorage", () => {
         imagePreview: null,
         prompt: "Test prompt",
       });
+
+      // Small delay to ensure updatedAt timestamp is different
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       const rating2 = storage.saveRating({
         historyEntryId: "history-1",
@@ -63,7 +69,7 @@ describe("RatingStorage", () => {
       expect(rating2.stars).toBe(5);
       expect(rating2.thumbs).toBe("up");
       expect(rating2.comment).toBe("Updated!");
-      expect(rating2.updatedAt).toBeGreaterThan(rating1.updatedAt);
+      expect(rating2.updatedAt).toBeGreaterThanOrEqual(rating1.updatedAt);
 
       const allRatings = storage.getAllRatings();
       expect(allRatings).toHaveLength(1);

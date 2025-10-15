@@ -27,6 +27,30 @@ export class RatingStorage {
     return RatingStorage.instance;
   }
 
+  /**
+   * Reset the singleton instance (for testing only)
+   * @internal
+   */
+  static resetInstance(): void {
+    // Always clear localStorage
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.removeItem(RATING_KEY);
+      } catch {
+        // Ignore errors silently
+      }
+    }
+    
+    // Reset the instance state if it exists
+    if (RatingStorage.instance) {
+      RatingStorage.instance.state = { ...DEFAULT_RATING_STATE, ratings: [] };
+    }
+    
+    // Force create new instance - type assertion needed for test utility
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (RatingStorage as any).instance = null;
+  }
+
   private load(): PersistedRatingState {
     if (typeof window === "undefined") return DEFAULT_RATING_STATE;
     try {

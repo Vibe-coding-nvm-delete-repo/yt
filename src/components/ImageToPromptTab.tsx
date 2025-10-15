@@ -1,10 +1,14 @@
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect } from "react";
-import type { AppSettings, ModelResult } from "@/types";
+import type { AppSettings, ModelResult as ImportedModelResult } from "@/types";
+import type { UsageEntry } from "@/types/usage";
+import type { HistoryEntry } from "@/types/history";
 import { createOpenRouterClient } from "@/lib/openrouter";
 import { imageStateStorage } from "@/lib/storage";
-import { calculateDetailedCost } from "@/lib/cost";
+import { usageStorage } from "@/lib/usage";
+import { historyStorage } from "@/lib/historyStorage";
+import { calculateDetailedCost, calculateGenerationCost } from "@/lib/cost";
 import { normalizeToApiError } from "@/lib/errorUtils";
 import {
   AlertCircle,
@@ -12,6 +16,8 @@ import {
   Loader2,
   Calculator,
   DollarSign,
+  Check,
+  Copy,
 } from "lucide-react";
 import Image from "next/image";
 import { RatingWidget } from "@/components/RatingWidget";
@@ -45,6 +51,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [sessionId] = useState<string>(() => `session-${Date.now()}`); // Stable session ID for ratings
+  const [copiedPromptId, setCopiedPromptId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const dropZoneRef = useRef<HTMLDivElement | null>(null);
 
@@ -134,8 +141,10 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
       persisted.modelResults.length > 0
     ) {
       // Clear isProcessing flags to prevent stuck spinners after navigation/refresh
+      // Also ensure each result has an id field for ratings
       const cleanedResults = persisted.modelResults.map((result) => ({
         ...result,
+        id: (result as ModelResult).id || `${result.modelId}-${Date.now()}`,
         isProcessing: false,
       }));
       // Set results directly, overriding any initialization from settings
@@ -779,20 +788,39 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
                     {formatCost(result.cost)}
                   </span>
                 </div>
+              </div>
+
+              {result.error && (
+                <div className="flex-1 p-4">
+                  <p className="text-xs text-red-600 dark:text-red-400">
+                    {result.error}
+                  </p>
+                </div>
               )}
 
               {result.prompt && !result.isProcessing && (
-                <>
-                  <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600">
-                    <div className="flex items-center justify-between mb-2">
-                      <h5 className="font-medium text-gray-900 dark:text-white">
-                        Generated Prompt
-                      </h5>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        {result.prompt.length} characters
-                      </div>
-                    </div>
-                    <p className="text-sm text-gray-900 dark:text-white whitespace-pre-wrap">
+                <div className="flex-1 flex flex-col min-h-0 p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                      Output
+                    </span>
+                    <button
+                      onClick={() =>
+                        copyToClipboard(result.prompt!, result.modelId)
+                      }
+                      className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                      title="Copy to clipboard"
+                      aria-label="Copy prompt to clipboard"
+                    >
+                      {copiedPromptId === result.modelId ? (
+                        <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
+                      ) : (
+                        <Copy className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                      )}
+                    </button>
+                  </div>
+                  <div className="flex-1 overflow-hidden">
+                    <p className="text-xs text-gray-900 dark:text-white leading-relaxed break-words">
                       {result.prompt}
                     </p>
                   </div>
@@ -804,46 +832,8 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
                     prompt={result.prompt}
                     compact={true}
                   />
-                </>
+                </div>
               )}
-
-                {result.error && (
-                  <div className="flex-1 p-4">
-                    <p className="text-xs text-red-600 dark:text-red-400">
-                      {result.error}
-                    </p>
-                  </div>
-                )}
-
-                {result.prompt && !result.isProcessing && (
-                  <div className="flex-1 flex flex-col min-h-0 p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                        Output
-                      </span>
-                      <button
-                        onClick={() =>
-                          copyToClipboard(result.prompt!, result.modelId)
-                        }
-                        className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
-                        title="Copy to clipboard"
-                        aria-label="Copy prompt to clipboard"
-                      >
-                        {copiedPromptId === result.modelId ? (
-                          <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
-                        ) : (
-                          <Copy className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                        )}
-                      </button>
-                    </div>
-                    <div className="flex-1 overflow-hidden">
-                      <p className="text-xs text-gray-900 dark:text-white leading-relaxed break-words">
-                        {result.prompt}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
             </div>
           ))}
         </div>

@@ -27,16 +27,23 @@ export const RatingTab: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   // const [selectedRating, setSelectedRating] = useState<Rating | null>(null);
 
+  // Initialize ratings from storage when filter changes
+  // This is safe - it's synchronizing with external storage, not causing cascading renders
+  useEffect(() => {
+    const allRatings = ratingStorage.getFilteredRatings(filter);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRatings(allRatings);
+    const newStats = ratingStorage.getStats(filter);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setStats(newStats);
+  }, [filter]);
+
   const loadRatings = useCallback(() => {
     const allRatings = ratingStorage.getFilteredRatings(filter);
     setRatings(allRatings);
     const newStats = ratingStorage.getStats(filter);
     setStats(newStats);
   }, [filter]);
-
-  useEffect(() => {
-    loadRatings();
-  }, [loadRatings]);
 
   const handleDeleteRating = (id: string) => {
     if (confirm("Are you sure you want to delete this rating?")) {
@@ -90,7 +97,7 @@ export const RatingTab: React.FC = () => {
       }
     });
     return Array.from(modelMap.entries()).map(([id, name]) => ({ id, name }));
-  }, [ratings]);
+  }, []);
 
   return (
     <div className="space-y-6">

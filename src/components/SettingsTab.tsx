@@ -456,6 +456,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
           </div>
         )}
 
+        {/* Legacy single dropdown - removed (dead code with undefined variables)
         <div className="relative" ref={dropdownRef}>
           <button
             type="button"
@@ -576,6 +577,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             </div>
           )}
         </div>
+        */}
         {modelState.models.length > 0 && (
           <>
             <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
