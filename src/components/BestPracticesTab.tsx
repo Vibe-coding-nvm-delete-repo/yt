@@ -346,9 +346,9 @@ export const BestPracticesTab: React.FC = () => {
 
       {/* Type Filters (only on "all" tab) */}
       {activeSubTab === "all" && (
-        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+        <div className="bg-[#151A21] rounded-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
           <div className="flex items-center gap-4">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <span className="text-sm font-medium text-gray-300">
               Filter by Type:
             </span>
             <div className="flex gap-4">
@@ -363,9 +363,9 @@ export const BestPracticesTab: React.FC = () => {
                     type="checkbox"
                     checked={typeFilters.has(type)}
                     onChange={() => toggleTypeFilter(type)}
-                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+                    className="h-4 w-4 rounded border-white/10 text-blue-600 focus:ring-blue-500/50 bg-white/5"
                   />
-                  <span className="text-sm text-gray-700 dark:text-gray-300 capitalize">
+                  <span className="text-sm text-gray-300 capitalize">
                     {type}
                   </span>
                 </label>
@@ -378,9 +378,9 @@ export const BestPracticesTab: React.FC = () => {
       {/* Practices List */}
       <div className="space-y-4">
         {filteredPractices.length === 0 ? (
-          <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg">
+          <div className="text-center py-12 bg-[#151A21] rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
             <BookOpen className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-            <p className="text-gray-500 dark:text-gray-400">
+            <p className="text-gray-400">
               No best practices yet. Click &quot;Create&quot; to add one.
             </p>
           </div>

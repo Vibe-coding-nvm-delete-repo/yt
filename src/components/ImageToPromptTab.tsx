@@ -14,13 +14,13 @@ import {
   AlertCircle,
   Image as ImageIcon,
   Loader2,
-  Calculator,
   DollarSign,
   Copy as CopyIcon,
   Check as CheckIcon,
 } from "lucide-react";
 import Image from "next/image";
 import { RatingWidget } from "@/components/RatingWidget";
+import { middleEllipsis } from "@/utils/truncation";
 
 interface ImageToPromptTabProps {
   settings: AppSettings;
@@ -710,8 +710,8 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
             >
               {/* Model Header */}
               <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-1 truncate">
-                  {result.modelName}
+                <h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-1 truncate" title={result.modelName}>
+                  {middleEllipsis(result.modelName, 30)}
                 </h3>
                 <div className="text-xs text-gray-400 dark:text-gray-500 truncate">
                   {result.modelId}
