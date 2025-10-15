@@ -1,13 +1,6 @@
-import type {
-  AppSettings,
-  VisionModel,
-  PersistedImageState,
-  BatchEntry,
-  ImageBatchEntry,
-} from "@/types";
+import type { AppSettings, VisionModel } from "@/types";
 
 const STORAGE_KEY = "image-to-prompt-settings";
-const IMAGE_STATE_KEY = "image-to-prompt-image-state";
 
 export const STORAGE_EVENTS = {
   SETTINGS_UPDATED: "image-to-prompt-settings-updated",
@@ -19,7 +12,7 @@ type SettingsKey = keyof AppSettings;
 type SubscriptionCallback = (
   newValue: AppSettings,
   oldValue: AppSettings,
-  changedKeys?: SettingsKey[]
+  changedKeys?: SettingsKey[],
 ) => void;
 type UnsubscribeFunction = () => void;
 
@@ -50,7 +43,7 @@ export class OptimizedSettingsStorage {
   private subscriptions = new Map<string, Subscription>();
   private subscriptionCounter = 0;
   private lastSettings: AppSettings | null = null;
-  
+
   // Debounced notification to prevent rapid fire updates
   private notificationTimeout: NodeJS.Timeout | null = null;
   private pendingNotifications = new Set<SettingsKey>();
@@ -114,21 +107,23 @@ export class OptimizedSettingsStorage {
     if (a === b) return true;
     if (a == null || b == null) return false;
     if (typeof a !== typeof b) return false;
-    
+
     if (Array.isArray(a)) {
       if (!Array.isArray(b) || a.length !== b.length) return false;
-      return a.every((item, index) => this.isEqual(item, (b as unknown[])[index]));
+      return a.every((item, index) =>
+        this.isEqual(item, (b as unknown[])[index]),
+      );
     }
-    
+
     if (typeof a === "object") {
       const A = a as Record<string, unknown>;
       const B = b as Record<string, unknown>;
       const keysA = Object.keys(A);
       const keysB = Object.keys(B);
       if (keysA.length !== keysB.length) return false;
-      return keysA.every(key => this.isEqual(A[key], B[key]));
+      return keysA.every((key) => this.isEqual(A[key], B[key]));
     }
-    
+
     return false;
   }
 
@@ -137,26 +132,27 @@ export class OptimizedSettingsStorage {
    */
   private notifySubscribers(changedKeys: SettingsKey[] = []): void {
     // Add changed keys to pending set
-    changedKeys.forEach(key => this.pendingNotifications.add(key));
-    
+    changedKeys.forEach((key) => this.pendingNotifications.add(key));
+
     // Clear existing timeout
     if (this.notificationTimeout) {
       clearTimeout(this.notificationTimeout);
     }
-    
+
     // Debounce notifications
     this.notificationTimeout = setTimeout(() => {
       const currentSettings = { ...this.settings };
       const previousSettings = this.lastSettings || currentSettings;
       const allChangedKeys = Array.from(this.pendingNotifications);
-      
+
       // Notify relevant subscribers
-      this.subscriptions.forEach(subscription => {
+      this.subscriptions.forEach((subscription) => {
         const { callback, keys } = subscription;
-        
+
         // Check if this subscription cares about any of the changed keys
-        const shouldNotify = !keys || keys.some(key => allChangedKeys.includes(key));
-        
+        const shouldNotify =
+          !keys || keys.some((key) => allChangedKeys.includes(key));
+
         if (shouldNotify) {
           try {
             callback(currentSettings, previousSettings, allChangedKeys);
@@ -165,7 +161,7 @@ export class OptimizedSettingsStorage {
           }
         }
       });
-      
+
       // Update last known settings and clear pending notifications
       this.lastSettings = { ...currentSettings };
       this.pendingNotifications.clear();
@@ -180,20 +176,20 @@ export class OptimizedSettingsStorage {
     options: {
       keys?: SettingsKey[];
       immediate?: boolean;
-    } = {}
+    } = {},
   ): UnsubscribeFunction {
     const { keys, immediate = false } = options;
     const id = `sub_${++this.subscriptionCounter}`;
-    
+
     const subscription: Subscription = {
       id,
       callback,
-      keys,
-      immediate
+      ...(keys && { keys }),
+      ...(immediate && { immediate }),
     };
-    
+
     this.subscriptions.set(id, subscription);
-    
+
     // Call immediately if requested
     if (immediate) {
       const currentSettings = { ...this.settings };
@@ -203,7 +199,7 @@ export class OptimizedSettingsStorage {
         console.error("Error in immediate subscription callback:", error);
       }
     }
-    
+
     return () => {
       this.subscriptions.delete(id);
     };
@@ -215,7 +211,7 @@ export class OptimizedSettingsStorage {
   public subscribeToKey<K extends SettingsKey>(
     key: K,
     callback: (newValue: AppSettings[K], oldValue: AppSettings[K]) => void,
-    immediate = false
+    immediate = false,
   ): UnsubscribeFunction {
     return this.subscribe(
       (newSettings, oldSettings) => {
@@ -225,7 +221,7 @@ export class OptimizedSettingsStorage {
           callback(newValue, oldValue);
         }
       },
-      { keys: [key], immediate }
+      { keys: [key], immediate },
     );
   }
 
@@ -236,14 +232,14 @@ export class OptimizedSettingsStorage {
     const currentSettings = { ...this.settings };
     const newSettings = { ...currentSettings, ...updates };
     const changedKeys: SettingsKey[] = [];
-    
+
     // Identify what actually changed
-    (Object.keys(updates) as SettingsKey[]).forEach(key => {
+    (Object.keys(updates) as SettingsKey[]).forEach((key) => {
       if (!this.isEqual(currentSettings[key], newSettings[key])) {
         changedKeys.push(key);
       }
     });
-    
+
     // Only update and notify if something actually changed
     if (changedKeys.length > 0) {
       this.settings = newSettings;
@@ -258,14 +254,14 @@ export class OptimizedSettingsStorage {
 
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.settings));
-      
+
       // Dispatch custom event for other components
       window.dispatchEvent(
         new CustomEvent(STORAGE_EVENTS.SETTINGS_UPDATED, {
           detail: { settings: this.settings, changedKeys },
         }),
       );
-      
+
       // Notify subscribers with debouncing
       this.notifySubscribers(changedKeys);
     } catch (error) {
@@ -278,7 +274,7 @@ export class OptimizedSettingsStorage {
       try {
         const newSettings = JSON.parse(event.newValue);
         const previousSettings = { ...this.settings };
-        
+
         this.settings = {
           ...DEFAULT_SETTINGS,
           ...newSettings,
@@ -295,15 +291,15 @@ export class OptimizedSettingsStorage {
             ? Number(newSettings.lastModelFetch)
             : null,
         };
-        
+
         // Determine what changed for cross-tab notifications
         const changedKeys: SettingsKey[] = [];
-        (Object.keys(this.settings) as SettingsKey[]).forEach(key => {
+        (Object.keys(this.settings) as SettingsKey[]).forEach((key) => {
           if (!this.isEqual(previousSettings[key], this.settings[key])) {
             changedKeys.push(key);
           }
         });
-        
+
         this.notifySubscribers(changedKeys);
       } catch (error) {
         console.warn("Failed to handle storage event:", error);
@@ -318,16 +314,16 @@ export class OptimizedSettingsStorage {
 
   // Individual update methods now use batchUpdate for consistency
   updateApiKey(apiKey: string): void {
-    this.batchUpdate({ 
+    this.batchUpdate({
       openRouterApiKey: apiKey,
-      isValidApiKey: false // Reset validation when API key changes
+      isValidApiKey: false, // Reset validation when API key changes
     });
   }
 
   validateApiKey(isValid: boolean): void {
     this.batchUpdate({
       isValidApiKey: isValid,
-      lastApiKeyValidation: isValid ? Date.now() : null
+      lastApiKeyValidation: isValid ? Date.now() : null,
     });
   }
 
@@ -342,15 +338,15 @@ export class OptimizedSettingsStorage {
   updateModels(models: VisionModel[]): void {
     this.batchUpdate({
       availableModels: models,
-      lastModelFetch: Date.now()
+      lastModelFetch: Date.now(),
     });
   }
 
   pinModel(modelId: string): void {
-    const currentPinned = Array.isArray(this.settings.pinnedModels) 
+    const currentPinned = Array.isArray(this.settings.pinnedModels)
       ? [...this.settings.pinnedModels]
       : [];
-    
+
     if (!currentPinned.includes(modelId)) {
       const newPinned = [modelId, ...currentPinned].slice(0, 9);
       this.batchUpdate({ pinnedModels: newPinned });
@@ -358,11 +354,11 @@ export class OptimizedSettingsStorage {
   }
 
   unpinModel(modelId: string): void {
-    const currentPinned = Array.isArray(this.settings.pinnedModels) 
+    const currentPinned = Array.isArray(this.settings.pinnedModels)
       ? [...this.settings.pinnedModels]
       : [];
-    
-    const newPinned = currentPinned.filter(id => id !== modelId);
+
+    const newPinned = currentPinned.filter((id) => id !== modelId);
     this.batchUpdate({ pinnedModels: newPinned });
   }
 }

@@ -4,8 +4,12 @@ import React, { useState, useRef, useCallback, useEffect } from "react";
 import type { AppSettings } from "@/types";
 import { createOpenRouterClient } from "@/lib/openrouter";
 import { imageStateStorage } from "@/lib/storage";
-import calculateGenerationCost from "@/lib/cost";
+import { calculateGenerationCost } from "@/lib/cost";
 import { normalizeToApiError } from "@/lib/errorUtils";
+import { usageStorage } from "@/lib/usage";
+import { historyStorage } from "@/lib/historyStorage";
+import type { UsageEntry } from "@/types/usage";
+import type { HistoryEntry } from "@/types/history";
 import {
   AlertCircle,
   Image as ImageIcon,
@@ -14,12 +18,14 @@ import {
   DollarSign,
 } from "lucide-react";
 import Image from "next/image";
+import { RatingWidget } from "@/components/RatingWidget";
 
 interface ImageToPromptTabProps {
   settings: AppSettings;
 }
 
 interface ModelResult {
+  id: string; // Stable ID for this result (used for ratings)
   modelId: string;
   modelName: string;
   prompt: string | null;
@@ -42,19 +48,61 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   const [modelResults, setModelResults] = useState<ModelResult[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [sessionId] = useState<string>(() => `session-${Date.now()}`); // Stable session ID for ratings
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const dropZoneRef = useRef<HTMLDivElement | null>(null);
 
-  // Initialize model results when settings change
+  // Initialize model results when selected models change
+  // CRITICAL: Only reset when the actual selected models change, not when availableModels updates
+  // This prevents wiping out cost data when models list refreshes
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     if (
       settings.selectedVisionModels &&
       settings.selectedVisionModels.length > 0
     ) {
-      const results: ModelResult[] = settings.selectedVisionModels.map(
-        (modelId) => {
+      setModelResults((prevResults) => {
+        // Get the set of current model IDs
+        const prevModelIds = new Set(prevResults.map((r) => r.modelId));
+        const newModelIds = new Set(settings.selectedVisionModels);
+
+        // If the selected models haven't changed, preserve existing results
+        if (
+          prevModelIds.size === newModelIds.size &&
+          [...prevModelIds].every((id) => newModelIds.has(id))
+        ) {
+          // Just update model names in case availableModels was updated
+          return prevResults.map((result) => {
+            const model = settings.availableModels.find(
+              (m) => m.id === result.modelId,
+            );
+            return {
+              ...result,
+              modelName: model?.name || result.modelName,
+            };
+          });
+        }
+
+        // Models changed, create new results but try to preserve data for unchanged models
+        const existingResultsMap = new Map(
+          prevResults.map((r) => [r.modelId, r]),
+        );
+
+        return settings.selectedVisionModels.map((modelId) => {
           const model = settings.availableModels.find((m) => m.id === modelId);
+          const existing = existingResultsMap.get(modelId);
+
+          // If we have existing data for this model, preserve it
+          if (existing) {
+            return {
+              ...existing,
+              modelName: model?.name || existing.modelName,
+            };
+          }
+
+          // New model, create fresh result
           return {
+            id: `${sessionId}-${modelId}`, // Stable ID for this session + model
             modelId,
             modelName: model?.name || modelId,
             prompt: null,
@@ -66,13 +114,14 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
             isProcessing: false,
             error: null,
           };
-        },
-      );
-      setModelResults(results);
+        });
+      });
     }
-  }, [settings.selectedVisionModels, settings.availableModels]);
+  }, [settings.selectedVisionModels, settings.availableModels, sessionId]);
 
-  // Load persisted image on mount
+  // Load persisted image and model results on mount
+  // CRITICAL: This must run AFTER the model initialization effect to prevent race conditions
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     const persisted = imageStateStorage.getImageState();
     if (persisted && persisted.preview) {
@@ -81,6 +130,60 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
         preview: persisted.preview,
       });
     }
+    // Restore model results if they exist, but clear any stale processing flags
+    // IMPORTANT: Only restore if we have valid persisted results with cost data
+    if (
+      persisted &&
+      Array.isArray(persisted.modelResults) &&
+      persisted.modelResults.length > 0
+    ) {
+      // Clear isProcessing flags to prevent stuck spinners after navigation/refresh
+      const cleanedResults = persisted.modelResults.map((result) => ({
+        ...result,
+        id: `${sessionId}-${result.modelId}`, // Ensure id is present
+        isProcessing: false,
+      }));
+      // Set results directly, overriding any initialization from settings
+      setModelResults((prevResults) => {
+        // If prevResults is empty or doesn't have any prompts/costs, use persisted data
+        const hasExistingData = prevResults.some(
+          (r) => r.prompt || r.cost !== null,
+        );
+        if (!hasExistingData) {
+          return cleanedResults;
+        }
+        // Otherwise keep the existing data (edge case: manual refresh during generation)
+        return prevResults;
+      });
+      // Persist the cleaned results back to storage
+      imageStateStorage.saveModelResults(cleanedResults);
+    }
+    // DO NOT restore generation status - if user navigated away or refreshed
+    // during generation, the generation is effectively cancelled
+    // Clear any stale generation status from storage
+    if (persisted && persisted.isGenerating) {
+      imageStateStorage.saveGenerationStatus(false);
+    }
+  }, []);
+
+  // Cleanup: Reset generation state when component unmounts
+  useEffect(() => {
+    return () => {
+      // Clear generation status on unmount to prevent stuck state
+      imageStateStorage.saveGenerationStatus(false);
+      // Also clear all isProcessing flags from model results directly in storage
+      const currentState = imageStateStorage.getImageState();
+      if (
+        currentState.modelResults &&
+        Array.isArray(currentState.modelResults)
+      ) {
+        const cleaned = currentState.modelResults.map((result) => ({
+          ...result,
+          isProcessing: false,
+        }));
+        imageStateStorage.saveModelResults(cleaned);
+      }
+    };
   }, []);
 
   const validateFile = useCallback((file: File): string | null => {
@@ -222,6 +325,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
     e.preventDefault();
   }, []);
 
+  // eslint-disable-next-line custom/require-error-handling
   const generatePrompts = useCallback(async () => {
     if (!settings.isValidApiKey) {
       setErrorMessage("Please set a valid API key in Settings.");
@@ -243,16 +347,24 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
 
     setIsGenerating(true);
     setErrorMessage(null);
+    // Persist generation status
+    imageStateStorage.saveGenerationStatus(true);
 
-    // Process each model sequentially (avoid unchecked array indexing)
-    for (const [i, result] of modelResults.entries()) {
-      // Mark as processing
-      setModelResults((prev) =>
-        prev.map((r, idx) =>
-          idx === i ? { ...r, isProcessing: true, error: null } : r,
-        ),
-      );
+    // Mark ALL models as processing at once (single state update)
+    setModelResults((prev) => {
+      const updated = prev.map((r) => ({
+        ...r,
+        isProcessing: true,
+        error: null,
+      }));
+      // Persist to storage immediately
+      imageStateStorage.saveModelResults(updated);
+      return updated;
+    });
 
+    // Process all models in parallel using Promise.all
+    const timestamp = Date.now();
+    const promises = modelResults.map(async (result, i) => {
       try {
         const client = createOpenRouterClient(settings.openRouterApiKey);
         const prompt = await client.generateImagePrompt(
@@ -279,52 +391,87 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
 
           // Calculate input/output costs based on model pricing
           if (model.pricing) {
-            const toNumber = (v: number | string | null | undefined): number =>
-              typeof v === "number"
-                ? v
-                : Number.isFinite(parseFloat(v ?? "0"))
-                  ? parseFloat(v ?? "0")
-                  : 0;
-            const inputPrice = toNumber(model.pricing.prompt);
-            const outputPrice = toNumber(model.pricing.completion);
+            const inputPrice = parseFloat(String(model.pricing.prompt || 0));
+            const outputPrice = parseFloat(String(model.pricing.completion || 0));
             inputCost = (inputTokens * inputPrice) / 1000000; // Convert from per-1M tokens
             outputCost = (outputTokens * outputPrice) / 1000000;
           }
         }
 
-        // Update result
-        setModelResults((prev) =>
-          prev.map((r, idx) =>
-            idx === i
-              ? {
-                  ...r,
-                  prompt,
-                  cost: totalCost,
-                  inputTokens,
-                  outputTokens,
-                  inputCost,
-                  outputCost,
-                  isProcessing: false,
-                  error: null,
-                }
-              : r,
-          ),
-        );
+        // Update this specific result (thread-safe with functional update)
+        setModelResults((prev) => {
+          const updated = [...prev];
+          if (updated[i]) {
+            updated[i] = {
+              ...updated[i]!,
+              prompt,
+              cost: totalCost,
+              inputTokens,
+              outputTokens,
+              inputCost,
+              outputCost,
+              isProcessing: false,
+              error: null,
+            };
+          }
+          // Persist to storage immediately
+          imageStateStorage.saveModelResults(updated);
+          return updated;
+        });
+
+        // CRITICAL: Save to usageStorage and historyStorage immediately after success
+        // This ensures the total cost header updates right away
+        const usageEntry: UsageEntry = {
+          id: `usage-${result.modelId}-${timestamp}`,
+          timestamp,
+          modelId: result.modelId,
+          modelName: result.modelName,
+          inputTokens,
+          outputTokens,
+          inputCost,
+          outputCost,
+          totalCost,
+          success: true,
+          error: null,
+          imagePreview: uploadedImage?.preview,
+        };
+        usageStorage.add(usageEntry);
+
+        const historyEntry: HistoryEntry = {
+          id: `history-${result.modelId}-${timestamp}`,
+          imageUrl: uploadedImage?.preview || "",
+          prompt,
+          charCount: prompt.length,
+          totalCost,
+          inputTokens,
+          outputTokens,
+          inputCost,
+          outputCost,
+          modelId: result.modelId,
+          modelName: result.modelName,
+          createdAt: timestamp,
+        };
+        historyStorage.addEntry(historyEntry);
       } catch (error) {
         const apiErr = normalizeToApiError(error);
-        setModelResults((prev) =>
-          prev.map((r, idx) =>
-            idx === i
-              ? {
-                  ...r,
-                  isProcessing: false,
-                  error: apiErr.message,
-                }
-              : r,
-          ),
-        );
+        setModelResults((prev) => {
+          const updated = [...prev];
+          if (updated[i]) {
+            updated[i] = {
+              ...updated[i]!,
+              isProcessing: false,
+              error: apiErr.message,
+            };
+          }
+          // Persist to storage immediately
+          imageStateStorage.saveModelResults(updated);
+          return updated;
+        });
       }
-    }
+    });
+
+    // Wait for all models to complete in parallel
+    await Promise.all(promises);
 
     setIsGenerating(false);
   }, [
@@ -336,14 +483,20 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   ]);
 
   const formatCost = useCallback((cost: number | null): string => {
-    if (cost === null || cost === 0) return "$0.000000";
+    if (cost === null || cost === 0) return "$0.00";
+    // Show user-friendly format: 2 decimal places for amounts >= $0.01
+    // Otherwise show up to 6 decimals for very small amounts
+    if (cost >= 0.01) {
+      return `$${cost.toFixed(2)}`;
+    }
     return `$${cost.toFixed(6)}`;
   }, []);
 
   const formatTokens = useCallback((tokens: number | null): string => {
-    if (tokens === null) return "—";
+    if (tokens === null) return "0";
     return tokens.toLocaleString();
   }, []);
+
 
   // Calculate total cost across all models
   const totalCostAllModels = modelResults.reduce((sum, result) => {
@@ -440,6 +593,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
               onClick={() => {
                 setUploadedImage(null);
                 imageStateStorage.clearImageState();
+                // Reset model results in state (clearImageState already clears storage)
                 setModelResults((prev) =>
                   prev.map((r) => ({
                     ...r,
@@ -483,14 +637,15 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
         </div>
       )}
 
-      {/* Overall Cost Summary - Always Visible */}
+      {/* Overall Cost Summary - Ultra Minimalist */}
       {modelResults.length > 0 && (
-        <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
-          <div className="flex items-center mb-3">
-            <Calculator className="mr-2 h-5 w-5 text-green-600 dark:text-green-400" />
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Generation Metrics
-            </h2>
+        <div className="flex items-center justify-center gap-8 py-3 text-sm">
+          <div className="flex items-center gap-2">
+            <span className="text-gray-500 dark:text-gray-400">Models:</span>
+            <span className="font-medium text-gray-900 dark:text-white">
+              {modelResults.filter((r) => r.prompt).length}/
+              {modelResults.length}
+            </span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -527,19 +682,20 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
         </div>
       )}
 
-      {/* Model Results */}
+      {/* Model Results - Horizontal Layout (Columns) */}
       {modelResults.length > 0 && (
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
           {modelResults.map((result) => (
             <div
               key={result.modelId}
-              className="p-4 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+              className="flex flex-col border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 overflow-hidden h-[600px]"
             >
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+              {/* Model Header */}
+              <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-1 truncate">
                   {result.modelName}
                 </h3>
-                <div className="text-xs text-gray-500 dark:text-gray-400">
+                <div className="text-xs text-gray-400 dark:text-gray-500 truncate">
                   {result.modelId}
                 </div>
               </div>
@@ -603,44 +759,43 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
                 </div>
               </div>
 
-              {result.isProcessing && (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-blue-600 dark:text-blue-400" />
-                  <span className="ml-3 text-gray-6 00 dark:text-gray-400">
-                    Processing...
-                  </span>
-                </div>
+              {result.prompt && !result.isProcessing && (
+                <>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600">
+                    <div className="flex items-center justify-between mb-2">
+                      <h5 className="font-medium text-gray-900 dark:text-white">
+                        Generated Prompt
+                      </h5>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {result.prompt.length} characters
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-900 dark:text-white whitespace-pre-wrap">
+                      {result.prompt}
+                    </p>
+                  </div>
+                  <RatingWidget
+                    historyEntryId={result.id}
+                    modelId={result.modelId}
+                    modelName={result.modelName}
+                    imagePreview={uploadedImage?.preview || null}
+                    prompt={result.prompt}
+                    compact={true}
+                  />
+                </>
               )}
 
               {result.error && (
-                <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded">
-                  <p className="text-sm text-red-600 dark:text-red-400">
+                <div className="flex-1 p-4">
+                  <p className="text-xs text-red-600 dark:text-red-400">
                     {result.error}
                   </p>
                 </div>
               )}
 
-              {result.prompt && !result.isProcessing && (
-                <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600">
-                  <div className="flex items-center justify-between mb-2">
-                    <h5 className="font-medium text-gray-900 dark:text-white">
-                      Generated Prompt
-                    </h5>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {result.prompt.length} characters
-                    </div>
-                  </div>
-                  <p className="text-sm text-gray-900 dark:text-white whitespace-pre-wrap">
-                    {result.prompt}
-                  </p>
-                </div>
-              )}
-
-              {!result.isProcessing && !result.prompt && !result.error && (
-                <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600">
-                  <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-                    Waiting to generate...
-                  </p>
+              {result.isProcessing && (
+                <div className="flex-1 flex items-center justify-center p-4">
+                  <Loader2 className="h-6 w-6 animate-spin text-blue-600 dark:text-blue-400" />
                 </div>
               )}
             </div>
