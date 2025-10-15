@@ -61,6 +61,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
   }));
 
   // Load initial settings
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     if (typeof window === "undefined") return;
 

@@ -72,7 +72,7 @@ export const useSettings = (subscribeToKeys?: (keyof AppSettings)[]) => {
         }
       },
       {
-        keys: subscribeToKeys, // Only subscribe to specific keys if provided
+        ...(subscribeToKeys ? { keys: subscribeToKeys } : {}),
         immediate: false
       }
     );
@@ -204,6 +204,7 @@ export const useSettingsKey = <K extends keyof AppSettings>(
 
   const [isInitialized, setIsInitialized] = useState(false);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     // Initialize with current value
     if (!isInitialized) {
