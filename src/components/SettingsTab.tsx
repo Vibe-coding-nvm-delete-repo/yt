@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import { Tooltip } from "@/components/common/Tooltip";
 import { useSettings as useSettingsHook } from "@/hooks/useSettings";
+import { useToast } from "@/contexts/ToastContext";
+import { middleEllipsis } from "@/utils/truncation";
 
 interface SettingsTabProps {
   settings: AppSettings;
@@ -64,8 +66,10 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     validateApiKey: hookValidateApiKey,
     updateCustomPrompt: hookUpdateCustomPrompt,
     updateModels: hookUpdateModels,
+    togglePinnedModel: hookTogglePinnedModel,
     subscribe: hookSubscribe,
   } = settingsHook;
+  const { addToast } = useToast();
 
   const [activeSubTab, setActiveSubTab] = useState<SettingsSubTab>("api-keys");
   const [apiKey, setApiKey] = useState(settings.openRouterApiKey);
@@ -266,6 +270,13 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       }));
 
       hookUpdateModels(models);
+      
+      // Show success toast
+      addToast(
+        `Successfully fetched ${models.length} vision models`,
+        'success',
+        4000
+      );
     } catch (error) {
       console.error("Model fetch error:", error);
       setModelState((prev) => ({
@@ -275,7 +286,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
           error instanceof Error ? error.message : "Failed to fetch models",
       }));
     }
-  }, [apiKey, validationState.isValid, hookUpdateModels]);
+  }, [apiKey, validationState.isValid, hookUpdateModels, addToast]);
 
   const exportSettings = useCallback(() => {
     const settingsJson = settingsStorage.exportSettings();
@@ -518,10 +529,19 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-left flex items-center justify-between"
             aria-label="Select model"
           >
-            <span className="text-gray-900 dark:text-white">
-              {selectedModel
+            <span 
+              className="text-gray-900 dark:text-white"
+              title={selectedModel
                 ? modelState.models.find((m) => m.id === selectedModel)?.name ||
                   "Select a model..."
+                : "Select a model..."}
+            >
+              {selectedModel
+                ? middleEllipsis(
+                    modelState.models.find((m) => m.id === selectedModel)?.name ||
+                      "Select a model...",
+                    40
+                  )
                 : "Select a model..."}
             </span>
             <ChevronDown
@@ -575,11 +595,12 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                           ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
                           : "text-gray-900 dark:text-white"
                       }`}
+                      title={model.name}
                     >
                       <div className="flex items-center justify-between">
                         <div>
                           <div className="text-sm font-medium">
-                            {model.name}
+                            {middleEllipsis(model.name, 40)}
                           </div>
                           <div className="text-xs text-gray-500 dark:text-gray-400">
                             {formatPrice(
@@ -632,17 +653,6 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         </div>
         {modelState.models.length > 0 && (
           <>
-            <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-              <p className="text-sm text-green-700 dark:text-green-300">
-                ✓ Successfully fetched {modelState.models.length} vision models
-                {settings.lastApiKeyFetch && (
-                  <span className="text-green-600 dark:text-green-400 ml-1">
-                    ({formatTimestamp(settings.lastApiKeyFetch)})
-                  </span>
-                )}
-              </p>
-            </div>
-
             <div className="text-sm text-gray-600 dark:text-gray-400">
               Selected: {selectedVisionModels.length} / 5
             </div>
@@ -702,8 +712,9 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                               selectedVisionModels.includes(model.id) &&
                               selectedVisionModels[index] !== model.id
                             }
+                            title={model.name}
                           >
-                            {model.name}
+                            {middleEllipsis(model.name, 50)}
                           </option>
                         ))}
                       </select>
@@ -758,14 +769,17 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         )}
       </div>
     ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       modelState,
       validationState.isValid,
       selectedVisionModels,
       expandedModels,
-      settings.lastApiKeyFetch,
+      settings.lastModelFetch,
+      settings.pinnedModels,
       fetchModels,
       toggleModelExpansion,
+      hookTogglePinnedModel,
     ]
   );
 
