@@ -3,6 +3,10 @@ import type { PersistedHistoryState, HistoryEntry } from "@/types/history";
 
 const HISTORY_KEY = "image-to-prompt-history-state";
 
+const HISTORY_STORAGE_EVENTS = {
+  HISTORY_UPDATED: "history-updated",
+};
+
 const DEFAULT_HISTORY_STATE: PersistedHistoryState = {
   entries: [],
   filterModelIds: [],
@@ -37,6 +41,27 @@ export class HistoryStorage {
       HistoryStorage.instance = new HistoryStorage();
     }
     return HistoryStorage.instance;
+  }
+
+  private handleStorageEvent(e: StorageEvent): void {
+    if (e.key === HISTORY_KEY && e.newValue) {
+      try {
+        const parsed = JSON.parse(e.newValue);
+        this.state = {
+          ...DEFAULT_HISTORY_STATE,
+          ...parsed,
+          entries: Array.isArray(parsed?.entries)
+            ? parsed.entries.slice(0, 200)
+            : [],
+          filterModelIds: Array.isArray(parsed?.filterModelIds)
+            ? parsed.filterModelIds
+            : [],
+        } as PersistedHistoryState;
+        this.notifySubscribers();
+      } catch (error) {
+        console.warn("Failed to parse storage event", error);
+      }
+    }
   }
 
   private load(): PersistedHistoryState {

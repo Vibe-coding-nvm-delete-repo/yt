@@ -79,6 +79,11 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   );
   const [expandedModels, setExpandedModels] = useState<Set<number>>(new Set());
   const [showApiKey, setShowApiKey] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<string | null>(null);
+  const [dropdownSearch, setDropdownSearch] = useState("");
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const [validationState, setValidationState] = useState<ValidationState>({
     isValidating: false,
@@ -113,7 +118,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       setApiKey(updatedSettings.openRouterApiKey);
       setCustomPrompt(updatedSettings.customPrompt);
       setSelectedVisionModels(updatedSettings.selectedVisionModels || []);
-      setValidationState((prev: { isValid: boolean; lastChecked: number | null }) => ({
+      setValidationState((prev) => ({
         ...prev,
         isValid: updatedSettings.isValidApiKey,
       }));
