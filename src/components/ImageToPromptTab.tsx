@@ -702,14 +702,14 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
 
       {/* Model Results - Horizontal Layout (Columns) */}
       {modelResults.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-16">
           {modelResults.map((result) => (
             <div
               key={result.modelId}
-              className="flex flex-col rounded-xl bg-white dark:bg-gray-800 overflow-hidden h-[600px] shadow-sm"
+              className="flex flex-col rounded-xl bg-white dark:bg-gray-800 overflow-hidden shadow-sm border border-gray-200 dark:border-gray-700"
             >
               {/* Model Header */}
-              <div className="p-4">
+              <div className="p-4 border-b border-gray-200 dark:border-gray-700">
                 <h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-1 truncate">
                   {result.modelName}
                 </h3>
@@ -718,126 +718,93 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
                 </div>
               </div>
 
-              {/* Detailed Metrics - Always Visible */}
-              <div className="mb-4 p-3 bg-gray-50/70 dark:bg-gray-700/70 rounded-lg">
-                <div className="flex items-center mb-2">
-                  <Calculator className="h-4 w-4 text-blue-600 dark:text-blue-400 mr-2" />
-                  <h4 className="font-semibold text-gray-900 dark:text-white">
-                    Cost Breakdown
-                  </h4>
-                </div>
-
-                {/* Compact summary line to satisfy tests and improve scannability */}
-                <div className="text-xs text-gray-600 dark:text-gray-300 mb-2">
-                  Input: {formatCost(result.inputCost)} | Output: {formatCost(result.outputCost)}
-                </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                  <div>
-                    <div className="text-gray-500 dark:text-gray-400">
-                      Input Tokens
-                    </div>
-                    <div className="font-medium text-gray-900 dark:text-white">
-                      {formatTokens(result.inputTokens)}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="text-gray-500 dark:text-gray-400">
-                      Output Tokens
-                    </div>
-                    <div className="font-medium text-gray-900 dark:text-white">
-                      {formatTokens(result.outputTokens)}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="text-gray-500 dark:text-gray-400">
-                      Input Cost
-                    </div>
-                    <div className="font-medium text-blue-600 dark:text-blue-400">
-                      {formatCost(result.inputCost)}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="text-gray-500 dark:text-gray-400">
-                      Output Cost
-                    </div>
-                    <div className="font-medium text-blue-600 dark:text-blue-400">
-                      {formatCost(result.outputCost)}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-3 pt-2">
-                  <div className="flex justify-between items-center">
-                    <span className="font-semibold text-gray-900 dark:text-white">Total:</span>
-                    <span className="text-lg font-bold text-green-600 dark:text-green-400">
-                      {formatCost(result.cost)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {result.prompt && !result.isProcessing && (
-                <>
-                  <div className="relative p-3 bg-gray-50 dark:bg-gray-700 rounded-xl shadow-sm">
-                    <div className="flex items-center justify-between mb-2 pr-10">
-                      <h5 className="font-medium text-gray-900 dark:text-white">
-                        Generated Prompt
-                      </h5>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        {result.prompt.length} characters
+              {/* Scrollable Output Area with Fixed Height */}
+              <div className="flex-1 flex flex-col min-h-0">
+                {result.prompt && !result.isProcessing && (
+                  <>
+                    {/* Prompt Output - Scrollable */}
+                    <div className="relative flex-1 overflow-y-auto p-4 bg-gray-50 dark:bg-gray-900/50 min-h-[200px] max-h-[300px]">
+                      <div className="flex items-center justify-between mb-3">
+                        <h5 className="font-medium text-gray-900 dark:text-white text-xs">
+                          Generated Prompt
+                        </h5>
+                        <button
+                          type="button"
+                          aria-label="Copy prompt"
+                          title="Copy prompt"
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-white dark:bg-gray-800 shadow-sm hover:shadow-md text-gray-700 dark:text-gray-200 text-xs transition-shadow"
+                          onClick={() => copyToClipboard(result.prompt!, result.id)}
+                        >
+                          {copiedMap[result.id] ? (
+                            <>
+                              <CheckIcon className="h-3 w-3" />
+                              Copied
+                            </>
+                          ) : (
+                            <>
+                              <CopyIcon className="h-3 w-3" />
+                              Copy
+                            </>
+                          )}
+                        </button>
+                      </div>
+                      <p className="text-sm text-gray-900 dark:text-white whitespace-pre-wrap leading-relaxed">
+                        {result.prompt}
+                      </p>
+                      {/* Character Count - Bottom Right */}
+                      <div className="flex justify-end mt-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          {result.prompt.length} chars
+                        </span>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      aria-label="Copy prompt"
-                      title="Copy prompt"
-                      className="absolute top-2 right-2 inline-flex items-center gap-1 px-2 py-1 rounded-md bg-white/90 dark:bg-gray-800/90 shadow hover:shadow-md text-gray-700 dark:text-gray-200 text-xs"
-                      onClick={() => copyToClipboard(result.prompt!, result.id)}
-                    >
-                      {copiedMap[result.id] ? (
-                        <>
-                          <CheckIcon className="h-3 w-3" />
-                          Copied
-                        </>
-                      ) : (
-                        <>
-                          <CopyIcon className="h-3 w-3" />
-                          Copy
-                        </>
-                      )}
-                    </button>
-                    <p className="text-sm text-gray-900 dark:text-white whitespace-pre-wrap">
-                      {result.prompt}
+
+                    {/* Compact Cost Summary */}
+                    <div className="p-3 bg-gray-50/50 dark:bg-gray-800/50 border-t border-gray-200 dark:border-gray-700">
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <div className="text-gray-500 dark:text-gray-400">Tokens</div>
+                          <div className="font-medium text-gray-900 dark:text-white">
+                            {formatTokens(result.inputTokens)} / {formatTokens(result.outputTokens)}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-gray-500 dark:text-gray-400">Total Cost</div>
+                          <div className="font-semibold text-green-600 dark:text-green-400">
+                            {formatCost(result.cost)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {result.error && (
+                  <div className="flex-1 p-4 flex items-center justify-center">
+                    <p className="text-xs text-red-600 dark:text-red-400 text-center">
+                      {result.error}
                     </p>
                   </div>
-                  <div className="mt-3">
-                    <RatingWidget
-                      historyEntryId={result.id}
-                      modelId={result.modelId}
-                      modelName={result.modelName}
-                      imagePreview={uploadedImage?.preview || null}
-                      prompt={result.prompt}
-                      compact={true}
-                    />
+                )}
+
+                {result.isProcessing && (
+                  <div className="flex-1 flex items-center justify-center p-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-blue-600 dark:text-blue-400" />
                   </div>
-                </>
-              )}
+                )}
+              </div>
 
-              {result.error && (
-                <div className="flex-1 p-4">
-                  <p className="text-xs text-red-600 dark:text-red-400">
-                    {result.error}
-                  </p>
-                </div>
-              )}
-
-              {result.isProcessing && (
-                <div className="flex-1 flex items-center justify-center p-4">
-                  <Loader2 className="h-6 w-6 animate-spin text-blue-600 dark:text-blue-400" />
+              {/* Rating Widget - Always at Bottom */}
+              {result.prompt && !result.isProcessing && (
+                <div className="p-3 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+                  <RatingWidget
+                    historyEntryId={result.id}
+                    modelId={result.modelId}
+                    modelName={result.modelName}
+                    imagePreview={uploadedImage?.preview || null}
+                    prompt={result.prompt}
+                    compact={true}
+                  />
                 </div>
               )}
             </div>
