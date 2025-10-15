@@ -46,11 +46,11 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
 
   return (
     <nav
-      className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+      className="bg-white dark:bg-gray-800 shadow-[0_1px_0_0_rgba(0,0,0,0.03)]"
       role="navigation"
       aria-label="Main navigation"
     >
-      <div className="mx-auto px-3 sm:px-4 md:px-6 lg:px-8 max-w-7xl">
+      <div className="mx-auto px-3 sm:px-4 md:px-6 lg:px-8 max-w-4xl">
         {/* Mobile-first tab design */}
         <div className="flex">
           {tabs.map((tab) => {
@@ -69,8 +69,8 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
                   active:scale-95 sm:active:scale-100 transform transition-transform
                   ${
                     isActive
-                      ? "border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/10 sm:bg-transparent"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/50 sm:hover:bg-transparent"
+                      ? "border-blue-500 text-blue-600 dark:text-blue-400 bg-transparent"
+                      : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-transparent"
                   }
                 `}
                 role="tab"
@@ -86,7 +86,7 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
                     ${
                       isActive
                         ? "text-blue-500"
-                        : "text-gray-400 group-hover:text-gray-500 dark:text-gray-500 dark:group-hover:text-gray-400"
+                        : "text-gray-400 group-hover:text-gray-600 dark:text-gray-500 dark:group-hover:text-gray-400"
                     }
                   `}
                   aria-hidden="true"
