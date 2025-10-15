@@ -31,10 +31,22 @@ export const useHistory = () => {
     return state.entries.filter((e) => ids.includes(e.modelId));
   }, [state.entries, state.filterModelIds]);
 
+  // Unique model options present in history (across all entries)
+  const historyModelOptions = useMemo(() => {
+    const modelIdToName = new Map<string, string>();
+    for (const entry of state.entries) {
+      if (!modelIdToName.has(entry.modelId)) {
+        modelIdToName.set(entry.modelId, entry.modelName);
+      }
+    }
+    return Array.from(modelIdToName, ([id, name]) => ({ id, name }));
+  }, [state.entries]);
+
   return {
     entries: filtered,
     filterModelIds: state.filterModelIds,
     addEntry,
     setFilterModelIds,
+    historyModelOptions,
   };
 };
