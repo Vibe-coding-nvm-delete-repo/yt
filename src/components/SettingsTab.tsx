@@ -1,12 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import type {
-  AppSettings,
-  ValidationState,
-  ModelState,
-  VisionModel,
-} from "@/types";
+import type { AppSettings, ValidationState, ModelState } from "@/types";
 import { settingsStorage } from "@/lib/storage";
 import { createOpenRouterClient, isValidApiKeyFormat } from "@/lib/openrouter";
 import {
@@ -271,12 +266,12 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       }));
 
       hookUpdateModels(models);
-      
+
       // Show success toast
       addToast(
         `Successfully fetched ${models.length} vision models`,
-        'success',
-        4000
+        "success",
+        4000,
       );
     } catch (error) {
       console.error("Model fetch error:", error);
@@ -465,18 +460,20 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             className="w-full px-4 py-2 border-none rounded-lg focus:ring-2 focus:ring-blue-500/50 bg-white/5 hover:bg-white/10 text-left flex items-center justify-between transition-colors"
             aria-label="Select model"
           >
-            <span 
+            <span
               className="text-gray-900 dark:text-white"
-              title={selectedModel
-                ? modelState.models.find((m) => m.id === selectedModel)?.name ||
-                  "Select a model..."
-                : "Select a model..."}
+              title={
+                selectedModel
+                  ? modelState.models.find((m) => m.id === selectedModel)
+                      ?.name || "Select a model..."
+                  : "Select a model..."
+              }
             >
               {selectedModel
                 ? middleEllipsis(
-                    modelState.models.find((m) => m.id === selectedModel)?.name ||
-                      "Select a model...",
-                    40
+                    modelState.models.find((m) => m.id === selectedModel)
+                      ?.name || "Select a model...",
+                    40,
                   )
                 : "Select a model..."}
             </span>
@@ -556,7 +553,9 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                           onClick={(e) => {
                             e.stopPropagation();
                             // TODO: Re-implement pinned model toggle functionality
-                            console.warn('Pinned model toggle not yet implemented');
+                            console.warn(
+                              "Pinned model toggle not yet implemented",
+                            );
                           }}
                         >
                           {pinnedSet.has(model.id) ? (
@@ -723,7 +722,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       fetchModels,
       toggleModelExpansion,
       hookTogglePinnedModel,
-    ]
+    ],
   );
 
   return (
