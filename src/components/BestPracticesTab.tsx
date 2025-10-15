@@ -237,7 +237,7 @@ export const BestPracticesTab: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
+          <h1 className="text-2xl font-bold text-white flex items-center">
             <BookOpen className="mr-2 h-6 w-6" />
             Best Practices
           </h1>
@@ -248,13 +248,13 @@ export const BestPracticesTab: React.FC = () => {
             onMouseEnter={() => setShowMetricsTooltip(true)}
             onMouseLeave={() => setShowMetricsTooltip(false)}
           >
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-lg border border-blue-200 dark:border-blue-800 cursor-help">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-900/20 text-blue-400 rounded-lg border border-blue-800/30 cursor-help">
               <span className="text-2xl font-bold">{practices.length}</span>
               <Info className="h-4 w-4" />
             </div>
 
             {showMetricsTooltip && (
-              <div className="absolute left-0 top-full mt-2 z-10 bg-gray-900 dark:bg-gray-700 text-white rounded-lg shadow-lg p-3 min-w-[200px]">
+              <div className="absolute left-0 top-full mt-2 z-10 bg-[#1A212A] text-white rounded-lg shadow-[0_24px_56px_rgba(0,0,0,0.55)] p-3 min-w-[200px]">
                 <div className="space-y-1">
                   {Object.entries(metricsBreakdown).map(([category, count]) => (
                     <div key={category} className="flex justify-between gap-4">
@@ -280,34 +280,34 @@ export const BestPracticesTab: React.FC = () => {
           </button>
 
           {isDropdownOpen && (
-            <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg z-10">
+            <div className="absolute right-0 mt-2 w-56 bg-[#1A212A] border border-white/10 rounded-lg shadow-[0_24px_56px_rgba(0,0,0,0.55)] z-10">
               <button
                 onClick={() => handleCreateClick("words-phrases")}
-                className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-900 dark:text-white rounded-t-lg"
+                className="w-full px-4 py-2 text-left hover:bg-white/5 transition-colors text-white rounded-t-lg"
               >
                 Words/Phrases
               </button>
               <button
                 onClick={() => handleCreateClick("photography")}
-                className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-900 dark:text-white"
+                className="w-full px-4 py-2 text-left hover:bg-white/5 transition-colors text-white"
               >
                 Photography
               </button>
               <button
                 onClick={() => handleCreateClick("youtube-engagement")}
-                className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-900 dark:text-white"
+                className="w-full px-4 py-2 text-left hover:bg-white/5 transition-colors text-white"
               >
                 Youtube Engagement
               </button>
               <button
                 onClick={() => handleCreateClick("youtube-thumbnail")}
-                className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-900 dark:text-white"
+                className="w-full px-4 py-2 text-left hover:bg-white/5 transition-colors text-white"
               >
                 Youtube Thumbnail
               </button>
               <button
                 onClick={() => handleCreateClick("our-unique-channel")}
-                className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-900 dark:text-white rounded-b-lg"
+                className="w-full px-4 py-2 text-left hover:bg-white/5 transition-colors text-white rounded-b-lg"
               >
                 Our Unique Channel
               </button>
@@ -317,7 +317,7 @@ export const BestPracticesTab: React.FC = () => {
       </div>
 
       {/* Sub-tabs Navigation */}
-      <div className="border-b border-gray-200 dark:border-gray-700">
+      <div className="border-b border-white/10">
         <nav className="flex space-x-4" aria-label="Best Practices sections">
           {(
             [
@@ -334,8 +334,8 @@ export const BestPracticesTab: React.FC = () => {
               onClick={() => setActiveSubTab(tab)}
               className={`py-2 px-4 font-medium text-sm border-b-2 transition-colors ${
                 activeSubTab === tab
-                  ? "border-blue-500 text-blue-600 dark:text-blue-400"
-                  : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                  ? "border-blue-500 text-blue-400"
+                  : "border-transparent text-gray-400 hover:text-gray-300"
               }`}
             >
               {SUB_TAB_LABELS[tab]} ({categoryCounts[tab]})

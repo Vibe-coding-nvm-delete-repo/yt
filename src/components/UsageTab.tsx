@@ -55,7 +55,7 @@ export const UsageTab: React.FC<UsageTabProps> = () => {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+      <h1 className="text-2xl font-bold text-white flex items-center gap-2">
         <List className="h-6 w-6" /> Usage & Costs
       </h1>
 
@@ -66,9 +66,7 @@ export const UsageTab: React.FC<UsageTabProps> = () => {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <label className="block">
-            <span className="block text-xs text-gray-400 mb-1">
-              From
-            </span>
+            <span className="block text-xs text-gray-400 mb-1">From</span>
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-gray-400" />
               <input
@@ -80,9 +78,7 @@ export const UsageTab: React.FC<UsageTabProps> = () => {
             </div>
           </label>
           <label className="block">
-            <span className="block text-xs text-gray-400 mb-1">
-              To
-            </span>
+            <span className="block text-xs text-gray-400 mb-1">To</span>
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-gray-400" />
               <input
@@ -158,7 +154,10 @@ export const UsageTab: React.FC<UsageTabProps> = () => {
                 </div>
               )}
               <div className="min-w-0 flex-1">
-                <div className="text-sm font-medium text-white truncate" title={e.modelName}>
+                <div
+                  className="text-sm font-medium text-white truncate"
+                  title={e.modelName}
+                >
                   {middleEllipsis(e.modelName, 40)}{" "}
                   <span className="text-xs text-gray-500">({e.modelId})</span>
                 </div>

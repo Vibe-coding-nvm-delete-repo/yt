@@ -296,11 +296,10 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     });
   }, []);
 
-
   const renderApiKeysTab = useCallback(
     () => (
       <div className="space-y-4">
-        <div className="flex items-center text-gray-900 dark:text-white">
+        <div className="flex items-center text-white">
           <Key className="mr-2 h-5 w-5" />
           <h3 className="text-lg font-semibold">OpenRouter API Key</h3>
           <Tooltip
@@ -328,7 +327,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             <button
               type="button"
               onClick={() => setShowApiKey(!showApiKey)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300"
               aria-label={showApiKey ? "Hide API key" : "Show API key"}
             >
               {showApiKey ? (
@@ -354,12 +353,12 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             </button>
 
             {validationState.isValid && (
-              <div className="flex items-center text-green-600 dark:text-green-400">
+              <div className="flex items-center text-green-400">
                 <CheckCircle className="mr-1 h-4 w-4" />
                 <span className="text-sm">
                   API key is valid
                   {settings.lastApiKeyValidation && (
-                    <span className="text-gray-500 dark:text-gray-400 ml-1">
+                    <span className="text-gray-400 ml-1">
                       (validated{" "}
                       {formatTimestamp(settings.lastApiKeyValidation)})
                     </span>
@@ -369,7 +368,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             )}
 
             {validationState.error && (
-              <div className="flex items-center text-red-600 dark:text-red-400">
+              <div className="flex items-center text-red-400">
                 <XCircle className="mr-1 h-4 w-4" />
                 <span className="text-sm">{validationState.error}</span>
               </div>
@@ -391,7 +390,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   const renderCustomPromptsTab = useCallback(
     () => (
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+        <h3 className="text-lg font-semibold text-white">
           Custom Prompt Templates
         </h3>
         <textarea
@@ -401,7 +400,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
           placeholder="Enter your custom prompt template..."
           className="w-full px-4 py-2 border-none rounded-lg focus:ring-2 focus:ring-blue-500/50 bg-white/5 focus:bg-white/10 text-white placeholder:text-gray-500 resize-none transition-colors"
         />
-        <p className="text-sm text-gray-500 dark:text-gray-400">
+        <p className="text-sm text-gray-400">
           This prompt will be used when generating prompts from images. Changes
           are saved automatically.
         </p>
@@ -413,10 +412,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   const renderCategoriesTab = useCallback(
     () => (
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-500 dark:text-gray-400">
-          Categories
-        </h3>
-        <p className="text-sm text-gray-400 dark:text-gray-500 italic">
+        <h3 className="text-lg font-semibold text-gray-400">Categories</h3>
+        <p className="text-sm text-gray-500 italic">
           This feature is coming soon.
         </p>
       </div>
@@ -428,7 +425,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     () => (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+          <h3 className="text-lg font-semibold text-white flex items-center">
             Vision Models (Select up to 5)
           </h3>
           <button
@@ -447,9 +444,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
 
         {modelState.error && (
           <div className="p-4 bg-red-900/20 border border-red-800/30 rounded-lg">
-            <p className="text-sm text-red-400">
-              {modelState.error}
-            </p>
+            <p className="text-sm text-red-400">{modelState.error}</p>
           </div>
         )}
 
@@ -461,7 +456,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             aria-label="Select model"
           >
             <span
-              className="text-gray-900 dark:text-white"
+              className="text-white"
               title={
                 selectedModel
                   ? modelState.models.find((m) => m.id === selectedModel)
@@ -482,7 +477,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             />
           </button>
           {isDropdownOpen && (
-            <div className="absolute z-10 w-full mt-1 bg-[#1A212A] border border-white/10 rounded-lg shadow-[0_12px_32px_rgba(0,0,0,0.45)] maxh-80 overflow-hidden flex flex-col">
+            <div className="absolute z-10 w-full mt-1 bg-[#1A212A] border border-white/10 rounded-lg shadow-[0_24px_56px_rgba(0,0,0,0.55)] max-h-80 overflow-hidden flex flex-col">
               <div className="p-2 border-b border-white/6">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -494,6 +489,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                     onChange={(e) => setDropdownSearch(e.target.value)}
                     className="w-full pl-10 pr-4 py-2 border-none rounded-lg focus:ring-2 focus:ring-blue-500/50 bg-white/5 focus:bg-white/10 text-white placeholder:text-gray-500 text-sm transition-colors"
                     onClick={(e) => e.stopPropagation()}
+                    autoFocus
                   />
                 </div>
               </div>
@@ -549,7 +545,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                               ? "Unpin model"
                               : "Pin model"
                           }
-                          className="ml-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                          className="ml-3 text-gray-400 hover:text-gray-300"
                           onClick={(e) => {
                             e.stopPropagation();
                             // TODO: Re-implement pinned model toggle functionality
@@ -589,7 +585,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         </div>
         {modelState.models.length > 0 && (
           <>
-            <div className="text-sm text-gray-600 dark:text-gray-400">
+            <div className="text-sm text-gray-400">
               Selected: {selectedVisionModels.length} / 5
             </div>
 
@@ -615,7 +611,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                         {selectedModelData && (
                           <button
                             onClick={() => toggleModelExpansion(index)}
-                            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                            className="text-gray-400 hover:text-gray-300"
                           >
                             {isExpanded ? (
                               <ChevronUp className="h-5 w-5" />
@@ -727,19 +723,17 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-        Settings
-      </h1>
+      <h1 className="text-2xl font-bold text-white mb-6">Settings</h1>
 
       {/* Sub-tabs Navigation */}
-      <div className="border-b border-gray-200 dark:border-gray-700">
+      <div className="border-b border-white/10">
         <nav className="flex space-x-4" aria-label="Settings sections">
           <button
             onClick={() => setActiveSubTab("api-keys")}
             className={`py-2 px-4 font-medium text-sm border-b-2 transition-colors ${
               activeSubTab === "api-keys"
-                ? "border-blue-500 text-blue-600 dark:text-blue-400"
-                : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                ? "border-blue-500 text-blue-400"
+                : "border-transparent text-gray-400 hover:text-gray-300"
             }`}
           >
             API Keys
@@ -748,8 +742,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             onClick={() => setActiveSubTab("model-selection")}
             className={`py-2 px-4 font-medium text-sm border-b-2 transition-colors ${
               activeSubTab === "model-selection"
-                ? "border-blue-500 text-blue-600 dark:text-blue-400"
-                : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover.text-gray-300"
+                ? "border-blue-500 text-blue-400"
+                : "border-transparent text-gray-400 hover:text-gray-300"
             }`}
           >
             Model Selection
@@ -758,8 +752,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             onClick={() => setActiveSubTab("custom-prompts")}
             className={`py-2 px-4 font-medium text-sm border-b-2 transition-colors ${
               activeSubTab === "custom-prompts"
-                ? "border-blue-500 text-blue-600 dark:text-blue-400"
-                : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                ? "border-blue-500 text-blue-400"
+                : "border-transparent text-gray-400 hover:text-gray-300"
             }`}
           >
             Custom Prompt Templates
@@ -768,8 +762,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             onClick={() => setActiveSubTab("categories")}
             className={`py-2 px-4 font-medium text-sm border-b-2 transition-colors ${
               activeSubTab === "categories"
-                ? "border-blue-500 text-blue-600 dark:text-blue-400"
-                : "border-transparent text-gray-400 dark:text-gray-500"
+                ? "border-blue-500 text-blue-400"
+                : "border-transparent text-gray-500"
             }`}
             disabled
           >
