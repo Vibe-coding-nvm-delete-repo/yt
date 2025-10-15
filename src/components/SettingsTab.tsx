@@ -24,6 +24,8 @@ import {
 } from "lucide-react";
 import { Tooltip } from "@/components/common/Tooltip";
 import { useSettings as useSettingsHook } from "@/hooks/useSettings";
+import { useToast } from "@/contexts/ToastContext";
+import { middleEllipsis } from "@/utils/truncation";
 
 interface SettingsTabProps {
   settings: AppSettings;
@@ -70,6 +72,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     togglePinnedModel: hookTogglePinnedModel,
     subscribe: hookSubscribe,
   } = settingsHook;
+  const { addToast } = useToast();
 
   const [activeSubTab, setActiveSubTab] = useState<SettingsSubTab>("api-keys");
   const [apiKey, setApiKey] = useState(settings.openRouterApiKey);
@@ -268,6 +271,13 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       }));
 
       hookUpdateModels(models);
+      
+      // Show success toast
+      addToast(
+        `Successfully fetched ${models.length} vision models`,
+        'success',
+        4000
+      );
     } catch (error) {
       console.error("Model fetch error:", error);
       setModelState((prev: ModelState) => ({
@@ -277,7 +287,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
           error instanceof Error ? error.message : "Failed to fetch models",
       }));
     }
-  }, [apiKey, validationState.isValid, hookUpdateModels]);
+  }, [apiKey, validationState.isValid, hookUpdateModels, addToast]);
 
   const toggleModelExpansion = useCallback((index: number) => {
     setExpandedModels((prev: Set<number>) => {
@@ -468,10 +478,19 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-left flex items-center justify-between"
             aria-label="Select model"
           >
-            <span className="text-gray-900 dark:text-white">
-              {selectedModel
+            <span 
+              className="text-gray-900 dark:text-white"
+              title={selectedModel
                 ? modelState.models.find((m) => m.id === selectedModel)?.name ||
                   "Select a model..."
+                : "Select a model..."}
+            >
+              {selectedModel
+                ? middleEllipsis(
+                    modelState.models.find((m) => m.id === selectedModel)?.name ||
+                      "Select a model...",
+                    40
+                  )
                 : "Select a model..."}
             </span>
             <ChevronDown
@@ -525,11 +544,12 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                           ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
                           : "text-gray-900 dark:text-white"
                       }`}
+                      title={model.name}
                     >
                       <div className="flex items-center justify-between">
                         <div>
                           <div className="text-sm font-medium">
-                            {model.name}
+                            {middleEllipsis(model.name, 40)}
                           </div>
                           <div className="text-xs text-gray-500 dark:text-gray-400">
                             {formatPrice(
@@ -583,17 +603,6 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         </div>
         {modelState.models.length > 0 && (
           <>
-            <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-              <p className="text-sm text-green-700 dark:text-green-300">
-                ✓ Successfully fetched {modelState.models.length} vision models
-                {settings.lastModelFetch && (
-                  <span className="text-green-600 dark:text-green-400 ml-1">
-                    ({formatTimestamp(settings.lastModelFetch)})
-                  </span>
-                )}
-              </p>
-            </div>
-
             <div className="text-sm text-gray-600 dark:text-gray-400">
               Selected: {selectedVisionModels.length} / 5
             </div>
@@ -638,233 +647,21 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                           if (el) dropdownRefs.current[index] = el;
                         }}
                       >
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setDropdownStates((prev) => ({
-                              ...prev,
-                              [index]: {
-                                isOpen: !prev[index]?.isOpen,
-                                search: prev[index]?.search || "",
-                              },
-                            }));
-                          }}
-                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-left flex items-center justify-between"
-                        >
-                          <span className="text-gray-900 dark:text-white truncate">
-                            {selectedModelId
-                              ? modelState.models.find(
-                                  (m) => m.id === selectedModelId,
-                                )?.name || "Select a model..."
-                              : "Select a model..."}
-                          </span>
-                          <ChevronDown
-                            className={`h-4 w-4 text-gray-500 transition-transform flex-shrink-0 ml-2 ${dropdownStates[index]?.isOpen ? "transform rotate-180" : ""}`}
-                          />
-                        </button>
-                        {dropdownStates[index]?.isOpen && (
-                          <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-96 overflow-hidden flex flex-col">
-                            <div className="p-2 border-b border-gray-200 dark:border-gray-600">
-                              <div className="relative">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                                <input
-                                  type="text"
-                                  placeholder="Search models..."
-                                  value={dropdownStates[index]?.search || ""}
-                                  onChange={(e) => {
-                                    setDropdownStates((prev) => ({
-                                      ...prev,
-                                      [index]: {
-                                        isOpen: prev[index]?.isOpen || false,
-                                        search: e.target.value,
-                                      },
-                                    }));
-                                  }}
-                                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
-                                  onClick={(e) => e.stopPropagation()}
-                                />
-                              </div>
-                            </div>
-
-                            <div className="overflow-y-auto flex-1">
-                              {(() => {
-                                const query = (
-                                  dropdownStates[index]?.search || ""
-                                ).toLowerCase();
-                                const filtered = modelState.models.filter(
-                                  (m) =>
-                                    m.name.toLowerCase().includes(query) ||
-                                    m.id.toLowerCase().includes(query) ||
-                                    getModelProvider(m.id)
-                                      .toLowerCase()
-                                      .includes(query),
-                                );
-
-                                const pinnedSet = new Set(
-                                  settings.pinnedModels || [],
-                                );
-                                const pinnedList = filtered.filter((m) =>
-                                  pinnedSet.has(m.id),
-                                );
-                                const otherList = filtered.filter(
-                                  (m) => !pinnedSet.has(m.id),
-                                );
-
-                                // Group by provider and sort by cost (highest to lowest)
-                                const groupByProvider = (
-                                  models: VisionModel[],
-                                ) => {
-                                  const groups: Record<string, VisionModel[]> =
-                                    {};
-                                  models.forEach((model) => {
-                                    const provider = getModelProvider(model.id);
-                                    if (!groups[provider]) {
-                                      groups[provider] = [];
-                                    }
-                                    groups[provider].push(model);
-                                  });
-                                  // Sort models within each group by cost (highest to lowest)
-                                  Object.keys(groups).forEach((provider) => {
-                                    const providerModels = groups[provider];
-                                    if (providerModels) {
-                                      providerModels.sort(
-                                        (a, b) =>
-                                          getModelAverageCost(b) -
-                                          getModelAverageCost(a),
-                                      );
-                                    }
-                                  });
-                                  return groups;
-                                };
-
-                                const renderRow = (model: VisionModel) => (
-                                  <button
-                                    key={model.id}
-                                    type="button"
-                                    onClick={() => {
-                                      const newModels = [
-                                        ...selectedVisionModels,
-                                      ];
-                                      if (newModels[index] === model.id) {
-                                        newModels.splice(index, 1);
-                                      } else {
-                                        newModels[index] = model.id;
-                                      }
-                                      setSelectedVisionModels(newModels);
-                                      setDropdownStates((prev) => ({
-                                        ...prev,
-                                        [index]: {
-                                          ...prev[index],
-                                          isOpen: false,
-                                          search: "",
-                                        },
-                                      }));
-                                    }}
-                                    disabled={
-                                      selectedVisionModels.includes(model.id) &&
-                                      selectedVisionModels[index] !== model.id
-                                    }
-                                    className={`w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                                      selectedModelId === model.id
-                                        ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
-                                        : "text-gray-900 dark:text-white"
-                                    }`}
-                                  >
-                                    <div className="flex items-center justify-between">
-                                      <div className="flex-1 min-w-0 mr-2">
-                                        <div className="text-sm font-medium truncate">
-                                          {model.name}
-                                        </div>
-                                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                                          ~{formatPrice(
-                                            getModelAverageCost(model),
-                                          )}
-                                          /token avg
-                                        </div>
-                                      </div>
-                                      <button
-                                        type="button"
-                                        aria-label={
-                                          pinnedSet.has(model.id)
-                                            ? "Unpin model"
-                                            : "Pin model"
-                                        }
-                                        className="ml-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 flex-shrink-0"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          hookTogglePinnedModel(model.id);
-                                        }}
-                                      >
-                                        {pinnedSet.has(model.id) ? (
-                                          <Pin className="h-4 w-4 text-blue-600" />
-                                        ) : (
-                                          <PinOff className="h-4 w-4" />
-                                        )}
-                                      </button>
-                                    </div>
-                                  </button>
-                                );
-
-                                const pinnedGroups =
-                                  groupByProvider(pinnedList);
-                                const otherGroups = groupByProvider(otherList);
-
-                                return (
-                                  <>
-                                    {pinnedList.length > 0 && (
-                                      <>
-                                        <div className="px-4 py-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800">
-                                          Pinned Models
-                                        </div>
-                                        {Object.keys(pinnedGroups)
-                                          .sort()
-                                          .map((provider) => {
-                                            const providerModels =
-                                              pinnedGroups[provider];
-                                            if (!providerModels) return null;
-                                            return (
-                                              <div key={`pinned-${provider}`}>
-                                                <div className="px-4 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-750">
-                                                  {provider}
-                                                </div>
-                                                {providerModels.map((m) =>
-                                                  renderRow(m),
-                                                )}
-                                              </div>
-                                            );
-                                          })}
-                                        <div className="my-1 border-t-2 border-gray-300 dark:border-gray-600" />
-                                      </>
-                                    )}
-                                    {Object.keys(otherGroups)
-                                      .sort()
-                                      .map((provider) => {
-                                        const providerModels =
-                                          otherGroups[provider];
-                                        if (!providerModels) return null;
-                                        return (
-                                          <div key={provider}>
-                                            <div className="px-4 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-750">
-                                              {provider}
-                                            </div>
-                                            {providerModels.map((m) =>
-                                              renderRow(m),
-                                            )}
-                                          </div>
-                                        );
-                                      })}
-                                    {filtered.length === 0 && (
-                                      <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
-                                        No models found
-                                      </div>
-                                    )}
-                                  </>
-                                );
-                              })()}
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                        <option value="">-- Select a model --</option>
+                        {modelState.models.map((model) => (
+                          <option
+                            key={model.id}
+                            value={model.id}
+                            disabled={
+                              selectedVisionModels.includes(model.id) &&
+                              selectedVisionModels[index] !== model.id
+                            }
+                            title={model.name}
+                          >
+                            {middleEllipsis(model.name, 50)}
+                          </option>
+                        ))}
+                      </select>
 
                       {/* Collapsible Model Info */}
                       {selectedModelData && isExpanded && (
@@ -918,18 +715,18 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         )}
       </div>
     ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       modelState,
       validationState.isValid,
       selectedVisionModels,
       expandedModels,
       settings.lastModelFetch,
+      settings.pinnedModels,
       fetchModels,
       toggleModelExpansion,
-      getModelProvider,
-      getModelAverageCost,
       hookTogglePinnedModel,
-    ],
+    ]
   );
 
   return (
