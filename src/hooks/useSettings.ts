@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import type { AppSettings, VisionModel } from "@/types";
 import { settingsStorage } from "@/lib/storage";
 
@@ -28,29 +28,16 @@ export const useSettings = (subscribeToKeys?: (keyof AppSettings)[]) => {
   });
 
   const [isInitialized, setIsInitialized] = useState(false);
-  // FIX: initialize ref with null and allow nullable type for strict TS
-  const previousSettingsRef = useRef<AppSettings | null>(null);
-  const settingsHashRef = useRef<string>("");
 
   // Memoize settings to prevent unnecessary re-renders
-  const memoizedSettings = useMemo(() => {
-    // Create a hash of the settings to check for actual changes
-    const currentHash = JSON.stringify(settings);
-    
-    // Only return previous object if settings actually didn't change
-    if (previousSettingsRef.current && settingsHashRef.current === currentHash) {
-      return previousSettingsRef.current;
-    }
-    
-    // Settings changed, update refs and return new object
-    settingsHashRef.current = currentHash;
-    previousSettingsRef.current = settings;
-    return settings;
-  }, [settings]);
+  const settingsJson = JSON.stringify(settings);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const memoizedSettings = useMemo(() => settings, [settingsJson]);
 
   useEffect(() => {
-    // Initialize settings
+    // Initialize settings from storage
     const storedSettings = settingsStorage.getSettings();
+
     setSettings(storedSettings);
     setIsInitialized(true);
 
@@ -58,14 +45,16 @@ export const useSettings = (subscribeToKeys?: (keyof AppSettings)[]) => {
     const unsubscribe = settingsStorage.subscribe(
       (newSettings, oldSettings, changedKeys) => {
         // Only update if settings actually changed and we care about the keys
-        const relevantChange = !subscribeToKeys || 
-          (changedKeys && changedKeys.some(key => subscribeToKeys.includes(key)));
-        
+        const relevantChange =
+          !subscribeToKeys ||
+          (changedKeys &&
+            changedKeys.some((key) => subscribeToKeys.includes(key)));
+
         if (relevantChange) {
           // Only update state if the JSON representation actually changed
           const newHash = JSON.stringify(newSettings);
           const oldHash = JSON.stringify(oldSettings);
-          
+
           if (newHash !== oldHash) {
             setSettings(newSettings);
           }
@@ -73,8 +62,8 @@ export const useSettings = (subscribeToKeys?: (keyof AppSettings)[]) => {
       },
       {
         ...(subscribeToKeys ? { keys: subscribeToKeys } : {}),
-        immediate: false
-      }
+        immediate: false,
+      },
     );
 
     return unsubscribe;
@@ -149,45 +138,48 @@ export const useSettings = (subscribeToKeys?: (keyof AppSettings)[]) => {
   }, []);
 
   // Return memoized values and functions
-  return useMemo(() => ({
-    settings: memoizedSettings,
-    isInitialized,
-    updateSettings: batchUpdateSettings,
-    updateApiKey,
-    validateApiKey,
-    updateSelectedModel,
-    updateCustomPrompt,
-    updateModels,
-    updatePinnedModels,
-    pinModel,
-    unpinModel,
-    togglePinnedModel,
-    clearSettings,
-    shouldRefreshModels,
-    getModelById,
-    getSelectedModel,
-    getPinnedModels,
-    subscribe,
-  }), [
-    memoizedSettings, 
-    isInitialized, 
-    batchUpdateSettings,
-    updateApiKey, 
-    validateApiKey, 
-    updateSelectedModel, 
-    updateCustomPrompt, 
-    updateModels,
-    updatePinnedModels,
-    pinModel,
-    unpinModel,
-    togglePinnedModel,
-    clearSettings,
-    shouldRefreshModels,
-    getModelById,
-    getSelectedModel,
-    getPinnedModels,
-    subscribe
-  ]);
+  return useMemo(
+    () => ({
+      settings: memoizedSettings,
+      isInitialized,
+      updateSettings: batchUpdateSettings,
+      updateApiKey,
+      validateApiKey,
+      updateSelectedModel,
+      updateCustomPrompt,
+      updateModels,
+      updatePinnedModels,
+      pinModel,
+      unpinModel,
+      togglePinnedModel,
+      clearSettings,
+      shouldRefreshModels,
+      getModelById,
+      getSelectedModel,
+      getPinnedModels,
+      subscribe,
+    }),
+    [
+      memoizedSettings,
+      isInitialized,
+      batchUpdateSettings,
+      updateApiKey,
+      validateApiKey,
+      updateSelectedModel,
+      updateCustomPrompt,
+      updateModels,
+      updatePinnedModels,
+      pinModel,
+      unpinModel,
+      togglePinnedModel,
+      clearSettings,
+      shouldRefreshModels,
+      getModelById,
+      getSelectedModel,
+      getPinnedModels,
+      subscribe,
+    ],
+  );
 };
 
 /**
@@ -195,37 +187,30 @@ export const useSettings = (subscribeToKeys?: (keyof AppSettings)[]) => {
  * Use this when components only need one or two specific settings
  */
 export const useSettingsKey = <K extends keyof AppSettings>(
-  key: K
+  key: K,
 ): [AppSettings[K], (value: AppSettings[K]) => void] => {
   const [value, setValue] = useState<AppSettings[K]>(() => {
     const settings = settingsStorage.getSettings();
     return settings[key];
   });
 
-  const [isInitialized, setIsInitialized] = useState(false);
-
-  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
-    // Initialize with current value
-    if (!isInitialized) {
-      const settings = settingsStorage.getSettings();
-      setValue(settings[key]);
-      setIsInitialized(true);
-    }
-
     // Subscribe only to this specific key
     const unsubscribe = settingsStorage.subscribeToKey(
       key,
       (newValue) => setValue(newValue),
-      false // Don't call immediately since we already initialized
+      false, // Don't call immediately since we already initialized
     );
 
     return unsubscribe;
-  }, [key, isInitialized]);
-
-  const updateValue = useCallback((newValue: AppSettings[K]) => {
-    settingsStorage.batchUpdate({ [key]: newValue } as Partial<AppSettings>);
   }, [key]);
+
+  const updateValue = useCallback(
+    (newValue: AppSettings[K]) => {
+      settingsStorage.batchUpdate({ [key]: newValue } as Partial<AppSettings>);
+    },
+    [key],
+  );
 
   return [value, updateValue];
 };
@@ -235,23 +220,23 @@ export const useSettingsKey = <K extends keyof AppSettings>(
  * Optimized to prevent re-renders when other settings change
  */
 export const useApiKey = () => {
-  return useSettingsKey('openRouterApiKey');
+  return useSettingsKey("openRouterApiKey");
 };
 
 /**
  * Hook for components that only need API key validation state
  */
 export const useApiKeyValidation = () => {
-  const { settings } = useSettings(['isValidApiKey', 'lastApiKeyValidation']);
-  
+  const { settings } = useSettings(["isValidApiKey", "lastApiKeyValidation"]);
+
   const validateApiKey = useCallback((isValid: boolean) => {
     settingsStorage.validateApiKey(isValid);
   }, []);
-  
+
   return {
     isValidApiKey: settings.isValidApiKey,
     lastApiKeyValidation: settings.lastApiKeyValidation,
-    validateApiKey
+    validateApiKey,
   };
 };
 
@@ -259,18 +244,18 @@ export const useApiKeyValidation = () => {
  * Hook for components that only need model selection
  */
 export const useModelSelection = () => {
-  const { settings } = useSettings(['selectedModel', 'availableModels']);
-  
+  const { settings } = useSettings(["selectedModel", "availableModels"]);
+
   const updateSelectedModel = useCallback((modelId: string) => {
     settingsStorage.updateSelectedModel(modelId);
   }, []);
-  
+
   return {
     selectedModel: settings.selectedModel,
     availableModels: settings.availableModels,
     setSelectedModel: updateSelectedModel,
     getModelById: settingsStorage.getModelById.bind(settingsStorage),
-    getSelectedModel: settingsStorage.getSelectedModel.bind(settingsStorage)
+    getSelectedModel: settingsStorage.getSelectedModel.bind(settingsStorage),
   };
 };
 
@@ -278,38 +263,38 @@ export const useModelSelection = () => {
  * Hook for components that manage pinned models
  */
 export const usePinnedModels = () => {
-  const { settings } = useSettings(['pinnedModels', 'availableModels']);
-  
+  const { settings } = useSettings(["pinnedModels", "availableModels"]);
+
   const pinModel = useCallback((modelId: string) => {
     settingsStorage.pinModel(modelId);
   }, []);
-  
+
   const unpinModel = useCallback((modelId: string) => {
     settingsStorage.unpinModel(modelId);
   }, []);
-  
+
   const togglePinnedModel = useCallback((modelId: string) => {
     settingsStorage.togglePinnedModel(modelId);
   }, []);
-  
+
   const isModelPinned = useCallback((modelId: string) => {
     return settingsStorage.isModelPinned(modelId);
   }, []);
-  
+
   // Get actual model objects for pinned models
   const pinnedModels = useMemo(() => {
     return settings.pinnedModels
-      .map(id => settings.availableModels.find(model => model.id === id))
+      .map((id) => settings.availableModels.find((model) => model.id === id))
       .filter(Boolean) as VisionModel[];
   }, [settings.pinnedModels, settings.availableModels]);
-  
+
   return {
     pinnedModelIds: settings.pinnedModels,
     pinnedModels,
     pinModel,
     unpinModel,
     togglePinnedModel,
-    isModelPinned
+    isModelPinned,
   };
 };
 
@@ -317,7 +302,7 @@ export const usePinnedModels = () => {
  * Hook for components that need custom prompt
  */
 export const useCustomPrompt = () => {
-  const [customPrompt, updateCustomPrompt] = useSettingsKey('customPrompt');
+  const [customPrompt, updateCustomPrompt] = useSettingsKey("customPrompt");
   return { customPrompt, updateCustomPrompt };
 };
 
@@ -325,21 +310,21 @@ export const useCustomPrompt = () => {
  * Hook for components that need model management
  */
 export const useModelManagement = () => {
-  const { settings } = useSettings(['availableModels', 'lastModelFetch']);
-  
+  const { settings } = useSettings(["availableModels", "lastModelFetch"]);
+
   const updateModels = useCallback((models: VisionModel[]) => {
     settingsStorage.updateModels(models);
   }, []);
-  
+
   const shouldRefreshModels = useCallback(() => {
     return settingsStorage.shouldRefreshModels();
   }, []);
-  
+
   return {
     availableModels: settings.availableModels,
     lastModelFetch: settings.lastModelFetch,
     updateModels,
     shouldRefreshModels,
-    getModelById: settingsStorage.getModelById.bind(settingsStorage)
+    getModelById: settingsStorage.getModelById.bind(settingsStorage),
   };
 };

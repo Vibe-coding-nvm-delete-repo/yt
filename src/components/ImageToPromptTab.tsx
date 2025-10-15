@@ -58,85 +58,95 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   // Initialize model results when selected models change
   // CRITICAL: Only reset when the actual selected models change, not when availableModels updates
   // This prevents wiping out cost data when models list refreshes
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+  // Justification for setState in effect: We're synchronizing React state with external settings changes.
+  // This effect needs to observe selectedVisionModels and availableModels to properly maintain model results.
+  // Alternative patterns like useMemo would not allow us to preserve existing results correctly.
   useEffect(() => {
     if (
-      settings.selectedVisionModels &&
-      settings.selectedVisionModels.length > 0
+      !settings.selectedVisionModels ||
+      settings.selectedVisionModels.length === 0
     ) {
-      setModelResults((prevResults) => {
-        // Get the set of current model IDs
-        const prevModelIds = new Set(prevResults.map((r) => r.modelId));
-        const newModelIds = new Set(settings.selectedVisionModels);
+      return;
+    }
 
-        // If the selected models haven't changed, preserve existing results
-        if (
-          prevModelIds.size === newModelIds.size &&
-          [...prevModelIds].every((id) => newModelIds.has(id))
-        ) {
-          // Just update model names in case availableModels was updated
-          return prevResults.map((result) => {
-            const model = settings.availableModels.find(
-              (m) => m.id === result.modelId,
-            );
-            return {
-              ...result,
-              modelName: model?.name || result.modelName,
-            };
-          });
-        }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setModelResults((prevResults) => {
+      // Get the set of current model IDs
+      const prevModelIds = new Set(prevResults.map((r) => r.modelId));
+      const newModelIds = new Set(settings.selectedVisionModels);
 
-        // Models changed, create new results but try to preserve data for unchanged models
-        const existingResultsMap = new Map(
-          prevResults.map((r) => [r.modelId, r]),
-        );
-
-        return settings.selectedVisionModels.map((modelId) => {
-          const model = settings.availableModels.find((m) => m.id === modelId);
-          const existing = existingResultsMap.get(modelId);
-
-          // If we have existing data for this model, preserve it
-          if (existing) {
-            return {
-              ...existing,
-              modelName: model?.name || existing.modelName,
-            };
-          }
-
-          // New model, create fresh result
+      // If the selected models haven't changed, preserve existing results
+      if (
+        prevModelIds.size === newModelIds.size &&
+        [...prevModelIds].every((id) => newModelIds.has(id))
+      ) {
+        // Just update model names in case availableModels was updated
+        return prevResults.map((result) => {
+          const model = settings.availableModels.find(
+            (m) => m.id === result.modelId,
+          );
           return {
-            id: `${sessionId}-${modelId}`, // Stable ID for this session + model
-            modelId,
-            modelName: model?.name || modelId,
-            prompt: null,
-            cost: null,
-            inputTokens: null,
-            outputTokens: null,
-            inputCost: null,
-            outputCost: null,
-            isProcessing: false,
-            error: null,
+            ...result,
+            modelName: model?.name || result.modelName,
           };
         });
+      }
+
+      // Models changed, create new results but try to preserve data for unchanged models
+      const existingResultsMap = new Map(
+        prevResults.map((r) => [r.modelId, r]),
+      );
+
+      return settings.selectedVisionModels.map((modelId) => {
+        const model = settings.availableModels.find((m) => m.id === modelId);
+        const existing = existingResultsMap.get(modelId);
+
+        // If we have existing data for this model, preserve it
+        if (existing) {
+          return {
+            ...existing,
+            modelName: model?.name || existing.modelName,
+          };
+        }
+
+        // New model, create fresh result
+        return {
+          id: `${sessionId}-${modelId}`, // Stable ID for this session + model
+          modelId,
+          modelName: model?.name || modelId,
+          prompt: null,
+          cost: null,
+          inputTokens: null,
+          outputTokens: null,
+          inputCost: null,
+          outputCost: null,
+          isProcessing: false,
+          error: null,
+        };
       });
-    }
+    });
   }, [settings.selectedVisionModels, settings.availableModels, sessionId]);
 
   // Load persisted image and model results on mount
   // CRITICAL: This must run AFTER the model initialization effect to prevent race conditions
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+  // Justification for setState in effect: This effect synchronizes React state with external storage (localStorage).
+  // This is a valid use case per React docs - effects can sync state with external systems.
   useEffect(() => {
     const persisted = imageStateStorage.getImageState();
-    if (persisted && persisted.preview) {
+
+    if (!persisted) return;
+
+    if (persisted.preview) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setUploadedImage({
         file: null, // We don't have the file object from storage
         preview: persisted.preview,
       });
     }
+
     // Restore model results if they exist, but clear any stale processing flags
     // IMPORTANT: Only restore if we have valid persisted results with cost data
     if (
-      persisted &&
       Array.isArray(persisted.modelResults) &&
       persisted.modelResults.length > 0
     ) {
@@ -146,6 +156,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
         id: `${sessionId}-${result.modelId}`, // Ensure id is present
         isProcessing: false,
       }));
+
       // Set results directly, overriding any initialization from settings
       setModelResults((prevResults) => {
         // If prevResults is empty or doesn't have any prompts/costs, use persisted data
@@ -158,16 +169,18 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
         // Otherwise keep the existing data (edge case: manual refresh during generation)
         return prevResults;
       });
+
       // Persist the cleaned results back to storage
       imageStateStorage.saveModelResults(cleanedResults);
     }
+
     // DO NOT restore generation status - if user navigated away or refreshed
     // during generation, the generation is effectively cancelled
     // Clear any stale generation status from storage
-    if (persisted && persisted.isGenerating) {
+    if (persisted.isGenerating) {
       imageStateStorage.saveGenerationStatus(false);
     }
-  }, []);
+  }, [sessionId]);
 
   // Cleanup: Reset generation state when component unmounts
   useEffect(() => {
@@ -395,7 +408,9 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
           // Calculate input/output costs based on model pricing
           if (model.pricing) {
             const inputPrice = parseFloat(String(model.pricing.prompt || 0));
-            const outputPrice = parseFloat(String(model.pricing.completion || 0));
+            const outputPrice = parseFloat(
+              String(model.pricing.completion || 0),
+            );
             inputCost = (inputTokens * inputPrice) / 1000000; // Convert from per-1M tokens
             outputCost = (outputTokens * outputPrice) / 1000000;
           }
@@ -477,6 +492,8 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
     await Promise.all(promises);
 
     setIsGenerating(false);
+    // Persist generation status
+    imageStateStorage.saveGenerationStatus(false);
   }, [
     settings,
     uploadedImage,
@@ -513,7 +530,6 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
       // silent failure to avoid noisy UI
     }
   }, []);
-
 
   // Calculate total cost across all models
   const totalCostAllModels = modelResults.reduce((sum, result) => {
@@ -654,8 +670,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
         </div>
       )}
 
-      {/* Overall Cost Summary - Ultra Minimalist */
-      }
+      {/* Overall Cost Summary - Ultra Minimalist */}
       {modelResults.length > 0 && (
         <div className="flex items-center justify-center gap-8 py-3 text-sm">
           <div className="flex items-center gap-2">
@@ -710,7 +725,10 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
             >
               {/* Model Header */}
               <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-1 truncate" title={result.modelName}>
+                <h3
+                  className="font-semibold text-gray-900 dark:text-white text-sm mb-1 truncate"
+                  title={result.modelName}
+                >
                   {middleEllipsis(result.modelName, 30)}
                 </h3>
                 <div className="text-xs text-gray-400 dark:text-gray-500 truncate">
@@ -733,7 +751,9 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
                           aria-label="Copy prompt"
                           title="Copy prompt"
                           className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-white dark:bg-gray-800 shadow-sm hover:shadow-md text-gray-700 dark:text-gray-200 text-xs transition-shadow"
-                          onClick={() => copyToClipboard(result.prompt!, result.id)}
+                          onClick={() =>
+                            copyToClipboard(result.prompt!, result.id)
+                          }
                         >
                           {copiedMap[result.id] ? (
                             <>
@@ -763,13 +783,18 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
                     <div className="p-3 bg-gray-50/50 dark:bg-gray-800/50 border-t border-gray-200 dark:border-gray-700">
                       <div className="grid grid-cols-2 gap-2 text-xs">
                         <div>
-                          <div className="text-gray-500 dark:text-gray-400">Tokens</div>
+                          <div className="text-gray-500 dark:text-gray-400">
+                            Tokens
+                          </div>
                           <div className="font-medium text-gray-900 dark:text-white">
-                            {formatTokens(result.inputTokens)} / {formatTokens(result.outputTokens)}
+                            {formatTokens(result.inputTokens)} /{" "}
+                            {formatTokens(result.outputTokens)}
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="text-gray-500 dark:text-gray-400">Total Cost</div>
+                          <div className="text-gray-500 dark:text-gray-400">
+                            Total Cost
+                          </div>
                           <div className="font-semibold text-green-600 dark:text-green-400">
                             {formatCost(result.cost)}
                           </div>

@@ -29,19 +29,26 @@ export const RatingWidget: React.FC<RatingWidgetProps> = ({
   prompt,
   compact = false,
 }) => {
-  const [rating, setRating] = useState<Rating | null>(null);
+  // Initialize rating from storage
+  const [rating, setRating] = useState<Rating | null>(() => {
+    return ratingStorage.getRatingByHistoryId(historyEntryId);
+  });
+
   const [hoveredStar, setHoveredStar] = useState<number | null>(null);
   const [showComment, setShowComment] = useState(false);
-  const [comment, setComment] = useState("");
+  const [comment, setComment] = useState(() => {
+    const existing = ratingStorage.getRatingByHistoryId(historyEntryId);
+    return existing?.comment || "";
+  });
   const [saved, setSaved] = useState(false);
 
+  // Sync rating when historyEntryId changes
   useEffect(() => {
-    // Load existing rating
     const existing = ratingStorage.getRatingByHistoryId(historyEntryId);
-    if (existing) {
-      setRating(existing);
-      setComment(existing.comment || "");
-    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRating(existing);
+
+    setComment(existing?.comment || "");
   }, [historyEntryId]);
 
   const handleStarClick = (stars: RatingValue) => {

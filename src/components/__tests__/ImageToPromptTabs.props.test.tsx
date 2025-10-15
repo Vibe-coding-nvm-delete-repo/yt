@@ -1,3 +1,4 @@
+import React from "react";
 import { render, screen } from "@testing-library/react";
 import ImageToPromptTabs from "@/components/ImageToPromptTabs";
 import * as useSettingsModule from "@/hooks/useSettings";
@@ -44,7 +45,7 @@ describe("ImageToPromptTabs", () => {
 
     // The h1 in ImageToPromptTab should render, meaning component mounted with settings
     expect(
-      screen.getByRole("heading", { name: /Image to Prompt/i })
+      screen.getByRole("heading", { name: /Image to Prompt/i }),
     ).toBeInTheDocument();
   });
 });

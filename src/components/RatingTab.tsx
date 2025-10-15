@@ -22,27 +22,36 @@ import Image from "next/image";
 import { middleEllipsis } from "@/utils/truncation";
 
 export const RatingTab: React.FC = () => {
-  const [ratings, setRatings] = useState<Rating[]>([]);
-  const [stats, setStats] = useState<RatingStats | null>(null);
   const [filter, setFilter] = useState<RatingFilter>({});
   const [showFilters, setShowFilters] = useState(false);
-  // const [selectedRating, setSelectedRating] = useState<Rating | null>(null);
 
+  // Load ratings and stats - recompute whenever filter changes
   const loadRatings = useCallback(() => {
     const allRatings = ratingStorage.getFilteredRatings(filter);
-    setRatings(allRatings);
     const newStats = ratingStorage.getStats(filter);
-    setStats(newStats);
+    return { ratings: allRatings, stats: newStats };
   }, [filter]);
 
+  const { ratings, stats } = useMemo(() => loadRatings(), [loadRatings]);
+
+  // Track state separately for UI updates (delete, clear)
+  const [ratingsState, setRatingsState] = useState<Rating[]>(ratings);
+  const [statsState, setStatsState] = useState<RatingStats | null>(stats);
+
+  // Sync state when filter changes
   useEffect(() => {
-    loadRatings();
-  }, [loadRatings]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRatingsState(ratings);
+
+    setStatsState(stats);
+  }, [ratings, stats]);
 
   const handleDeleteRating = (id: string) => {
     if (confirm("Are you sure you want to delete this rating?")) {
       ratingStorage.deleteRating(id);
-      loadRatings();
+      const { ratings: allRatings, stats: newStats } = loadRatings();
+      setRatingsState(allRatings);
+      setStatsState(newStats);
     }
   };
 
@@ -91,7 +100,7 @@ export const RatingTab: React.FC = () => {
       }
     });
     return Array.from(modelMap.entries()).map(([id, name]) => ({ id, name }));
-  }, [ratings]);
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -109,7 +118,7 @@ export const RatingTab: React.FC = () => {
       </div>
 
       {/* Statistics Summary */}
-      {stats && stats.totalRatings > 0 && (
+      {statsState && statsState.totalRatings > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 mb-2">
@@ -117,7 +126,7 @@ export const RatingTab: React.FC = () => {
               <span className="text-sm">Total Ratings</span>
             </div>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">
-              {stats.totalRatings}
+              {statsState.totalRatings}
             </p>
           </div>
 
@@ -127,7 +136,9 @@ export const RatingTab: React.FC = () => {
               <span className="text-sm">Average Rating</span>
             </div>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">
-              {stats.averageStars > 0 ? stats.averageStars.toFixed(1) : "N/A"}
+              {statsState.averageStars > 0
+                ? statsState.averageStars.toFixed(1)
+                : "N/A"}
             </p>
           </div>
 
@@ -137,7 +148,7 @@ export const RatingTab: React.FC = () => {
               <span className="text-sm">Thumbs Up</span>
             </div>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">
-              {stats.thumbsUp}
+              {statsState.thumbsUp}
             </p>
           </div>
 
@@ -147,7 +158,7 @@ export const RatingTab: React.FC = () => {
               <span className="text-sm">Thumbs Down</span>
             </div>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">
-              {stats.thumbsDown}
+              {statsState.thumbsDown}
             </p>
           </div>
         </div>
@@ -199,7 +210,10 @@ export const RatingTab: React.FC = () => {
                 onChange={(e) => {
                   const value = e.target.value;
                   if (value) {
-                    setFilter({ ...filter, minStars: parseInt(value) as RatingValue });
+                    setFilter({
+                      ...filter,
+                      minStars: parseInt(value) as RatingValue,
+                    });
                   } else {
                     // eslint-disable-next-line @typescript-eslint/no-unused-vars
                     const { minStars, ...rest } = filter;
@@ -255,13 +269,13 @@ export const RatingTab: React.FC = () => {
       )}
 
       {/* Model Statistics */}
-      {stats && Object.keys(stats.byModel).length > 0 && (
+      {statsState && Object.keys(statsState.byModel).length > 0 && (
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
             Statistics by Model
           </h3>
           <div className="space-y-3">
-            {Object.entries(stats.byModel)
+            {Object.entries(statsState.byModel)
               .sort((a, b) => b[1].averageStars - a[1].averageStars)
               .map(([modelId, modelStats]) => (
                 <div
@@ -269,7 +283,10 @@ export const RatingTab: React.FC = () => {
                   className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
                 >
                   <div className="flex-1">
-                    <p className="font-medium text-gray-900 dark:text-white" title={modelStats.modelName}>
+                    <p
+                      className="font-medium text-gray-900 dark:text-white"
+                      title={modelStats.modelName}
+                    >
                       {middleEllipsis(modelStats.modelName, 40)}
                     </p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -310,7 +327,7 @@ export const RatingTab: React.FC = () => {
 
       {/* Ratings List */}
       <div className="space-y-4">
-        {ratings.length === 0 ? (
+        {ratingsState.length === 0 ? (
           <div className="text-center py-12">
             <Star className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-500 dark:text-gray-400">
@@ -319,7 +336,7 @@ export const RatingTab: React.FC = () => {
             </p>
           </div>
         ) : (
-          ratings.map((rating) => (
+          ratingsState.map((rating) => (
             <div
               key={rating.id}
               className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700"
@@ -343,7 +360,10 @@ export const RatingTab: React.FC = () => {
                 <div className="flex-1 space-y-3">
                   <div className="flex items-start justify-between">
                     <div>
-                      <h4 className="font-semibold text-gray-900 dark:text-white" title={rating.modelName}>
+                      <h4
+                        className="font-semibold text-gray-900 dark:text-white"
+                        title={rating.modelName}
+                      >
                         {middleEllipsis(rating.modelName, 40)}
                       </h4>
                       <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -391,7 +411,7 @@ export const RatingTab: React.FC = () => {
       </div>
 
       {/* Clear All Ratings */}
-      {ratings.length > 0 && (
+      {ratingsState.length > 0 && (
         <div className="flex justify-center pt-4">
           <button
             onClick={() => {
@@ -401,7 +421,9 @@ export const RatingTab: React.FC = () => {
                 )
               ) {
                 ratingStorage.clearAllRatings();
-                loadRatings();
+                const { ratings: allRatings, stats: newStats } = loadRatings();
+                setRatingsState(allRatings);
+                setStatsState(newStats);
               }
             }}
             className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"

@@ -37,6 +37,7 @@ describe("HistoryTab", () => {
       filterModelIds: [],
       addEntry: jest.fn(),
       setFilterModelIds: jest.fn(),
+      historyModelOptions: [],
     });
 
     render(<HistoryTab />);
@@ -68,6 +69,7 @@ describe("HistoryTab", () => {
       filterModelIds: [],
       addEntry: jest.fn(),
       setFilterModelIds: jest.fn(),
+      historyModelOptions: [{ id: "model-1", name: "Test Model" }],
     });
 
     render(<HistoryTab />);
@@ -82,6 +84,7 @@ describe("HistoryTab", () => {
       filterModelIds: [],
       addEntry: jest.fn(),
       setFilterModelIds: jest.fn(),
+      historyModelOptions: [],
     });
 
     render(<HistoryTab />);
