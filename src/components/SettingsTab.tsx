@@ -271,12 +271,12 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       }));
 
       hookUpdateModels(models);
-      
+
       // Show success toast
       addToast(
         `Successfully fetched ${models.length} vision models`,
-        'success',
-        4000
+        "success",
+        4000,
       );
     } catch (error) {
       console.error("Model fetch error:", error);
@@ -300,6 +300,28 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       return newSet;
     });
   }, []);
+
+  const handleVisionModelChange = useCallback(
+    (index: number, modelId: string) => {
+      const newSelectedModels = [...selectedVisionModels];
+      if (modelId === "") {
+        // Remove the model at this index
+        newSelectedModels.splice(index, 1);
+      } else {
+        // Update or add the model at this index
+        newSelectedModels[index] = modelId;
+      }
+      setSelectedVisionModels(newSelectedModels);
+
+      // Update settings storage
+      settingsStorage.updateSelectedVisionModels(newSelectedModels);
+
+      // Notify parent component
+      const updatedSettings = settingsStorage.getSettings();
+      onSettingsUpdate(updatedSettings);
+    },
+    [selectedVisionModels, onSettingsUpdate],
+  );
 
   // Helper function to extract provider/company from model ID
   const getModelProvider = useCallback((modelId: string): string => {
@@ -478,18 +500,20 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-left flex items-center justify-between"
             aria-label="Select model"
           >
-            <span 
+            <span
               className="text-gray-900 dark:text-white"
-              title={selectedModel
-                ? modelState.models.find((m) => m.id === selectedModel)?.name ||
-                  "Select a model..."
-                : "Select a model..."}
+              title={
+                selectedModel
+                  ? modelState.models.find((m) => m.id === selectedModel)
+                      ?.name || "Select a model..."
+                  : "Select a model..."
+              }
             >
               {selectedModel
                 ? middleEllipsis(
-                    modelState.models.find((m) => m.id === selectedModel)?.name ||
-                      "Select a model...",
-                    40
+                    modelState.models.find((m) => m.id === selectedModel)
+                      ?.name || "Select a model...",
+                    40,
                   )
                 : "Select a model..."}
             </span>
@@ -569,7 +593,9 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                           onClick={(e) => {
                             e.stopPropagation();
                             // TODO: Re-implement pinned model toggle functionality
-                            console.warn('Pinned model toggle not yet implemented');
+                            console.warn(
+                              "Pinned model toggle not yet implemented",
+                            );
                           }}
                         >
                           {pinnedSet.has(model.id) ? (
@@ -647,21 +673,29 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                           if (el) dropdownRefs.current[index] = el;
                         }}
                       >
-                        <option value="">-- Select a model --</option>
-                        {modelState.models.map((model) => (
-                          <option
-                            key={model.id}
-                            value={model.id}
-                            disabled={
-                              selectedVisionModels.includes(model.id) &&
-                              selectedVisionModels[index] !== model.id
-                            }
-                            title={model.name}
-                          >
-                            {middleEllipsis(model.name, 50)}
-                          </option>
-                        ))}
-                      </select>
+                        <select
+                          value={selectedModelId || ""}
+                          onChange={(e) =>
+                            handleVisionModelChange(index, e.target.value)
+                          }
+                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        >
+                          <option value="">-- Select a model --</option>
+                          {modelState.models.map((model) => (
+                            <option
+                              key={model.id}
+                              value={model.id}
+                              disabled={
+                                selectedVisionModels.includes(model.id) &&
+                                selectedVisionModels[index] !== model.id
+                              }
+                              title={model.name}
+                            >
+                              {middleEllipsis(model.name, 50)}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
 
                       {/* Collapsible Model Info */}
                       {selectedModelData && isExpanded && (
@@ -726,7 +760,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       fetchModels,
       toggleModelExpansion,
       hookTogglePinnedModel,
-    ]
+    ],
   );
 
   return (
