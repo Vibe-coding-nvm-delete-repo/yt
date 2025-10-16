@@ -128,7 +128,7 @@ export const HistoryTab: React.FC = () => {
                   <span>{item.charCount} chars</span>
                   <span>•</span>
                   <span className="text-green-400">
-                    ${item.totalCost.toFixed(6)}
+                    ${item.totalCost.toFixed(2)}
                   </span>
                   <span>•</span>
                   <span>{new Date(item.createdAt).toLocaleString()}</span>

@@ -18,12 +18,8 @@ import { middleEllipsis } from "@/utils/truncation";
 interface UsageTabProps {}
 
 const formatCurrency = (n: number) => {
-  // Show user-friendly format: 2 decimal places for amounts >= $0.01
-  // Otherwise show up to 6 decimals for very small amounts
-  if (n >= 0.01) {
-    return `$${n.toFixed(2)}`;
-  }
-  return `$${n.toFixed(6)}`;
+  // Always show exactly 2 decimal places for all amounts
+  return `$${n.toFixed(2)}`;
 };
 
 export const UsageTab: React.FC<UsageTabProps> = () => {
