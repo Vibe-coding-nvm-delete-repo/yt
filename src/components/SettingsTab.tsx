@@ -206,6 +206,9 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   const [pcModelId, setPcModelId] = useState(
     promptCreatorConfigState.openRouterModelId,
   );
+  const [lockedInPrompt, setLockedInPrompt] = useState(
+    promptCreatorConfigState.lockedInPrompt,
+  );
   const [textModels, setTextModels] = useState<TextModel[]>([]);
   const [isFetchingTextModels, setIsFetchingTextModels] = useState(false);
   const [textModelError, setTextModelError] = useState<string | null>(null);
@@ -304,6 +307,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       setPromptInstructions(config.promptGenInstructions);
       setRatingRubric(config.ratingRubric);
       setPcModelId(config.openRouterModelId);
+      setLockedInPrompt(config.lockedInPrompt);
     }
   }, [activeSubTab]);
 
@@ -360,6 +364,18 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
 
     return () => clearTimeout(timeoutId);
   }, [pcModelId]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      promptCreatorConfigStorage.updateLockedInPrompt(lockedInPrompt);
+      setPromptCreatorConfigState((prev) => ({
+        ...prev,
+        lockedInPrompt,
+      }));
+    }, 400);
+
+    return () => clearTimeout(timeoutId);
+  }, [lockedInPrompt]);
 
   useEffect(() => {
     setConnectionStatus("idle");
@@ -856,30 +872,50 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
           </p>
         </header>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-semibold text-white">
-              Prompt generation instructions
+              Locked-in prompt
             </label>
+            <p className="text-xs text-gray-400">
+              This prompt will always be prepended to generated prompts,
+              regardless of field selections. It remains constant unless changed
+              here.
+            </p>
             <textarea
-              value={promptInstructions}
-              onChange={(event) => setPromptInstructions(event.target.value)}
-              rows={6}
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
-              placeholder="Take the below variables and create a prompt..."
+              value={lockedInPrompt}
+              onChange={(event) => setLockedInPrompt(event.target.value)}
+              rows={8}
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none font-mono"
+              placeholder="Enter locked-in prompt..."
             />
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-white">
-              Rating rubric
-            </label>
-            <textarea
-              value={ratingRubric}
-              onChange={(event) => setRatingRubric(event.target.value)}
-              rows={6}
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
-              placeholder="Explain how the rater should score prompts and return JSON"
-            />
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-white">
+                Prompt generation instructions
+              </label>
+              <textarea
+                value={promptInstructions}
+                onChange={(event) => setPromptInstructions(event.target.value)}
+                rows={6}
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
+                placeholder="Take the below variables and create a prompt..."
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-white">
+                Rating rubric
+              </label>
+              <textarea
+                value={ratingRubric}
+                onChange={(event) => setRatingRubric(event.target.value)}
+                rows={6}
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
+                placeholder="Explain how the rater should score prompts and return JSON"
+              />
+            </div>
           </div>
         </div>
 
