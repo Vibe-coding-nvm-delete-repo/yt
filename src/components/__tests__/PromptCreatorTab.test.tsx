@@ -115,4 +115,29 @@ describe("PromptCreatorTab", () => {
     const draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || "{}");
     expect(draft.selections.style).toBe("Warm");
   });
+
+  it("displays explanatory text about how the Prompt Creator works", async () => {
+    render(<PromptCreatorTab apiKey="sk-test" />);
+
+    await screen.findByLabelText(/Time of Day$/);
+
+    expect(
+      screen.getByText("How the Prompt Creator works:"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Set up your prompt fields in Settings/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/A base prompt.*is always prepended/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Fill in the mandatory fields/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Click.*Generate.*to create 3 prompts/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/View generated prompts with their quality scores/i),
+    ).toBeInTheDocument();
+  });
 });

@@ -213,10 +213,6 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   const [textModels, setTextModels] = useState<TextModel[]>([]);
   const [isFetchingTextModels, setIsFetchingTextModels] = useState(false);
   const [textModelError, setTextModelError] = useState<string | null>(null);
-  const [connectionStatus, setConnectionStatus] = useState<
-    "idle" | "loading" | "success" | "error"
-  >("idle");
-  const [connectionError, setConnectionError] = useState<string | null>(null);
   const [isTextModelDropdownOpen, setIsTextModelDropdownOpen] = useState(false);
   const [textModelSearch, setTextModelSearch] = useState("");
   const debouncedTextModelSearch = useDebounce(textModelSearch, 200);
@@ -377,11 +373,6 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
 
     return () => clearTimeout(timeoutId);
   }, [lockedInPrompt]);
-
-  useEffect(() => {
-    setConnectionStatus("idle");
-    setConnectionError(null);
-  }, [pcModelId, apiKey]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -718,35 +709,6 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     addToast("Field restored", "success");
   };
 
-  const testPromptCreatorConnection = async () => {
-    if (!apiKey.trim()) {
-      setConnectionStatus("error");
-      setConnectionError("Add an OpenRouter API key in API Keys tab first.");
-      return;
-    }
-    if (!pcModelId.trim()) {
-      setConnectionStatus("error");
-      setConnectionError("Set a model ID before testing.");
-      return;
-    }
-
-    setConnectionStatus("loading");
-    setConnectionError(null);
-    try {
-      const client = createOpenRouterClient(apiKey);
-      const isValid = await client.validateApiKey();
-      if (!isValid) {
-        throw new Error("OpenRouter rejected the API key");
-      }
-      setConnectionStatus("success");
-    } catch (error) {
-      setConnectionStatus("error");
-      setConnectionError(
-        error instanceof Error ? error.message : "Failed to reach OpenRouter",
-      );
-    }
-  };
-
   const renderApiKeysTab = useCallback(
     () => (
       <div className="bg-[#151A21] rounded-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)] space-y-4">
@@ -937,7 +899,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                     isFetchingTextModels ? "animate-spin" : ""
                   }`}
                 />
-                {isFetchingTextModels ? "Fetching…" : "Fetch text models"}
+                {isFetchingTextModels ? "Fetching…" : "Fetch"}
               </button>
               <div className="relative flex-1" ref={textModelDropdownRef}>
                 <button
@@ -1092,24 +1054,19 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
               </p>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={testPromptCreatorConnection}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-60"
-              disabled={connectionStatus === "loading"}
-            >
-              {connectionStatus === "loading" ? "Testing…" : "Test connection"}
-            </button>
-            {connectionStatus === "success" && (
-              <span className="text-sm text-green-400">
+          {validationState.isValid && (
+            <div className="flex items-center text-green-400">
+              <CheckCircle className="mr-1 h-4 w-4" />
+              <span className="text-sm">
                 Connection verified
+                {settings.lastApiKeyValidation && (
+                  <span className="text-gray-400 ml-1">
+                    (verified {formatTimestamp(settings.lastApiKeyValidation)})
+                  </span>
+                )}
               </span>
-            )}
-            {connectionStatus === "error" && connectionError && (
-              <span className="text-sm text-red-400">{connectionError}</span>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </section>
 
@@ -1595,18 +1552,31 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
           <h3 className="text-lg font-semibold text-white flex items-center">
             Vision Models (Select up to 5)
           </h3>
-          <button
-            onClick={fetchModels}
-            disabled={modelState.isLoading || !validationState.isValid}
-            className="flex items-center px-3 py-1 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {modelState.isLoading ? (
-              <RefreshCw className="mr-2 h-3 w-3 animate-spin" />
-            ) : (
-              <RefreshCw className="mr-2 h-3 w-3" />
+          <div className="flex items-center gap-3">
+            <button
+              onClick={fetchModels}
+              disabled={modelState.isLoading || !validationState.isValid}
+              className="flex items-center px-3 py-1 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {modelState.isLoading ? (
+                <RefreshCw className="mr-2 h-3 w-3 animate-spin" />
+              ) : (
+                <RefreshCw className="mr-2 h-3 w-3" />
+              )}
+              Fetch
+            </button>
+            {settings.lastModelFetch && (
+              <div className="flex items-center text-green-400">
+                <CheckCircle className="mr-1 h-4 w-4" />
+                <span className="text-sm">
+                  Verified
+                  <span className="text-gray-400 ml-1">
+                    (verified {formatTimestamp(settings.lastModelFetch)})
+                  </span>
+                </span>
+              </div>
             )}
-            Fetch Models
-          </button>
+          </div>
         </div>
 
         {modelState.error && (
@@ -1953,3 +1923,5 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     </div>
   );
 };
+
+export default SettingsTab;

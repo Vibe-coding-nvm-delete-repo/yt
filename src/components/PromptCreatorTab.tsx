@@ -700,6 +700,36 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
             {isGenerating ? "Generating..." : "Generate"}
           </button>
         </div>
+        <div className="rounded-lg border border-blue-500/40 bg-blue-500/10 px-4 py-3 text-sm text-blue-100">
+          <h2 className="mb-2 font-semibold text-blue-50">
+            How the Prompt Creator works:
+          </h2>
+          <ol className="ml-4 list-decimal space-y-1 text-blue-100">
+            <li>
+              <strong>Configure fields:</strong> Set up your prompt fields in
+              Settings → Prompt Creator (mandatory, optional, and free-form).
+            </li>
+            <li>
+              <strong>Locked-in prompt:</strong> A base prompt (configured in
+              Settings) is always prepended to your selections. This ensures
+              consistency across all generated prompts.
+            </li>
+            <li>
+              <strong>Select values:</strong> Fill in the mandatory fields and
+              optionally add guided or free-form selections below.
+            </li>
+            <li>
+              <strong>Generate:</strong> Click &quot;Generate&quot; to create 3
+              prompts using your selected AI model. Each prompt is automatically
+              scored and rated.
+            </li>
+            <li>
+              <strong>Review results:</strong> View generated prompts with their
+              quality scores, reasons, risks, and suggested edits in the Results
+              section.
+            </li>
+          </ol>
+        </div>
         {!hasConfig && (
           <p className="rounded-md border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-200">
             Configure Prompt Creator fields in Settings → Prompt Creator.
