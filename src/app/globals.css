@@ -103,3 +103,16 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
 }
+
+/* Fix dropdown option visibility - ensure dark background matches select element */
+select option {
+  background-color: var(--color-elevated);
+  color: var(--color-text-high);
+}
+
+/* Enhanced hover state for better UX */
+select option:hover,
+select option:focus,
+select option:checked {
+  background-color: rgba(59, 130, 246, 0.2);
+}

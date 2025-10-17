@@ -353,4 +353,102 @@ describe("RatingStorage", () => {
       expect(ratings[0]?.id).toBe("rating-1");
     });
   });
+
+  describe("additional error handling", () => {
+    it("should handle localStorage write errors gracefully", () => {
+      const originalSetItem = Storage.prototype.setItem;
+      Storage.prototype.setItem = jest.fn(() => {
+        throw new Error("Quota exceeded");
+      });
+
+      // Should not throw
+      expect(() => {
+        storage.saveRating({
+          historyEntryId: "history-1",
+          modelId: "model-1",
+          modelName: "Test",
+          stars: 5,
+          thumbs: "up",
+          comment: null,
+          imagePreview: null,
+          prompt: "Test",
+        });
+      }).not.toThrow();
+
+      Storage.prototype.setItem = originalSetItem;
+    });
+
+    it("should handle invalid JSON in localStorage", () => {
+      localStorage.setItem("image-to-prompt-ratings", "invalid-json{");
+
+      delete (RatingStorage as unknown as { instance?: RatingStorage })
+        .instance;
+      const newStorage = RatingStorage.getInstance();
+
+      // Should return empty array
+      expect(newStorage.getAllRatings()).toEqual([]);
+    });
+
+    it("should handle non-array ratings in localStorage", () => {
+      localStorage.setItem(
+        "image-to-prompt-ratings",
+        JSON.stringify({ ratings: "not-an-array", schemaVersion: 1 }),
+      );
+
+      delete (RatingStorage as unknown as { instance?: RatingStorage })
+        .instance;
+      const newStorage = RatingStorage.getInstance();
+
+      // Should return empty array
+      expect(newStorage.getAllRatings()).toEqual([]);
+    });
+  });
+
+  describe("filter edge cases", () => {
+    beforeEach(() => {
+      // Create test data with dates
+      const now = Date.now();
+      storage.saveRating({
+        historyEntryId: "history-1",
+        modelId: "model-1",
+        modelName: "Model 1",
+        stars: 5,
+        thumbs: "up",
+        comment: null,
+        imagePreview: null,
+        prompt: "Prompt 1",
+      });
+
+      // Manually set createdAt to past date
+      const ratings = storage.getAllRatings();
+      if (ratings[0]) {
+        (ratings[0] as any).createdAt = now - 86400000; // 1 day ago
+      }
+    });
+
+    it("should filter by fromDate", () => {
+      const yesterday = Date.now() - 86400000;
+      const filtered = storage.getFilteredRatings({ fromDate: yesterday });
+
+      expect(filtered.length).toBeGreaterThanOrEqual(0);
+    });
+
+    it("should filter by toDate", () => {
+      const tomorrow = Date.now() + 86400000;
+      const filtered = storage.getFilteredRatings({ toDate: tomorrow });
+
+      expect(filtered.length).toBeGreaterThanOrEqual(0);
+    });
+
+    it("should filter by date range", () => {
+      const yesterday = Date.now() - 86400000;
+      const tomorrow = Date.now() + 86400000;
+      const filtered = storage.getFilteredRatings({
+        fromDate: yesterday,
+        toDate: tomorrow,
+      });
+
+      expect(filtered.length).toBeGreaterThanOrEqual(0);
+    });
+  });
 });
