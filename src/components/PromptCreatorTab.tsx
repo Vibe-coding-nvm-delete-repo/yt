@@ -165,9 +165,15 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
   );
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [minScore, setMinScore] = useState(0);
-  const [sortOrder, setSortOrder] = useState<"date" | "score">("date");
+  const [resultsFilter, setResultsFilter] = useState<{
+    minScore: number;
+    sortOrder: "date" | "score";
+  }>({ minScore: 0, sortOrder: "date" });
   const [showFree, setShowFree] = useState(false);
+  const [currentOutput, setCurrentOutput] = useState<{
+    content: string;
+    copied: boolean;
+  }>({ content: "", copied: false });
 
   const refreshConfig = useCallback(() => {
     setConfig(promptCreatorConfigStorage.load());
@@ -538,6 +544,7 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
 
     setIsGenerating(true);
     setError(null);
+    setCurrentOutput({ content: "", copied: false }); // Clear previous output
 
     try {
       for (let index = 0; index < count; index += 1) {
@@ -545,6 +552,9 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
           config.promptGenInstructions,
           fullPromptInput,
         );
+
+        // Set the current output immediately after generation
+        setCurrentOutput({ content: generation.content, copied: false });
 
         let ratingRaw: string;
         let ratingUsage: ChatUsage = {};
@@ -604,19 +614,23 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
 
   const filteredResults = useMemo(() => {
     let data = [...results];
-    if (minScore > 0) {
-      data = data.filter((item) => item.rating.score >= minScore);
+    if (resultsFilter.minScore > 0) {
+      data = data.filter((item) => item.rating.score >= resultsFilter.minScore);
     }
-    if (sortOrder === "score") {
+    if (resultsFilter.sortOrder === "score") {
       return data.sort((a, b) => b.rating.score - a.rating.score);
     }
     return data.sort((a, b) => b.timestamp - a.timestamp);
-  }, [results, minScore, sortOrder]);
+  }, [results, resultsFilter]);
 
   const handleCopy = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
+      setCurrentOutput((prev) => ({ ...prev, copied: true }));
       setError(null);
+      setTimeout(() => {
+        setCurrentOutput((prev) => ({ ...prev, copied: false }));
+      }, 2000);
     } catch (copyError) {
       setError(
         copyError instanceof Error
@@ -688,14 +702,14 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
           <h1 className="text-2xl font-semibold text-white">Prompt Creator</h1>
           <button
             type="button"
-            onClick={() => generatePrompts(3)}
+            onClick={() => generatePrompts(1)}
             disabled={isGenerationDisabled}
             className={`rounded-md border px-4 py-2 text-sm font-medium transition-colors ${
               isGenerationDisabled
                 ? "border-transparent bg-gray-700 text-gray-400 cursor-not-allowed"
                 : "border-transparent bg-blue-600 text-white hover:bg-blue-500 shadow-sm"
             }`}
-            title="Generate 3 prompts with the selected text model"
+            title="Generate a single prompt with the selected text model"
           >
             {isGenerating ? "Generating..." : "Generate"}
           </button>
@@ -719,14 +733,16 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
               optionally add guided or free-form selections below.
             </li>
             <li>
-              <strong>Generate:</strong> Click &quot;Generate&quot; to create 3
-              prompts using your selected AI model. Each prompt is automatically
-              scored and rated.
+              <strong>Generate:</strong> Click &quot;Generate&quot; to create a
+              single prompt using your selected AI model. The prompt is
+              automatically scored and rated, and appears at the top of the
+              page.
             </li>
             <li>
-              <strong>Review results:</strong> View generated prompts with their
-              quality scores, reasons, risks, and suggested edits in the Results
-              section.
+              <strong>Review output:</strong> The generated prompt appears in a
+              scrollable field at the top with a copy button. Review the quality
+              score, reasons, risks, and suggested edits in the Results section
+              below.
             </li>
           </ol>
         </div>
@@ -745,6 +761,35 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
             {error}
           </p>
         )}
+
+        {/* Current Output Section - Appears at top after generation */}
+        {currentOutput.content && (
+          <section className="rounded-lg border border-green-500/40 bg-green-500/10 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold text-green-50">
+                Generated Prompt
+              </h2>
+              <button
+                type="button"
+                onClick={() => handleCopy(currentOutput.content)}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-green-600 hover:bg-green-700 text-white text-sm font-medium transition-colors"
+                aria-label="Copy generated prompt"
+              >
+                {currentOutput.copied ? "✓ Copied!" : "📋 Copy Prompt"}
+              </button>
+            </div>
+            <textarea
+              readOnly
+              value={currentOutput.content}
+              className="w-full h-64 p-3 rounded-md border border-green-500/30 bg-gray-900/60 text-white text-sm font-mono resize-y focus:outline-none focus:ring-2 focus:ring-green-500/50"
+              style={{ minHeight: "16rem", maxHeight: "32rem" }}
+            />
+            <p className="mt-2 text-xs text-green-200">
+              {currentOutput.content.length} characters • Scroll or resize to
+              view full content
+            </p>
+          </section>
+        )}
       </div>
 
       <div className="space-y-4">
@@ -762,17 +807,25 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
               type="number"
               min={0}
               max={10}
-              value={minScore}
-              onChange={(event) => setMinScore(Number(event.target.value) || 0)}
+              value={resultsFilter.minScore}
+              onChange={(event) =>
+                setResultsFilter((prev) => ({
+                  ...prev,
+                  minScore: Number(event.target.value) || 0,
+                }))
+              }
               className="w-16 rounded-md border border-white/10 bg-gray-900/60 px-2 py-1 text-sm text-white"
             />
           </label>
           <label className="flex items-center gap-2 text-sm text-gray-300">
             Sort by
             <select
-              value={sortOrder}
+              value={resultsFilter.sortOrder}
               onChange={(event) =>
-                setSortOrder(event.target.value as "date" | "score")
+                setResultsFilter((prev) => ({
+                  ...prev,
+                  sortOrder: event.target.value as "date" | "score",
+                }))
               }
               className="rounded-md border border-white/10 bg-gray-900/60 px-2 py-1 text-sm text-white"
             >
