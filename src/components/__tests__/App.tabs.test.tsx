@@ -86,9 +86,11 @@ describe("App - Tab Integration", () => {
     fireEvent.click(bestPracticesTab);
 
     expect(screen.getByTestId("best-practices-content")).toBeInTheDocument();
+    // With display:none pattern, element is still in DOM but hidden
+    expect(screen.getByTestId("image-to-prompt-content")).toBeInTheDocument();
     expect(
-      screen.queryByTestId("image-to-prompt-content"),
-    ).not.toBeInTheDocument();
+      screen.getByTestId("image-to-prompt-content").parentElement,
+    ).toHaveStyle("display: none");
   });
 
   it("should render Prompt Creator tab content when clicked", () => {
@@ -100,9 +102,11 @@ describe("App - Tab Integration", () => {
     fireEvent.click(promptCreatorTab);
 
     expect(screen.getByTestId("prompt-creator-content")).toBeInTheDocument();
+    // With display:none pattern, element is still in DOM but hidden
+    expect(screen.getByTestId("image-to-prompt-content")).toBeInTheDocument();
     expect(
-      screen.queryByTestId("image-to-prompt-content"),
-    ).not.toBeInTheDocument();
+      screen.getByTestId("image-to-prompt-content").parentElement,
+    ).toHaveStyle("display: none");
   });
 
   it("should render Usage & Costs tab content when clicked", () => {
@@ -112,9 +116,11 @@ describe("App - Tab Integration", () => {
     fireEvent.click(usageTab);
 
     expect(screen.getByTestId("usage-content")).toBeInTheDocument();
+    // With display:none pattern, element is still in DOM but hidden
+    expect(screen.getByTestId("image-to-prompt-content")).toBeInTheDocument();
     expect(
-      screen.queryByTestId("image-to-prompt-content"),
-    ).not.toBeInTheDocument();
+      screen.getByTestId("image-to-prompt-content").parentElement,
+    ).toHaveStyle("display: none");
   });
 
   it("should render Settings tab content when clicked", () => {
@@ -124,9 +130,11 @@ describe("App - Tab Integration", () => {
     fireEvent.click(settingsTab);
 
     expect(screen.getByTestId("settings-content")).toBeInTheDocument();
+    // With display:none pattern, element is still in DOM but hidden
+    expect(screen.getByTestId("image-to-prompt-content")).toBeInTheDocument();
     expect(
-      screen.queryByTestId("image-to-prompt-content"),
-    ).not.toBeInTheDocument();
+      screen.getByTestId("image-to-prompt-content").parentElement,
+    ).toHaveStyle("display: none");
   });
 
   it("should switch between all tabs correctly", () => {

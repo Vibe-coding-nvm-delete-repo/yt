@@ -23,28 +23,52 @@ export const App: React.FC = () => {
     setTabState({ activeTab: tab });
   };
 
+  // Pre-render all tabs and use display:none for inactive ones
+  // This prevents unmount/remount on tab switch, preserving state and eliminating lag
   const renderContent = () => {
-    switch (tabState.activeTab) {
-      case "image-to-prompt":
-        return <ImageToPromptTabs />;
-      case "prompt-creator":
-        return <PromptCreatorTab apiKey={settings.openRouterApiKey} />;
-      case "best-practices":
-        return <BestPracticesTab />;
-      case "usage":
-        return <UsageTab />;
-      case "settings":
-        return (
+    return (
+      <>
+        <div
+          style={{
+            display:
+              tabState.activeTab === "image-to-prompt" ? "block" : "none",
+          }}
+        >
+          <ImageToPromptTabs />
+        </div>
+        <div
+          style={{
+            display: tabState.activeTab === "prompt-creator" ? "block" : "none",
+          }}
+        >
+          <PromptCreatorTab apiKey={settings.openRouterApiKey} />
+        </div>
+        <div
+          style={{
+            display: tabState.activeTab === "best-practices" ? "block" : "none",
+          }}
+        >
+          <BestPracticesTab />
+        </div>
+        <div
+          style={{ display: tabState.activeTab === "usage" ? "block" : "none" }}
+        >
+          <UsageTab />
+        </div>
+        <div
+          style={{
+            display: tabState.activeTab === "settings" ? "block" : "none",
+          }}
+        >
           <SettingsTab
             settings={settings}
             onSettingsUpdate={() => {
               /* Settings managed via hook */
             }}
           />
-        );
-      default:
-        return <ImageToPromptTabs />;
-    }
+        </div>
+      </>
+    );
   };
 
   if (!isInitialized) {
