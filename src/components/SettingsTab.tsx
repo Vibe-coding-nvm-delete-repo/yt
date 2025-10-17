@@ -34,7 +34,6 @@ import {
   XCircle,
   Pin,
   PinOff,
-  ArrowDown,
 } from "lucide-react";
 import { Tooltip } from "@/components/common/Tooltip";
 import { useSettings as useSettingsHook } from "@/hooks/useSettings";
@@ -1072,21 +1071,20 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
 
       <section className="space-y-6">
         {/* Field Creation Form - Centered and Compact */}
-        <div className="mx-auto max-w-2xl rounded-xl bg-gradient-to-br from-blue-900/20 to-purple-900/20 p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)] border-2 border-blue-500/30">
-          <header className="mb-6 text-center">
-            <h3 className="text-lg font-semibold text-white mb-2">
+        <div className="mx-auto max-w-xl rounded-xl bg-gradient-to-br from-blue-900/20 to-purple-900/20 p-4 shadow-[0_8px_24px_rgba(0,0,0,0.35)] border-2 border-blue-500/30">
+          <header className="mb-4 text-center">
+            <h3 className="text-base font-semibold text-white mb-1">
               Create New Field
             </h3>
-            <p className="text-sm text-gray-300">
-              Quickly define custom fields for your prompt creator. Fill out the
-              form below and click Create to add.
+            <p className="text-xs text-gray-300">
+              Quickly define custom fields for your prompt creator
             </p>
             {editingFieldId && (
-              <div className="mt-3">
+              <div className="mt-2">
                 <button
                   type="button"
                   onClick={() => resetFieldForm()}
-                  className="rounded-md border border-white/20 px-3 py-1 text-sm text-gray-200 hover:border-blue-400"
+                  className="rounded-md border border-white/20 px-2 py-1 text-xs text-gray-200 hover:border-blue-400"
                 >
                   Cancel edit
                 </button>
@@ -1094,42 +1092,27 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             )}
           </header>
 
-          <form onSubmit={handleFieldSubmit} className="space-y-4">
+          <form onSubmit={handleFieldSubmit} className="space-y-3">
             {/* Field Label */}
-            <div className="space-y-2">
-              <div className="flex items-start justify-between gap-3">
-                <label className="text-sm font-semibold text-white">
-                  Field label
-                </label>
-                <span className="text-xs text-gray-400 italic">
-                  The display name for this field
-                </span>
-              </div>
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-white block">
+                Field label
+              </label>
               <input
                 value={fieldForm.label}
                 onChange={(event) =>
                   handleFieldFormChange("label", event.target.value)
                 }
-                placeholder="e.g., Time of day, Art style, Color palette"
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
+                placeholder="e.g., Time of day, Art style"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
               />
             </div>
 
-            {/* Arrow separator */}
-            <div className="flex justify-center">
-              <ArrowDown className="h-5 w-5 text-blue-400" />
-            </div>
-
             {/* Control Type */}
-            <div className="space-y-2">
-              <div className="flex items-start justify-between gap-3">
-                <label className="text-sm font-semibold text-white">
-                  Control type
-                </label>
-                <span className="text-xs text-gray-400 italic">
-                  How users interact with this field
-                </span>
-              </div>
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-white block">
+                Control type
+              </label>
               <select
                 value={fieldForm.type}
                 onChange={(event) => {
@@ -1150,7 +1133,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                   }
                   handleFieldFormChange("type", nextType);
                 }}
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white focus:border-blue-500 focus:outline-none"
               >
                 <option value="dropdown">
                   Dropdown - Single choice from list
@@ -1164,19 +1147,11 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
               </select>
             </div>
 
-            {/* Arrow separator */}
-            <div className="flex justify-center">
-              <ArrowDown className="h-5 w-5 text-blue-400" />
-            </div>
-
             {/* Tier */}
-            <div className="space-y-2">
-              <div className="flex items-start justify-between gap-3">
-                <label className="text-sm font-semibold text-white">Tier</label>
-                <span className="text-xs text-gray-400 italic">
-                  Required, optional, or free-form?
-                </span>
-              </div>
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-white block">
+                Tier
+              </label>
               <select
                 value={fieldForm.tier}
                 onChange={(event) =>
@@ -1185,7 +1160,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                     event.target.value as PromptCreatorField["tier"],
                   )
                 }
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white focus:border-blue-500 focus:outline-none"
               >
                 <option value="mandatory">Mandatory - Must be filled</option>
                 <option value="optional">Optional - Can be skipped</option>
@@ -1193,234 +1168,163 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
               </select>
             </div>
 
-            {/* Arrow separator */}
-            <div className="flex justify-center">
-              <ArrowDown className="h-5 w-5 text-blue-400" />
-            </div>
-
-            {/* Order */}
-            <div className="space-y-2">
-              <div className="flex items-start justify-between gap-3">
-                <label className="text-sm font-semibold text-white">
+            {/* Order and Helper Text - Side by side */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-white block">
                   Order
                 </label>
-                <span className="text-xs text-gray-400 italic">
-                  Display position (1 = first)
-                </span>
+                <input
+                  type="number"
+                  min={1}
+                  value={fieldForm.order}
+                  onChange={(event) =>
+                    handleFieldFormChange("order", Number(event.target.value))
+                  }
+                  placeholder="1"
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
+                />
               </div>
-              <input
-                type="number"
-                min={1}
-                value={fieldForm.order}
-                onChange={(event) =>
-                  handleFieldFormChange("order", Number(event.target.value))
-                }
-                placeholder="e.g., 1, 2, 3..."
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
-              />
-            </div>
 
-            {/* Arrow separator */}
-            <div className="flex justify-center">
-              <ArrowDown className="h-5 w-5 text-blue-400" />
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-white block">
+                  Default value
+                </label>
+                <input
+                  value={fieldForm.defaultValue}
+                  onChange={(event) =>
+                    handleFieldFormChange("defaultValue", event.target.value)
+                  }
+                  placeholder="Optional"
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
+                />
+              </div>
             </div>
 
             {/* Helper Text */}
-            <div className="space-y-2">
-              <div className="flex items-start justify-between gap-3">
-                <label className="text-sm font-semibold text-white">
-                  Helper text
-                </label>
-                <span className="text-xs text-gray-400 italic">
-                  Tooltip guidance for users
-                </span>
-              </div>
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-white block">
+                Helper text (optional)
+              </label>
               <input
                 value={fieldForm.helperText}
                 onChange={(event) =>
                   handleFieldFormChange("helperText", event.target.value)
                 }
-                placeholder="e.g., Select the time of day for your scene"
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
+                placeholder="Tooltip guidance"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
               />
             </div>
 
             {/* Type-specific fields */}
             {(fieldForm.type === "dropdown" ||
               fieldForm.type === "multiselect") && (
-              <>
-                {/* Arrow separator */}
-                <div className="flex justify-center">
-                  <ArrowDown className="h-5 w-5 text-blue-400" />
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-start justify-between gap-3">
-                    <label className="text-sm font-semibold text-white">
-                      Options (one per line)
-                    </label>
-                    <span className="text-xs text-gray-400 italic">
-                      List choices, line by line
-                    </span>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-white block">
+                  Options (one per line)
+                </label>
+                <textarea
+                  value={fieldForm.optionsText}
+                  onChange={(event) =>
+                    handleFieldFormChange("optionsText", event.target.value)
+                  }
+                  rows={3}
+                  placeholder="Morning&#10;Afternoon&#10;Evening"
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none font-mono"
+                />
+                {fieldForm.type === "multiselect" && (
+                  <div className="flex items-center gap-2 text-xs text-gray-300">
+                    <span>Max selections</span>
+                    <input
+                      type="number"
+                      min={1}
+                      value={fieldForm.maxSelections}
+                      onChange={(event) =>
+                        handleFieldFormChange(
+                          "maxSelections",
+                          Number(event.target.value),
+                        )
+                      }
+                      placeholder="3"
+                      className="w-16 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
+                    />
                   </div>
-                  <textarea
-                    value={fieldForm.optionsText}
-                    onChange={(event) =>
-                      handleFieldFormChange("optionsText", event.target.value)
-                    }
-                    rows={4}
-                    placeholder="Morning&#10;Afternoon&#10;Evening&#10;Night"
-                    className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none font-mono"
-                  />
-                  {fieldForm.type === "multiselect" && (
-                    <div className="flex items-center gap-2 text-sm text-gray-300">
-                      <span>Max selections</span>
-                      <input
-                        type="number"
-                        min={1}
-                        value={fieldForm.maxSelections}
-                        onChange={(event) =>
-                          handleFieldFormChange(
-                            "maxSelections",
-                            Number(event.target.value),
-                          )
-                        }
-                        placeholder="e.g., 3"
-                        className="w-24 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
-                      />
-                    </div>
-                  )}
-                </div>
-              </>
+                )}
+              </div>
             )}
             {(fieldForm.type === "slider" || fieldForm.type === "number") && (
-              <>
-                {/* Arrow separator */}
-                <div className="flex justify-center">
-                  <ArrowDown className="h-5 w-5 text-blue-400" />
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <label className="text-sm font-semibold text-white">
-                      Numeric range
-                    </label>
-                    <span className="text-xs text-gray-400 italic">
-                      Min, max, and step values
-                    </span>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-white block">
+                  Numeric range
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="space-y-1">
+                    <label className="text-xs text-gray-300">Min</label>
+                    <input
+                      type="number"
+                      value={fieldForm.min}
+                      onChange={(event) =>
+                        handleFieldFormChange("min", Number(event.target.value))
+                      }
+                      placeholder="0"
+                      className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
+                    />
                   </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-xs text-gray-300">Min</label>
-                      <input
-                        type="number"
-                        value={fieldForm.min}
-                        onChange={(event) =>
-                          handleFieldFormChange(
-                            "min",
-                            Number(event.target.value),
-                          )
-                        }
-                        placeholder="0"
-                        className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs text-gray-300">Max</label>
-                      <input
-                        type="number"
-                        value={fieldForm.max}
-                        onChange={(event) =>
-                          handleFieldFormChange(
-                            "max",
-                            Number(event.target.value),
-                          )
-                        }
-                        placeholder="100"
-                        className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs text-gray-300">Step</label>
-                      <input
-                        type="number"
-                        value={fieldForm.step}
-                        onChange={(event) =>
-                          handleFieldFormChange(
-                            "step",
-                            Number(event.target.value),
-                          )
-                        }
-                        placeholder="1"
-                        className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
-                      />
-                    </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-gray-300">Max</label>
+                    <input
+                      type="number"
+                      value={fieldForm.max}
+                      onChange={(event) =>
+                        handleFieldFormChange("max", Number(event.target.value))
+                      }
+                      placeholder="100"
+                      className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-gray-300">Step</label>
+                    <input
+                      type="number"
+                      value={fieldForm.step}
+                      onChange={(event) =>
+                        handleFieldFormChange(
+                          "step",
+                          Number(event.target.value),
+                        )
+                      }
+                      placeholder="1"
+                      className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
+                    />
                   </div>
                 </div>
-              </>
+              </div>
             )}
             {fieldForm.type === "text" && (
-              <>
-                {/* Arrow separator */}
-                <div className="flex justify-center">
-                  <ArrowDown className="h-5 w-5 text-blue-400" />
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-start justify-between gap-3">
-                    <label className="text-sm font-semibold text-white">
-                      Max characters
-                    </label>
-                    <span className="text-xs text-gray-400 italic">
-                      Character limit for input
-                    </span>
-                  </div>
-                  <input
-                    type="number"
-                    value={fieldForm.maxLength}
-                    onChange={(event) =>
-                      handleFieldFormChange(
-                        "maxLength",
-                        Number(event.target.value),
-                      )
-                    }
-                    placeholder="e.g., 60, 100, 200"
-                    className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
-                  />
-                </div>
-              </>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-white block">
+                  Max characters
+                </label>
+                <input
+                  type="number"
+                  value={fieldForm.maxLength}
+                  onChange={(event) =>
+                    handleFieldFormChange(
+                      "maxLength",
+                      Number(event.target.value),
+                    )
+                  }
+                  placeholder="60"
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
+                />
+              </div>
             )}
 
-            {/* Arrow separator */}
-            <div className="flex justify-center">
-              <ArrowDown className="h-5 w-5 text-blue-400" />
-            </div>
-
-            {/* Default Value */}
-            <div className="space-y-2">
-              <div className="flex items-start justify-between gap-3">
-                <label className="text-sm font-semibold text-white">
-                  Default value (optional)
-                </label>
-                <span className="text-xs text-gray-400 italic">
-                  Pre-filled starting value
-                </span>
-              </div>
-              <input
-                value={fieldForm.defaultValue}
-                onChange={(event) =>
-                  handleFieldFormChange("defaultValue", event.target.value)
-                }
-                placeholder="e.g., Morning, 50, Vibrant colors"
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
-              />
-            </div>
-
             {/* Submit Button */}
-            <div className="pt-4 flex justify-center">
+            <div className="pt-2 flex justify-center">
               <button
                 type="submit"
-                className="rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-3 text-base font-semibold text-white hover:from-blue-500 hover:to-purple-500 shadow-lg transition-all"
+                className="rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-2 text-sm font-semibold text-white hover:from-blue-500 hover:to-purple-500 shadow-lg transition-all"
               >
                 {editingFieldId ? "Update Field" : "Create Field"}
               </button>
