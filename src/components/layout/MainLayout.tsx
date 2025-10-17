@@ -6,10 +6,12 @@ import type { TabState } from "@/types";
 import { usageStorage } from "@/lib/usage";
 import { DollarSign } from "lucide-react";
 
+type NavigationTab = TabState["activeTab"] | "prompt-creator";
+
 interface MainLayoutProps {
   children: React.ReactNode;
-  activeTab: TabState["activeTab"];
-  onTabChange: (tab: TabState["activeTab"]) => void;
+  activeTab: NavigationTab;
+  onTabChange: (tab: NavigationTab) => void;
 }
 
 export const MainLayout: React.FC<MainLayoutProps> = ({

@@ -1,9 +1,23 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useMemo,
+} from "react";
 import type { AppSettings, ValidationState, ModelState } from "@/types";
 import { settingsStorage } from "@/lib/storage";
 import { createOpenRouterClient, isValidApiKeyFormat } from "@/lib/openrouter";
+import {
+  promptCreatorConfigStorage,
+  promptCreatorDraftStorage,
+} from "@/lib/promptCreatorStorage";
+import type {
+  PromptCreatorConfig,
+  PromptCreatorField,
+} from "@/types/promptCreator";
 import {
   RefreshCw,
   Search,
@@ -31,6 +45,7 @@ type SettingsSubTab =
   | "api-keys"
   | "model-selection"
   | "custom-prompts"
+  | "prompt-creator"
   | "categories";
 
 const formatTimestamp = (timestamp: number | null): string => {
@@ -53,6 +68,51 @@ const formatPrice = (price: number | string | null | undefined) => {
   }
   return `$${numPrice.toFixed(2)}`;
 };
+
+const createPromptCreatorId = (): string => {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return Math.random().toString(36).slice(2);
+};
+
+type PromptCreatorFieldForm = {
+  label: string;
+  tier: PromptCreatorField["tier"];
+  type: PromptCreatorField["type"];
+  order: number;
+  helperText: string;
+  defaultValue: string;
+  optionsText: string;
+  maxSelections: number;
+  min: number;
+  max: number;
+  step: number;
+  maxLength: number;
+};
+
+const createEmptyFieldForm = (
+  config: PromptCreatorConfig,
+): PromptCreatorFieldForm => ({
+  label: "",
+  tier: "mandatory",
+  type: "dropdown",
+  order: config.fields.length + 1,
+  helperText: "",
+  defaultValue: "",
+  optionsText: "",
+  maxSelections: 1,
+  min: 0,
+  max: 100,
+  step: 1,
+  maxLength: 60,
+});
+
+const parseOptionList = (text: string): string[] =>
+  text
+    .split(/\r?\n|,/)
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
 
 export const SettingsTab: React.FC<SettingsTabProps> = ({
   settings,
@@ -107,6 +167,41 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   });
   const dropdownRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
+  const [promptCreatorConfigState, setPromptCreatorConfigState] =
+    useState<PromptCreatorConfig>(() => promptCreatorConfigStorage.load());
+  const [fieldForm, setFieldForm] = useState<PromptCreatorFieldForm>(() =>
+    createEmptyFieldForm(promptCreatorConfigStorage.load()),
+  );
+  const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
+  const [promptInstructions, setPromptInstructions] = useState(
+    promptCreatorConfigState.promptGenInstructions,
+  );
+  const [ratingRubric, setRatingRubric] = useState(
+    promptCreatorConfigState.ratingRubric,
+  );
+  const [pcModelId, setPcModelId] = useState(
+    promptCreatorConfigState.openRouterModelId,
+  );
+  const [defaultPromptCount, setDefaultPromptCount] = useState(
+    promptCreatorConfigState.defaultPromptCount,
+  );
+  const [connectionStatus, setConnectionStatus] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+
+  const orderedPromptCreatorFields = useMemo(
+    () =>
+      [...promptCreatorConfigState.fields].sort((a, b) => {
+        if (a.tier !== b.tier) {
+          const order = { mandatory: 0, optional: 1, free: 2 } as const;
+          return order[a.tier] - order[b.tier];
+        }
+        return a.order - b.order;
+      }),
+    [promptCreatorConfigState.fields],
+  );
+
   // Handle settings updates from storage
   useEffect(() => {
     const unsubscribe = hookSubscribe(() => {
@@ -128,6 +223,19 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
 
     return unsubscribe;
   }, [onSettingsUpdate, hookSubscribe]);
+
+  useEffect(() => {
+    if (activeSubTab === "prompt-creator") {
+      const config = promptCreatorConfigStorage.load();
+      setPromptCreatorConfigState(config);
+      setFieldForm(createEmptyFieldForm(config));
+      setEditingFieldId(null);
+      setPromptInstructions(config.promptGenInstructions);
+      setRatingRubric(config.ratingRubric);
+      setPcModelId(config.openRouterModelId);
+      setDefaultPromptCount(config.defaultPromptCount);
+    }
+  }, [activeSubTab]);
 
   // Auto-save custom prompt
   useEffect(() => {
@@ -154,6 +262,48 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
 
     return () => clearTimeout(timeoutId);
   }, [selectedVisionModels, settings.selectedVisionModels, onSettingsUpdate]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      promptCreatorConfigStorage.updateInstructions(
+        promptInstructions,
+        ratingRubric,
+      );
+      setPromptCreatorConfigState((prev) => ({
+        ...prev,
+        promptGenInstructions: promptInstructions,
+        ratingRubric,
+      }));
+    }, 400);
+
+    return () => clearTimeout(timeoutId);
+  }, [promptInstructions, ratingRubric]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      promptCreatorConfigStorage.updateModelConfig(pcModelId);
+      setPromptCreatorConfigState((prev) => ({
+        ...prev,
+        openRouterModelId: pcModelId,
+      }));
+    }, 400);
+
+    return () => clearTimeout(timeoutId);
+  }, [pcModelId]);
+
+  useEffect(() => {
+    setConnectionStatus("idle");
+    setConnectionError(null);
+  }, [pcModelId, apiKey]);
+
+  useEffect(() => {
+    const config = promptCreatorConfigStorage.load();
+    if (config.defaultPromptCount !== defaultPromptCount) {
+      config.defaultPromptCount = defaultPromptCount;
+      promptCreatorConfigStorage.save(config);
+      setPromptCreatorConfigState(config);
+    }
+  }, [defaultPromptCount]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -296,6 +446,178 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     });
   }, []);
 
+  const resetFieldForm = useCallback(
+    (config: PromptCreatorConfig = promptCreatorConfigState) => {
+      setFieldForm(createEmptyFieldForm(config));
+      setEditingFieldId(null);
+    },
+    [promptCreatorConfigState],
+  );
+
+  const handleFieldFormChange = (
+    key: keyof PromptCreatorFieldForm,
+    value: string | number,
+  ) => {
+    setFieldForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleEditField = (field: PromptCreatorField) => {
+    setEditingFieldId(field.id);
+    setFieldForm({
+      label: field.label,
+      tier: field.tier,
+      type: field.type,
+      order: field.order,
+      helperText: field.helperText ?? "",
+      defaultValue:
+        typeof field.defaultValue === "string"
+          ? field.defaultValue
+          : field.defaultValue !== undefined
+            ? String(field.defaultValue)
+            : "",
+      optionsText: (field.options ?? []).join("\n"),
+      maxSelections: field.maxSelections ?? 1,
+      min: field.min ?? 0,
+      max: field.max ?? 100,
+      step: field.step ?? 1,
+      maxLength: field.maxLength ?? 60,
+    });
+  };
+
+  const handleFieldSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!fieldForm.label.trim()) {
+      addToast("Field label is required", "error");
+      return;
+    }
+
+    const fieldId = editingFieldId ?? createPromptCreatorId();
+    const baseField: PromptCreatorField = {
+      id: fieldId,
+      label: fieldForm.label.trim(),
+      type: fieldForm.type,
+      tier: fieldForm.tier,
+      order: Number.isFinite(fieldForm.order) ? fieldForm.order : 1,
+    };
+
+    const helperText = fieldForm.helperText.trim();
+    if (helperText) {
+      baseField.helperText = helperText;
+    }
+
+    const defaultValue = fieldForm.defaultValue.trim();
+    if (defaultValue) {
+      baseField.defaultValue = defaultValue;
+    }
+
+    if (fieldForm.type === "dropdown" || fieldForm.type === "multiselect") {
+      const options = parseOptionList(fieldForm.optionsText);
+      if (options.length === 0) {
+        addToast("Provide at least one option", "error");
+        return;
+      }
+      baseField.options = options;
+      if (fieldForm.type === "multiselect") {
+        baseField.maxSelections = Math.max(
+          1,
+          Math.floor(fieldForm.maxSelections),
+        );
+      }
+    }
+
+    if (fieldForm.type === "slider" || fieldForm.type === "number") {
+      baseField.min = fieldForm.min;
+      baseField.max = fieldForm.max;
+      baseField.step = fieldForm.step;
+    }
+
+    if (fieldForm.type === "text") {
+      baseField.maxLength = Math.max(1, Math.floor(fieldForm.maxLength));
+    }
+
+    if (editingFieldId) {
+      const updates: Partial<PromptCreatorField> = { ...baseField };
+      delete (updates as { id?: string }).id;
+      promptCreatorConfigStorage.updateField(editingFieldId, updates);
+      addToast("Field updated", "success");
+    } else {
+      promptCreatorConfigStorage.addField(baseField);
+      addToast("Field added", "success");
+    }
+
+    const fresh = promptCreatorConfigStorage.load();
+    setPromptCreatorConfigState(fresh);
+    resetFieldForm(fresh);
+  };
+
+  const handleDeleteField = (
+    field: PromptCreatorField,
+    hardDelete: boolean,
+  ) => {
+    if (hardDelete) {
+      if (
+        !window.confirm("Hard delete removes this field everywhere. Continue?")
+      ) {
+        return;
+      }
+    }
+
+    promptCreatorConfigStorage.deleteField(field.id, hardDelete);
+
+    if (hardDelete) {
+      const draft = promptCreatorDraftStorage.load();
+      if (field.id in draft.selections) {
+        delete draft.selections[field.id];
+        promptCreatorDraftStorage.save({ ...draft, lastModified: Date.now() });
+      }
+    }
+
+    const fresh = promptCreatorConfigStorage.load();
+    setPromptCreatorConfigState(fresh);
+    if (editingFieldId === field.id) {
+      resetFieldForm(fresh);
+    }
+
+    addToast(hardDelete ? "Field hard deleted" : "Field hidden", "success");
+  };
+
+  const handleRestoreField = (field: PromptCreatorField) => {
+    promptCreatorConfigStorage.updateField(field.id, { hidden: false });
+    const fresh = promptCreatorConfigStorage.load();
+    setPromptCreatorConfigState(fresh);
+    addToast("Field restored", "success");
+  };
+
+  const testPromptCreatorConnection = async () => {
+    if (!apiKey.trim()) {
+      setConnectionStatus("error");
+      setConnectionError("Add an OpenRouter API key in API Keys tab first.");
+      return;
+    }
+    if (!pcModelId.trim()) {
+      setConnectionStatus("error");
+      setConnectionError("Set a model ID before testing.");
+      return;
+    }
+
+    setConnectionStatus("loading");
+    setConnectionError(null);
+    try {
+      const client = createOpenRouterClient(apiKey);
+      const isValid = await client.validateApiKey();
+      if (!isValid) {
+        throw new Error("OpenRouter rejected the API key");
+      }
+      setConnectionStatus("success");
+    } catch (error) {
+      setConnectionStatus("error");
+      setConnectionError(
+        error instanceof Error ? error.message : "Failed to reach OpenRouter",
+      );
+    }
+  };
+
   const renderApiKeysTab = useCallback(
     () => (
       <div className="bg-[#151A21] rounded-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)] space-y-4">
@@ -407,6 +729,417 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       </div>
     ),
     [customPrompt],
+  );
+
+  const renderPromptCreatorTab = () => (
+    <div className="space-y-6">
+      <section className="space-y-4 rounded-xl bg-[#151A21] p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
+        <header className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-white">
+              Prompt Creator Configuration
+            </h3>
+            <p className="text-sm text-gray-400">
+              Define how the builder assembles prompts and how results are
+              rated.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-300">
+              Default prompt count
+              <select
+                value={defaultPromptCount}
+                onChange={(event) =>
+                  setDefaultPromptCount(
+                    Number(
+                      event.target.value,
+                    ) as PromptCreatorConfig["defaultPromptCount"],
+                  )
+                }
+                className="ml-2 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-sm text-white"
+              >
+                {[1, 3, 5, 10].map((count) => (
+                  <option key={count} value={count}>
+                    {count}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </header>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-white">
+              Prompt generation instructions
+            </label>
+            <textarea
+              value={promptInstructions}
+              onChange={(event) => setPromptInstructions(event.target.value)}
+              rows={6}
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
+              placeholder="Take the below variables and create a prompt..."
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-white">
+              Rating rubric
+            </label>
+            <textarea
+              value={ratingRubric}
+              onChange={(event) => setRatingRubric(event.target.value)}
+              rows={6}
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
+              placeholder="Explain how the rater should score prompts and return JSON"
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div className="flex-1 space-y-2">
+            <label className="text-sm font-semibold text-white">
+              OpenRouter model ID
+            </label>
+            <input
+              value={pcModelId}
+              onChange={(event) => setPcModelId(event.target.value)}
+              placeholder="anthropic/claude-3.5-sonnet"
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={testPromptCreatorConnection}
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-60"
+              disabled={connectionStatus === "loading"}
+            >
+              {connectionStatus === "loading" ? "Testing…" : "Test connection"}
+            </button>
+            {connectionStatus === "success" && (
+              <span className="text-sm text-green-400">
+                Connection verified
+              </span>
+            )}
+            {connectionStatus === "error" && connectionError && (
+              <span className="text-sm text-red-400">{connectionError}</span>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className="space-y-4 rounded-xl bg-[#151A21] p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
+        <header className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-white">
+              Field management
+            </h3>
+            <p className="text-sm text-gray-400">
+              Add, edit, and reorder the controls available in the Prompt
+              Creator tab.
+            </p>
+          </div>
+          {editingFieldId && (
+            <button
+              type="button"
+              onClick={() => resetFieldForm()}
+              className="rounded-md border border-white/20 px-3 py-1 text-sm text-gray-200 hover:border-blue-400"
+            >
+              Cancel edit
+            </button>
+          )}
+        </header>
+
+        <form
+          onSubmit={handleFieldSubmit}
+          className="grid gap-4 md:grid-cols-2"
+        >
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-white">
+              Field label
+            </label>
+            <input
+              value={fieldForm.label}
+              onChange={(event) =>
+                handleFieldFormChange("label", event.target.value)
+              }
+              placeholder="Time of day"
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-white">Order</label>
+            <input
+              type="number"
+              min={1}
+              value={fieldForm.order}
+              onChange={(event) =>
+                handleFieldFormChange("order", Number(event.target.value))
+              }
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-white">Tier</label>
+            <select
+              value={fieldForm.tier}
+              onChange={(event) =>
+                handleFieldFormChange(
+                  "tier",
+                  event.target.value as PromptCreatorField["tier"],
+                )
+              }
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none"
+            >
+              <option value="mandatory">Mandatory</option>
+              <option value="optional">Optional</option>
+              <option value="free">Free</option>
+            </select>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-white">
+              Control type
+            </label>
+            <select
+              value={fieldForm.type}
+              onChange={(event) => {
+                const nextType = event.target
+                  .value as PromptCreatorField["type"];
+                if (editingFieldId) {
+                  const original = orderedPromptCreatorFields.find(
+                    (field) => field.id === editingFieldId,
+                  );
+                  if (original && original.type !== nextType) {
+                    const confirmed = window.confirm(
+                      "Changing control type may remove existing options. Continue?",
+                    );
+                    if (!confirmed) {
+                      return;
+                    }
+                  }
+                }
+                handleFieldFormChange("type", nextType);
+              }}
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none"
+            >
+              <option value="dropdown">Dropdown</option>
+              <option value="multiselect">Multiselect</option>
+              <option value="slider">Slider</option>
+              <option value="number">Number</option>
+              <option value="text">Text</option>
+            </select>
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <label className="text-sm font-semibold text-white">
+              Helper text
+            </label>
+            <input
+              value={fieldForm.helperText}
+              onChange={(event) =>
+                handleFieldFormChange("helperText", event.target.value)
+              }
+              placeholder="Shown as tooltip copy"
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
+            />
+          </div>
+          {(fieldForm.type === "dropdown" ||
+            fieldForm.type === "multiselect") && (
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-sm font-semibold text-white">
+                Options (one per line)
+              </label>
+              <textarea
+                value={fieldForm.optionsText}
+                onChange={(event) =>
+                  handleFieldFormChange("optionsText", event.target.value)
+                }
+                rows={4}
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
+              />
+              {fieldForm.type === "multiselect" && (
+                <div className="flex items-center gap-2 text-sm text-gray-300">
+                  <span>Max selections</span>
+                  <input
+                    type="number"
+                    min={1}
+                    value={fieldForm.maxSelections}
+                    onChange={(event) =>
+                      handleFieldFormChange(
+                        "maxSelections",
+                        Number(event.target.value),
+                      )
+                    }
+                    className="w-24 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-sm text-white focus:border-blue-500 focus:outline-none"
+                  />
+                </div>
+              )}
+            </div>
+          )}
+          {(fieldForm.type === "slider" || fieldForm.type === "number") && (
+            <div className="grid grid-cols-3 gap-4 md:col-span-2">
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-white">Min</label>
+                <input
+                  type="number"
+                  value={fieldForm.min}
+                  onChange={(event) =>
+                    handleFieldFormChange("min", Number(event.target.value))
+                  }
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-white">Max</label>
+                <input
+                  type="number"
+                  value={fieldForm.max}
+                  onChange={(event) =>
+                    handleFieldFormChange("max", Number(event.target.value))
+                  }
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-white">Step</label>
+                <input
+                  type="number"
+                  value={fieldForm.step}
+                  onChange={(event) =>
+                    handleFieldFormChange("step", Number(event.target.value))
+                  }
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none"
+                />
+              </div>
+            </div>
+          )}
+          {fieldForm.type === "text" && (
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-sm font-semibold text-white">
+                Max characters
+              </label>
+              <input
+                type="number"
+                value={fieldForm.maxLength}
+                onChange={(event) =>
+                  handleFieldFormChange("maxLength", Number(event.target.value))
+                }
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none"
+              />
+            </div>
+          )}
+          <div className="space-y-2 md:col-span-2">
+            <label className="text-sm font-semibold text-white">
+              Default value (optional)
+            </label>
+            <input
+              value={fieldForm.defaultValue}
+              onChange={(event) =>
+                handleFieldFormChange("defaultValue", event.target.value)
+              }
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none"
+            />
+          </div>
+          <div className="md:col-span-2 flex justify-end">
+            <button
+              type="submit"
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500"
+            >
+              {editingFieldId ? "Update field" : "Add field"}
+            </button>
+          </div>
+        </form>
+
+        <div className="space-y-3">
+          {orderedPromptCreatorFields.length === 0 ? (
+            <p className="text-sm text-gray-400">
+              Add your first field to get started.
+            </p>
+          ) : (
+            orderedPromptCreatorFields.map((field) => (
+              <div
+                key={field.id}
+                className="space-y-2 rounded-lg border border-white/10 bg-white/5 p-4"
+              >
+                <header className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                  <div className="space-y-1">
+                    <h4 className="text-base font-semibold text-white">
+                      {field.label}
+                      {field.hidden && (
+                        <span className="ml-2 rounded-full bg-yellow-500/20 px-2 py-0.5 text-xs text-yellow-300">
+                          Hidden
+                        </span>
+                      )}
+                    </h4>
+                    <p className="text-xs text-gray-400">
+                      Tier: {field.tier} • Type: {field.type} • Order:{" "}
+                      {field.order}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleEditField(field)}
+                      className="rounded-md border border-white/20 px-3 py-1 text-xs text-gray-200 hover:border-blue-400"
+                    >
+                      Edit
+                    </button>
+                    {field.hidden ? (
+                      <button
+                        type="button"
+                        onClick={() => handleRestoreField(field)}
+                        className="rounded-md border border-white/20 px-3 py-1 text-xs text-gray-200 hover:border-green-400"
+                      >
+                        Restore
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteField(field, false)}
+                        className="rounded-md border border-white/20 px-3 py-1 text-xs text-gray-200 hover:border-yellow-400"
+                      >
+                        Hide
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteField(field, true)}
+                      className="rounded-md border border-red-500/50 px-3 py-1 text-xs text-red-300 hover:bg-red-500/10"
+                    >
+                      Hard delete
+                    </button>
+                  </div>
+                </header>
+                {field.helperText && (
+                  <p className="text-sm text-gray-300">
+                    Helper: {field.helperText}
+                  </p>
+                )}
+                {field.options && field.options.length > 0 && (
+                  <div className="text-sm text-gray-300">
+                    Options: {field.options.join(", ")}
+                    {field.maxSelections && field.type === "multiselect" && (
+                      <span className="ml-2 text-gray-400">
+                        (max {field.maxSelections})
+                      </span>
+                    )}
+                  </div>
+                )}
+                {(field.type === "slider" || field.type === "number") && (
+                  <p className="text-sm text-gray-300">
+                    Range: {field.min} – {field.max} (step {field.step})
+                  </p>
+                )}
+                {field.type === "text" && field.maxLength && (
+                  <p className="text-sm text-gray-300">
+                    Max length: {field.maxLength}
+                  </p>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      </section>
+    </div>
   );
 
   const renderCategoriesTab = useCallback(
@@ -759,6 +1492,16 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             Custom Prompt Templates
           </button>
           <button
+            onClick={() => setActiveSubTab("prompt-creator")}
+            className={`py-2 px-4 font-medium text-sm border-b-2 transition-colors ${
+              activeSubTab === "prompt-creator"
+                ? "border-blue-500 text-blue-400"
+                : "border-transparent text-gray-400 hover:text-gray-300"
+            }`}
+          >
+            Prompt Creator
+          </button>
+          <button
             onClick={() => setActiveSubTab("categories")}
             className={`py-2 px-4 font-medium text-sm border-b-2 transition-colors ${
               activeSubTab === "categories"
@@ -777,6 +1520,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         {activeSubTab === "api-keys" && renderApiKeysTab()}
         {activeSubTab === "model-selection" && renderModelSelectionTab()}
         {activeSubTab === "custom-prompts" && renderCustomPromptsTab()}
+        {activeSubTab === "prompt-creator" && renderPromptCreatorTab()}
         {activeSubTab === "categories" && renderCategoriesTab()}
       </div>
     </div>
