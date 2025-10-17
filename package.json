@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
+    "build:analyze": "ANALYZE=true next build --turbopack",
     "start": "next start",
     "prepare": "husky install",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
