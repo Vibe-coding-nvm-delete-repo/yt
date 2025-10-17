@@ -344,33 +344,11 @@ export class SettingsStorage {
   }
 
   getSettings(): AppSettings {
-    // Always attempt to reload from localStorage to reflect the latest persisted state.
-    if (typeof window !== "undefined") {
-      try {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          this.settings = {
-            ...DEFAULT_SETTINGS,
-            ...parsed,
-            availableModels: Array.isArray(parsed.availableModels)
-              ? parsed.availableModels
-              : [],
-            preferredModels: Array.isArray(parsed.preferredModels)
-              ? parsed.preferredModels
-              : [],
-            lastApiKeyValidation: parsed.lastApiKeyValidation
-              ? Number(parsed.lastApiKeyValidation)
-              : null,
-            lastModelFetch: parsed.lastModelFetch
-              ? Number(parsed.lastModelFetch)
-              : null,
-          };
-        }
-      } catch (e) {
-        console.warn("Failed to refresh settings from localStorage:", e);
-      }
-    }
+    // Return cached settings. Settings are kept in sync via:
+    // 1. Initial load in constructor
+    // 2. Updates via batchUpdate/persist methods
+    // 3. Cross-tab sync via storage event listener
+    // This eliminates 100+ unnecessary localStorage reads and JSON.parse() calls per session
     return { ...this.settings };
   }
 

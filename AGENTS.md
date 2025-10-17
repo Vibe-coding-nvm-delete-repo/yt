@@ -39,17 +39,20 @@ src/
 ## Conventions & Patterns
 
 ### TypeScript
+
 • **Strict mode enabled**: `noImplicitAny`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`
 • Use precise types and unions; avoid `any`
 • Export typed interfaces/types from modules
 • Path alias: `@/*` maps to `./src/*`
 
 ### Code Style
+
 • Enforced by ESLint + Prettier (auto-formats on save)
 • No `console.log` in production code
 • `console.warn`/`console.error` allowed only for error reporting
 
 ### React/JSX
+
 • Make small, incremental JSX edits (1–5 lines per change)
 • Verify immediately with: lint → typecheck → test → build
 • UI components must NOT import server/DB logic
@@ -57,12 +60,14 @@ src/
 • All interactive controls must be accessible and labeled
 
 ### Testing
+
 • Test runner: Jest + React Testing Library
 • Place tests in `__tests__/` or as `*.test.ts(x)` near code
 • Add/update tests for any new or changed behavior
 • Maintain ≥60% coverage baseline
 
 ### Component Boundaries
+
 • UI components in `src/components/` (no server logic)
 • Domain logic in `src/domain/*`
 • Shared utilities in `src/lib/*`
@@ -84,6 +89,7 @@ src/
 ## PR Requirements
 
 Before requesting review, verify locally:
+
 - [ ] `npm run check:ci` passes
 - [ ] Tests added/updated covering changes
 - [ ] Build passes: `npm run build`
@@ -203,6 +209,8 @@ For deeper context, see:
 • `docs/P0_ENFORCEMENT_SYSTEM.md` - Architecture guards and CI
 • `docs/MERGE_CONFLICT_PREVENTION.md` - Branch protection setup
 • `docs/DESIGN_SYSTEM.md` - UI/UX patterns
+• `docs/AUTONOMOUS_AGENT_POLICY.md` - Agent execution modes and escalation
+• `docs/PQA_POLICY.md` - Proactive quality assurance and issue identification
 • `README.md` - Project overview
 
 ---

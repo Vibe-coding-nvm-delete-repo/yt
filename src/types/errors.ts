@@ -99,8 +99,12 @@ export class AppError extends Error {
       ? { ...baseContext, ...options.context }
       : baseContext;
 
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, AppError);
+    // Maintain proper stack trace (only available on V8)
+    const ErrorConstructor = Error as {
+      captureStackTrace?: (target: object, constructor: unknown) => void;
+    };
+    if (ErrorConstructor.captureStackTrace) {
+      ErrorConstructor.captureStackTrace(this, AppError);
     }
   }
 

@@ -23,31 +23,34 @@ import type { ErrorContext, AppError } from "../src/types/errors";
 import { createErrorFromException } from "../src/types/errors";
 
 // CRITICAL: ValidationState must be an alias for BaseValidationState
-expectType<ValidationState>({
+const validationState: ValidationState = {
   isValidating: false,
   isValid: true,
   error: null,
-});
+};
+expectType<ValidationState>(validationState);
 
 // CRITICAL: BaseValidationState shape must be exact
-expectType<BaseValidationState>({
+const baseValidationState: BaseValidationState = {
   isValidating: false,
   isValid: true,
   error: null,
-});
+};
+expectType<BaseValidationState>(baseValidationState);
 
 // CRITICAL: ExtendedValidationState must include metadata
-expectType<ExtendedValidationState>({
+const extendedValidationState: ExtendedValidationState = {
   isValidating: false,
   isValid: true,
   error: null,
   lastCheckedAt: Date.now(),
   validationAttempts: 0,
   isStale: false,
-});
+};
+expectType<ExtendedValidationState>(extendedValidationState);
 
 // CRITICAL: ApiValidationState must include retry logic
-expectType<ApiValidationState>({
+const apiValidationState: ApiValidationState = {
   isValidating: false,
   isValid: true,
   error: null,
@@ -58,7 +61,8 @@ expectType<ApiValidationState>({
   maxRetries: 3,
   retryable: true,
   nextRetryAt: null,
-});
+};
+expectType<ApiValidationState>(apiValidationState);
 
 // PREVENT REGRESSION: Optional isValid/error should NOT be assignable
 type BadValidationState = {
