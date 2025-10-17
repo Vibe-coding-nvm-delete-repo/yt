@@ -206,9 +206,6 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   const [textModels, setTextModels] = useState<TextModel[]>([]);
   const [isFetchingTextModels, setIsFetchingTextModels] = useState(false);
   const [textModelError, setTextModelError] = useState<string | null>(null);
-  const [defaultPromptCount, setDefaultPromptCount] = useState(
-    promptCreatorConfigState.defaultPromptCount,
-  );
   const [connectionStatus, setConnectionStatus] = useState<
     "idle" | "loading" | "success" | "error"
   >("idle");
@@ -262,7 +259,6 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       setPromptInstructions(config.promptGenInstructions);
       setRatingRubric(config.ratingRubric);
       setPcModelId(config.openRouterModelId);
-      setDefaultPromptCount(config.defaultPromptCount);
     }
   }, [activeSubTab]);
 
@@ -324,15 +320,6 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     setConnectionStatus("idle");
     setConnectionError(null);
   }, [pcModelId, apiKey]);
-
-  useEffect(() => {
-    const config = promptCreatorConfigStorage.load();
-    if (config.defaultPromptCount !== defaultPromptCount) {
-      config.defaultPromptCount = defaultPromptCount;
-      promptCreatorConfigStorage.save(config);
-      setPromptCreatorConfigState(config);
-    }
-  }, [defaultPromptCount]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -804,38 +791,14 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   const renderPromptCreatorTab = () => (
     <div className="space-y-6">
       <section className="space-y-4 rounded-xl bg-[#151A21] p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
-        <header className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h3 className="text-lg font-semibold text-white">
-              Prompt Creator Configuration
-            </h3>
-            <p className="text-sm text-gray-400">
-              Define how the builder assembles prompts and how results are
-              rated.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-300">
-              Default prompt count
-              <select
-                value={defaultPromptCount}
-                onChange={(event) =>
-                  setDefaultPromptCount(
-                    Number(
-                      event.target.value,
-                    ) as PromptCreatorConfig["defaultPromptCount"],
-                  )
-                }
-                className="ml-2 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-sm text-white"
-              >
-                {[1, 3, 5, 10].map((count) => (
-                  <option key={count} value={count}>
-                    {count}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+        <header>
+          <h3 className="text-lg font-semibold text-white">
+            Prompt Creator Configuration
+          </h3>
+          <p className="text-sm text-gray-400">
+            Define how the builder assembles prompts and how results are rated.
+            Each generation will produce 3 prompt variations.
+          </p>
         </header>
 
         <div className="grid gap-4 md:grid-cols-2">
