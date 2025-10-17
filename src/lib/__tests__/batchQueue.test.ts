@@ -119,4 +119,60 @@ describe("runWithConcurrency", () => {
     expect(progressCallback).toHaveBeenCalledWith(2, 3);
     expect(progressCallback).toHaveBeenCalledWith(3, 3);
   });
+
+  test("handles AbortSignal to cancel tasks", async () => {
+    const abortController = new AbortController();
+    const tasks = [
+      () => Promise.resolve(1),
+      async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        return 2;
+      },
+      async () => {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        return 3;
+      },
+    ];
+
+    // Abort after a short delay
+    setTimeout(() => abortController.abort(), 20);
+
+    await expect(
+      runWithConcurrency(tasks, {
+        concurrency: 1,
+        signal: abortController.signal,
+      }),
+    ).rejects.toThrow("Aborted");
+  });
+
+  test("handles abort during delay", async () => {
+    const abortController = new AbortController();
+    const tasks = [() => Promise.resolve(1)];
+
+    // Abort before running
+    abortController.abort();
+
+    await expect(
+      runWithConcurrency(tasks, {
+        concurrency: 1,
+        delayMs: 100,
+        signal: abortController.signal,
+      }),
+    ).rejects.toThrow("Aborted");
+  });
+
+  test("handles non-Error exceptions gracefully", async () => {
+    const tasks = [
+      () => Promise.resolve(1),
+      () => Promise.reject("string error"),
+      () => Promise.resolve(3),
+    ];
+
+    const results = await runWithConcurrency(tasks, { concurrency: 2 });
+
+    expect(results.results).toHaveLength(3);
+    expect(results.results[0]).toBe(1);
+    expect(results.results[1]).toBeInstanceOf(Error);
+    expect(results.results[2]).toBe(3);
+  });
 });
