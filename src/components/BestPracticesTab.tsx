@@ -414,3 +414,5 @@ export const BestPracticesTab: React.FC = () => {
     </div>
   );
 };
+
+export default BestPracticesTab;

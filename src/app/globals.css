@@ -104,15 +104,25 @@ body {
   background: rgba(255, 255, 255, 0.3);
 }
 
-/* Fix dropdown option visibility - ensure dark background matches select element */
-select option {
-  background-color: var(--color-elevated);
-  color: var(--color-text-high);
+/* Tab content transitions - smooth fade for instant feel */
+.tab-content {
+  opacity: 0;
+  transition: opacity 150ms ease-in-out;
+  will-change: opacity;
+  /* Use CSS containment for better rendering performance */
+  contain: layout style paint;
 }
 
-/* Enhanced hover state for better UX */
-select option:hover,
-select option:focus,
-select option:checked {
-  background-color: rgba(59, 130, 246, 0.2);
+.tab-content.active {
+  opacity: 1;
+}
+
+/* Optimize off-screen tab rendering with content-visibility */
+.tab-content:not(.active) {
+  content-visibility: hidden;
+}
+
+/* Tab panel optimization - reduce browser work for hidden content */
+[role="tabpanel"]:not([aria-hidden="false"]) {
+  content-visibility: hidden;
 }

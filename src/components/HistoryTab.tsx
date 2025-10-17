@@ -7,7 +7,7 @@ import { middleEllipsis } from "@/utils/truncation";
 import { Filter, History } from "lucide-react";
 import Image from "next/image";
 
-export const HistoryTab: React.FC = () => {
+export const HistoryTab: React.FC = React.memo(() => {
   const { entries, filterModelIds, setFilterModelIds, historyModelOptions } =
     useHistory();
   const options = historyModelOptions ?? [];
@@ -150,6 +150,8 @@ export const HistoryTab: React.FC = () => {
       </div>
     </div>
   );
-};
+});
+
+HistoryTab.displayName = "HistoryTab";
 
 export default HistoryTab;
