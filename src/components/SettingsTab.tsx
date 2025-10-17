@@ -213,6 +213,11 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     "idle" | "loading" | "success" | "error"
   >("idle");
   const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [isTextModelDropdownOpen, setIsTextModelDropdownOpen] = useState(false);
+  const [textModelSearch, setTextModelSearch] = useState("");
+  const debouncedTextModelSearch = useDebounce(textModelSearch, 200);
+  const textModelDropdownRef = useRef<HTMLDivElement>(null);
+  const textModelSearchInputRef = useRef<HTMLInputElement>(null);
 
   const orderedPromptCreatorFields = useMemo(
     () =>
@@ -249,6 +254,24 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     const unpinned = filteredDropdownModels.filter((m) => !pinnedSet.has(m.id));
     return { pinnedDropdownModels: pinned, unpinnedDropdownModels: unpinned };
   }, [filteredDropdownModels, settings.pinnedModels]);
+
+  // Memoize text model filtering
+  const filteredTextModels = useMemo(() => {
+    const query = debouncedTextModelSearch.toLowerCase();
+    return textModels.filter(
+      (m) =>
+        m.name.toLowerCase().includes(query) ||
+        m.id.toLowerCase().includes(query),
+    );
+  }, [textModels, debouncedTextModelSearch]);
+
+  // Memoize pinned/unpinned separation for text model dropdown
+  const { pinnedTextModels, unpinnedTextModels } = useMemo(() => {
+    const pinnedSet = new Set(settings.pinnedModels || []);
+    const pinned = filteredTextModels.filter((m) => pinnedSet.has(m.id));
+    const unpinned = filteredTextModels.filter((m) => !pinnedSet.has(m.id));
+    return { pinnedTextModels: pinned, unpinnedTextModels: unpinned };
+  }, [filteredTextModels, settings.pinnedModels]);
 
   // Handle settings updates from storage
   useEffect(() => {
@@ -357,12 +380,22 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
           }));
         }
       });
+
+      // Close text model dropdown when clicking outside
+      if (
+        textModelDropdownRef.current &&
+        !textModelDropdownRef.current.contains(target) &&
+        isTextModelDropdownOpen
+      ) {
+        setIsTextModelDropdownOpen(false);
+        setTextModelSearch("");
+      }
     };
     // eslint-disable-next-line no-restricted-syntax
     document.addEventListener("mousedown", handleClickOutside);
     // eslint-disable-next-line no-restricted-syntax
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [dropdownStates]);
+  }, [dropdownStates, isTextModelDropdownOpen]);
 
   const handleApiKeyChange = useCallback(
     (value: string) => {
@@ -855,12 +888,12 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             <label className="text-sm font-semibold text-white">
               OpenRouter text generation model
             </label>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
               <button
                 type="button"
                 onClick={fetchTextModels}
                 disabled={isFetchingTextModels || !validationState.isValid}
-                className="inline-flex items-center justify-center rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex items-center justify-center rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50 whitespace-nowrap"
               >
                 <RefreshCw
                   className={`mr-2 h-4 w-4 ${
@@ -869,23 +902,137 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                 />
                 {isFetchingTextModels ? "Fetching…" : "Fetch text models"}
               </button>
-              <select
-                value={pcModelId}
-                onChange={(event) => handleTextModelSelect(event.target.value)}
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none"
-                aria-label="Select OpenRouter text model"
-              >
-                <option value="">Select a text model…</option>
-                {pcModelId &&
-                  !textModels.some((model) => model.id === pcModelId) && (
-                    <option value={pcModelId}>{pcModelId}</option>
-                  )}
-                {textModels.map((model) => (
-                  <option key={model.id} value={model.id}>
-                    {model.name}
-                  </option>
-                ))}
-              </select>
+              <div className="relative flex-1" ref={textModelDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setIsTextModelDropdownOpen(!isTextModelDropdownOpen)
+                  }
+                  className="w-full px-4 py-2 border-none rounded-lg focus:ring-2 focus:ring-blue-500/50 bg-white/5 hover:bg-white/10 text-left flex items-center justify-between transition-colors"
+                  aria-label="Select OpenRouter text model"
+                >
+                  <span
+                    className="text-white text-sm"
+                    title={
+                      selectedTextModel
+                        ? selectedTextModel.name
+                        : pcModelId || "Select a text model…"
+                    }
+                  >
+                    {selectedTextModel
+                      ? middleEllipsis(selectedTextModel.name, 40)
+                      : pcModelId
+                        ? middleEllipsis(pcModelId, 40)
+                        : "Select a text model…"}
+                  </span>
+                  <ChevronDown
+                    className={`h-4 w-4 text-gray-500 transition-transform flex-shrink-0 ${isTextModelDropdownOpen ? "transform rotate-180" : ""}`}
+                  />
+                </button>
+                {isTextModelDropdownOpen && (
+                  <div className="absolute z-10 w-full mt-1 bg-[#1A212A] border border-white/10 rounded-lg shadow-[0_24px_56px_rgba(0,0,0,0.55)] max-h-80 overflow-hidden flex flex-col">
+                    <div className="p-2 border-b border-white/6">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <input
+                          ref={textModelSearchInputRef}
+                          type="text"
+                          placeholder="Search text models..."
+                          value={textModelSearch}
+                          onChange={(e) => setTextModelSearch(e.target.value)}
+                          className="w-full pl-10 pr-4 py-2 border-none rounded-lg focus:ring-2 focus:ring-blue-500/50 bg-white/5 focus:bg-white/10 text-white placeholder:text-gray-500 text-sm transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                          autoFocus
+                        />
+                      </div>
+                    </div>
+
+                    <div className="overflow-y-auto flex-1">
+                      {(() => {
+                        const pinnedSet = new Set(settings.pinnedModels || []);
+
+                        const renderRow = (model: TextModel) => (
+                          <button
+                            key={model.id}
+                            type="button"
+                            onClick={() => {
+                              handleTextModelSelect(model.id);
+                              setIsTextModelDropdownOpen(false);
+                              setTextModelSearch("");
+                            }}
+                            className={`w-full px-4 py-2 text-left hover:bg-white/5 transition-colors ${
+                              pcModelId === model.id
+                                ? "bg-blue-900/30 text-blue-400"
+                                : "text-white"
+                            }`}
+                            title={model.name}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="min-w-0 flex-1">
+                                <div className="text-sm font-medium">
+                                  {middleEllipsis(model.name, 40)}
+                                </div>
+                                <div className="text-xs text-gray-400">
+                                  {formatPrice(
+                                    model.pricing.prompt +
+                                      model.pricing.completion,
+                                  )}
+                                  /token
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                aria-label={
+                                  pinnedSet.has(model.id)
+                                    ? "Unpin model"
+                                    : "Pin model"
+                                }
+                                className="ml-3 text-gray-400 hover:text-gray-300 flex-shrink-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  hookTogglePinnedModel(model.id);
+                                  addToast(
+                                    pinnedSet.has(model.id)
+                                      ? "Model unpinned"
+                                      : "Model pinned",
+                                    "success",
+                                  );
+                                }}
+                              >
+                                {pinnedSet.has(model.id) ? (
+                                  <Pin className="h-4 w-4 text-blue-600" />
+                                ) : (
+                                  <PinOff className="h-4 w-4" />
+                                )}
+                              </button>
+                            </div>
+                          </button>
+                        );
+
+                        return (
+                          <>
+                            {pinnedTextModels.length > 0 && (
+                              <>
+                                <div className="px-4 py-1 text-xs uppercase tracking-wide text-gray-400">
+                                  Pinned
+                                </div>
+                                {pinnedTextModels.map((m) => renderRow(m))}
+                                <div className="my-1 border-t border-white/6" />
+                              </>
+                            )}
+                            {unpinnedTextModels.map((m) => renderRow(m))}
+                            {filteredTextModels.length === 0 && (
+                              <div className="px-4 py-3 text-sm text-gray-400 text-center">
+                                No text models found
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
             {textModelError && (
               <p className="text-xs text-red-400">{textModelError}</p>
