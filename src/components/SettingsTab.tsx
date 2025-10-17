@@ -1803,3 +1803,5 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     </div>
   );
 };
+
+export default SettingsTab;
