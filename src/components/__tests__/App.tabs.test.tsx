@@ -15,7 +15,7 @@ import { App } from "../App";
 jest.mock("@/hooks/useSettings", () => ({
   useSettings: jest.fn(() => ({
     settings: {
-      apiKey: "test-key",
+      openRouterApiKey: "sk-test",
       selectedModel: "test-model",
     },
     isInitialized: true,
@@ -39,6 +39,13 @@ jest.mock("../UsageTab", () => ({
   UsageTab: () => <div data-testid="usage-content">Usage Tab Content</div>,
 }));
 
+jest.mock("../PromptCreatorTab", () => ({
+  __esModule: true,
+  default: () => (
+    <div data-testid="prompt-creator-content">Prompt Creator Tab Content</div>
+  ),
+}));
+
 jest.mock("../SettingsTab", () => ({
   SettingsTab: () => (
     <div data-testid="settings-content">Settings Tab Content</div>
@@ -52,6 +59,9 @@ describe("App - Tab Integration", () => {
     // All tabs should be present in navigation - using aria-controls to identify them
     expect(
       screen.getByRole("tab", { name: /Image to Prompt/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("tab", { name: /Prompt Creator/i }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("tab", { name: /Best Practices/i }),
@@ -76,6 +86,20 @@ describe("App - Tab Integration", () => {
     fireEvent.click(bestPracticesTab);
 
     expect(screen.getByTestId("best-practices-content")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("image-to-prompt-content"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("should render Prompt Creator tab content when clicked", () => {
+    render(<App />);
+
+    const promptCreatorTab = screen.getByRole("tab", {
+      name: /Prompt Creator/i,
+    });
+    fireEvent.click(promptCreatorTab);
+
+    expect(screen.getByTestId("prompt-creator-content")).toBeInTheDocument();
     expect(
       screen.queryByTestId("image-to-prompt-content"),
     ).not.toBeInTheDocument();
@@ -115,6 +139,10 @@ describe("App - Tab Integration", () => {
     fireEvent.click(screen.getByRole("tab", { name: /Best Practices/i }));
     expect(screen.getByTestId("best-practices-content")).toBeInTheDocument();
 
+    // Switch to Prompt Creator
+    fireEvent.click(screen.getByRole("tab", { name: /Prompt Creator/i }));
+    expect(screen.getByTestId("prompt-creator-content")).toBeInTheDocument();
+
     // Switch to Usage
     fireEvent.click(screen.getByRole("tab", { name: /Usage.*Costs/i }));
     expect(screen.getByTestId("usage-content")).toBeInTheDocument();
@@ -138,17 +166,20 @@ describe("App - Tab Integration", () => {
    * properly wired up to render content in App.tsx.
    */
   it("should ensure all navigation tabs have corresponding content rendered", () => {
-    const { container } = render(<App />);
+    render(<App />);
 
     // Get all tab buttons from navigation
-    const tabButtons = container.querySelectorAll('[role="tab"]');
-    const tabIds = Array.from(tabButtons).map((button) =>
-      button.getAttribute("aria-controls")?.replace("-panel", ""),
-    );
+    const tabButtons = screen.getAllByRole("tab");
+    const tabIds = tabButtons
+      .map((button) =>
+        button.getAttribute("aria-controls")?.replace("-panel", ""),
+      )
+      .filter((tabId): tabId is string => Boolean(tabId));
 
     // Define expected tabs that must have content
     const expectedTabs = [
       "image-to-prompt",
+      "prompt-creator",
       "best-practices",
       "usage",
       "settings",
@@ -161,10 +192,10 @@ describe("App - Tab Integration", () => {
 
     // Click each tab and verify content is rendered
     expectedTabs.forEach((tabId) => {
-      const tabButton = container.querySelector(
-        `[aria-controls="${tabId}-panel"]`,
+      const tabButton = tabButtons.find(
+        (button) => button.getAttribute("aria-controls") === `${tabId}-panel`,
       );
-      expect(tabButton).toBeInTheDocument();
+      expect(tabButton).toBeDefined();
 
       if (tabButton) {
         fireEvent.click(tabButton);
@@ -172,18 +203,15 @@ describe("App - Tab Integration", () => {
         // Verify some content is rendered (not empty)
         const contentTestIds = [
           "image-to-prompt-content",
+          "prompt-creator-content",
           "best-practices-content",
           "usage-content",
           "settings-content",
         ];
 
-        const hasContent = contentTestIds.some((testId) => {
-          try {
-            return screen.getByTestId(testId) !== null;
-          } catch {
-            return false;
-          }
-        });
+        const hasContent = contentTestIds.some(
+          (testId) => screen.queryByTestId(testId) !== null,
+        );
 
         expect(hasContent).toBe(true);
       }

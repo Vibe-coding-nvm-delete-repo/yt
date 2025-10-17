@@ -1,12 +1,14 @@
 "use client";
 
 import React from "react";
-import { Image, Settings, BookOpen, List } from "lucide-react";
+import { Image, Settings, BookOpen, List, Sparkles } from "lucide-react";
 import type { TabState } from "@/types";
 
+type NavigationTab = TabState["activeTab"] | "prompt-creator";
+
 interface TabNavigationProps {
-  activeTab: TabState["activeTab"];
-  onTabChange: (tab: TabState["activeTab"]) => void;
+  activeTab: NavigationTab;
+  onTabChange: (tab: NavigationTab) => void;
 }
 
 export const TabNavigation: React.FC<TabNavigationProps> = ({
@@ -20,6 +22,13 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
       shortLabel: "Generate", // Shorter label for mobile
       icon: Image,
       description: "Upload images and generate prompts",
+    },
+    {
+      id: "prompt-creator" as const,
+      label: "Prompt Creator",
+      shortLabel: "Creator",
+      icon: Sparkles,
+      description: "Assemble structured prompt inputs and generate variations",
     },
     {
       id: "best-practices" as const,

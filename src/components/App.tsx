@@ -6,44 +6,68 @@ import { SettingsTab } from "./SettingsTab";
 import { BestPracticesTab } from "./BestPracticesTab";
 import { UsageTab } from "./UsageTab";
 import ImageToPromptTabs from "./ImageToPromptTabs";
+import PromptCreatorTab from "./PromptCreatorTab";
 import type { TabState } from "@/types";
 import { useSettings } from "@/hooks/useSettings";
 
+type AppTab = TabState["activeTab"] | "prompt-creator";
+
 export const App: React.FC = () => {
-  const [tabState, setTabState] = useState<TabState>({
+  const [tabState, setTabState] = useState<{ activeTab: AppTab }>({
     activeTab: "image-to-prompt",
   });
 
   const { settings, isInitialized } = useSettings();
 
-  const handleTabChange = (tab: TabState["activeTab"]) => {
+  const handleTabChange = (tab: AppTab) => {
     setTabState({ activeTab: tab });
   };
 
-  // Show loading state while settings are being initialized
+  const renderContent = () => {
+    switch (tabState.activeTab) {
+      case "image-to-prompt":
+        return <ImageToPromptTabs />;
+      case "prompt-creator":
+        return <PromptCreatorTab apiKey={settings.openRouterApiKey} />;
+      case "best-practices":
+        return <BestPracticesTab />;
+      case "usage":
+        return <UsageTab />;
+      case "settings":
+        return (
+          <SettingsTab
+            settings={settings}
+            onSettingsUpdate={() => {
+              /* Settings managed via hook */
+            }}
+          />
+        );
+      default:
+        return <ImageToPromptTabs />;
+    }
+  };
+
   if (!isInitialized) {
     return (
-      <MainLayout activeTab={tabState.activeTab} onTabChange={handleTabChange}>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <MainLayout
+        activeTab={tabState.activeTab as TabState["activeTab"]}
+        onTabChange={(tab) => handleTabChange(tab as AppTab)}
+      >
+        <div className="flex h-64 items-center justify-center">
+          <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600" />
         </div>
       </MainLayout>
     );
   }
 
   return (
-    <MainLayout activeTab={tabState.activeTab} onTabChange={handleTabChange}>
-      {tabState.activeTab === "image-to-prompt" && <ImageToPromptTabs />}
-      {tabState.activeTab === "best-practices" && <BestPracticesTab />}
-      {tabState.activeTab === "usage" && <UsageTab />}
-      {tabState.activeTab === "settings" && (
-        <SettingsTab
-          settings={settings}
-          onSettingsUpdate={() => {
-            // Settings are now managed by the hook, no manual update needed
-          }}
-        />
-      )}
+    <MainLayout
+      activeTab={tabState.activeTab as TabState["activeTab"]}
+      onTabChange={(tab) => handleTabChange(tab as AppTab)}
+    >
+      {renderContent()}
     </MainLayout>
   );
 };
+
+export default App;

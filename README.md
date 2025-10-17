@@ -29,6 +29,16 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
+## Prompt Creator Feature
+
+The **Prompt Creator** tab lets you assemble structured prompt inputs, generate batches of prompts, and score them automatically.
+
+1. Open **Settings → Prompt Creator** to configure the available fields, prompt generation instructions, rating rubric, and OpenRouter model ID.
+2. The builder persists every selection to `localStorage`, so you can switch tabs without losing your draft.
+3. Use the Generate buttons on the **Prompt Creator** tab to request 1, 3, 5, or 10 prompts. Each prompt is rated via OpenRouter and saved to a permanent history so you can copy or favorite the results.
+
+> ℹ️ Prompt generation and scoring both require a valid OpenRouter API key. Add the key in **Settings → API Keys** before using the Prompt Creator workflow.
+
 ## Project Standards and Workflows
 
 - Engineering Standards: see `docs/ENGINEERING_STANDARDS.md`

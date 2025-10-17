@@ -1,7 +1,14 @@
 // Prompt Creator Types
 
-export type FieldType = "dropdown" | "multiselect" | "slider" | "number" | "text";
+export type FieldType =
+  | "dropdown"
+  | "multiselect"
+  | "slider"
+  | "number"
+  | "text";
 export type FieldTier = "mandatory" | "optional" | "free";
+
+export type PromptCreatorValue = string | number | string[] | null;
 
 export interface PromptCreatorField {
   id: string;
@@ -10,9 +17,9 @@ export interface PromptCreatorField {
   tier: FieldTier;
   order: number;
   helperText?: string;
-  defaultValue?: any;
+  defaultValue?: PromptCreatorValue;
   hidden?: boolean; // For soft delete
-  
+
   // Type-specific config
   options?: string[];
   maxSelections?: number;
@@ -32,7 +39,7 @@ export interface PromptCreatorConfig {
 }
 
 export interface PromptCreatorDraft {
-  selections: Record<string, any>;
+  selections: Record<string, PromptCreatorValue>;
   lastModified: number;
   schemaVersion: 1;
 }
@@ -57,7 +64,7 @@ export interface PromptCost {
 export interface PromptCreatorResult {
   id: string;
   timestamp: number;
-  selections: Record<string, any>;
+  selections: Record<string, PromptCreatorValue>;
   generatedPrompt: string;
   rating: PromptRating;
   cost: PromptCost;
