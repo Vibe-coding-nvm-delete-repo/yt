@@ -44,6 +44,8 @@ The **Prompt Creator** tab lets you assemble structured prompt inputs, generate 
 - Engineering Standards: see `docs/ENGINEERING_STANDARDS.md`
 - P0 Enforcement System (architecture guards, pre-commit, CI): see `docs/P0_ENFORCEMENT_SYSTEM.md`
 - Merge Conflict Prevention and required checks: see `docs/MERGE_CONFLICT_PREVENTION.md`
+- Autonomous Agent Policy (execution modes): see `docs/AUTONOMOUS_AGENT_POLICY.md`
+- Proactive Quality Assurance (PQA) Policy: see `docs/PQA_POLICY.md`
 
 When developing a new feature, follow the Feature Development DoD in `docs/ENGINEERING_STANDARDS.md` and complete the DoD checklist in the PR template.
 
