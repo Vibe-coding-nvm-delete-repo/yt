@@ -109,8 +109,20 @@ body {
   opacity: 0;
   transition: opacity 150ms ease-in-out;
   will-change: opacity;
+  /* Use CSS containment for better rendering performance */
+  contain: layout style paint;
 }
 
 .tab-content.active {
   opacity: 1;
+}
+
+/* Optimize off-screen tab rendering with content-visibility */
+.tab-content:not(.active) {
+  content-visibility: hidden;
+}
+
+/* Tab panel optimization - reduce browser work for hidden content */
+[role="tabpanel"]:not([aria-hidden="false"]) {
+  content-visibility: hidden;
 }

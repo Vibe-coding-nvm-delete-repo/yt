@@ -30,13 +30,15 @@ jest.mock("../ImageToPromptTabs", () => ({
 }));
 
 jest.mock("../BestPracticesTab", () => ({
-  BestPracticesTab: () => (
+  __esModule: true,
+  default: () => (
     <div data-testid="best-practices-content">Best Practices Tab Content</div>
   ),
 }));
 
 jest.mock("../UsageTab", () => ({
-  UsageTab: () => <div data-testid="usage-content">Usage Tab Content</div>,
+  __esModule: true,
+  default: () => <div data-testid="usage-content">Usage Tab Content</div>,
 }));
 
 jest.mock("../PromptCreatorTab", () => ({
@@ -47,9 +49,8 @@ jest.mock("../PromptCreatorTab", () => ({
 }));
 
 jest.mock("../SettingsTab", () => ({
-  SettingsTab: () => (
-    <div data-testid="settings-content">Settings Tab Content</div>
-  ),
+  __esModule: true,
+  default: () => <div data-testid="settings-content">Settings Tab Content</div>,
 }));
 
 describe("App - Tab Integration", () => {

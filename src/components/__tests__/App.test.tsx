@@ -4,6 +4,32 @@ import { render, screen } from "@testing-library/react";
 import { App } from "@/components/App";
 import { ToastProvider } from "@/contexts/ToastContext";
 
+// Mock lazy-loaded components for testing
+jest.mock("../ImageToPromptTabs", () => ({
+  __esModule: true,
+  default: () => <div>Image to Prompt Content</div>,
+}));
+
+jest.mock("../BestPracticesTab", () => ({
+  __esModule: true,
+  default: () => <div>Best Practices Content</div>,
+}));
+
+jest.mock("../UsageTab", () => ({
+  __esModule: true,
+  default: () => <div>Usage Content</div>,
+}));
+
+jest.mock("../PromptCreatorTab", () => ({
+  __esModule: true,
+  default: () => <div>Prompt Creator Content</div>,
+}));
+
+jest.mock("../SettingsTab", () => ({
+  __esModule: true,
+  default: () => <div>Settings Content</div>,
+}));
+
 /**
  * App smoke tests after main restoration
  * - Keep minimal assertions that match restored UI
