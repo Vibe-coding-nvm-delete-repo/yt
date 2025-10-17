@@ -29,6 +29,7 @@ export const App: React.FC = () => {
     return (
       <>
         <div
+          className={`tab-content ${tabState.activeTab === "image-to-prompt" ? "active" : ""}`}
           style={{
             display:
               tabState.activeTab === "image-to-prompt" ? "block" : "none",
@@ -37,6 +38,7 @@ export const App: React.FC = () => {
           <ImageToPromptTabs />
         </div>
         <div
+          className={`tab-content ${tabState.activeTab === "prompt-creator" ? "active" : ""}`}
           style={{
             display: tabState.activeTab === "prompt-creator" ? "block" : "none",
           }}
@@ -44,6 +46,7 @@ export const App: React.FC = () => {
           <PromptCreatorTab apiKey={settings.openRouterApiKey} />
         </div>
         <div
+          className={`tab-content ${tabState.activeTab === "best-practices" ? "active" : ""}`}
           style={{
             display: tabState.activeTab === "best-practices" ? "block" : "none",
           }}
@@ -51,11 +54,13 @@ export const App: React.FC = () => {
           <BestPracticesTab />
         </div>
         <div
+          className={`tab-content ${tabState.activeTab === "usage" ? "active" : ""}`}
           style={{ display: tabState.activeTab === "usage" ? "block" : "none" }}
         >
           <UsageTab />
         </div>
         <div
+          className={`tab-content ${tabState.activeTab === "settings" ? "active" : ""}`}
           style={{
             display: tabState.activeTab === "settings" ? "block" : "none",
           }}

@@ -103,3 +103,14 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
 }
+
+/* Tab content transitions - smooth fade for instant feel */
+.tab-content {
+  opacity: 0;
+  transition: opacity 150ms ease-in-out;
+  will-change: opacity;
+}
+
+.tab-content.active {
+  opacity: 1;
+}
