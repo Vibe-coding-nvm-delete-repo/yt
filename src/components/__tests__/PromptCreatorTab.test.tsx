@@ -63,10 +63,10 @@ describe("PromptCreatorTab", () => {
       ),
     ).toBeInTheDocument();
 
-    const generateOneButton = screen.getByRole("button", {
-      name: /^Generate 1$/i,
+    const generateButton = screen.getByRole("button", {
+      name: /^Generate$/i,
     });
-    expect(generateOneButton).toBeDisabled();
+    expect(generateButton).toBeDisabled();
 
     const dropdown = await screen.findByLabelText(/Time of Day$/);
     fireEvent.change(dropdown, { target: { value: "Dusk" } });
@@ -80,7 +80,7 @@ describe("PromptCreatorTab", () => {
     });
 
     await waitFor(() => {
-      expect(generateOneButton).not.toBeDisabled();
+      expect(generateButton).not.toBeDisabled();
     });
 
     const draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || "{}");
