@@ -89,6 +89,72 @@ describe("OpenRouterClient", () => {
     });
   });
 
+  describe("getTextModels", () => {
+    it("returns only text-capable models and excludes embeddings", async () => {
+      const mockResponse = {
+        data: [
+          {
+            id: "anthropic/claude-3.7-sonnet",
+            name: "Anthropic: Claude 3.7 Sonnet",
+            pricing: { prompt: "0.000003", completion: "0.000015" },
+            context_length: "200000",
+            architecture: {
+              modality: "text+image->text",
+              input_modalities: ["text", "image"],
+              output_modalities: ["text"],
+            },
+          },
+          {
+            id: "openai/text-embedding-3-small",
+            name: "OpenAI: Text Embedding 3 Small",
+            architecture: {
+              modality: "text->embedding",
+              output_modalities: ["embedding"],
+            },
+          },
+          {
+            id: "meta/llama-3.1-70b-instruct",
+            name: "Meta: Llama 3.1 70B Instruct",
+            pricing: { prompt: 0.000001, completion: 0.000002 },
+            architecture: {
+              modality: "text->text",
+              output_modalities: ["text"],
+            },
+          },
+        ],
+      };
+
+      const mockJsonFn = jest.fn().mockResolvedValue(mockResponse);
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: mockJsonFn,
+        clone: () => ({
+          ok: true,
+          json: mockJsonFn,
+          text: jest.fn().mockResolvedValue(JSON.stringify(mockResponse)),
+        }),
+      } as unknown as Response);
+
+      const models = await client.getTextModels();
+
+      expect(models).toHaveLength(2);
+      expect(models[0]).toMatchObject({
+        id: "anthropic/claude-3.7-sonnet",
+        pricing: { prompt: 0.000003, completion: 0.000015 },
+        context_length: 200000,
+      });
+      expect(models[1]?.id).toBe("meta/llama-3.1-70b-instruct");
+      expect(mockFetch).toHaveBeenCalledWith(
+        "https://openrouter.ai/api/v1/models",
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: "Bearer test-api-key",
+          }),
+        }),
+      );
+    });
+  });
+
   describe("cost calculations", () => {
     const mockModel = {
       id: "test-model",
@@ -107,18 +173,18 @@ describe("OpenRouterClient", () => {
       // NOTE: This method is deprecated. Use calculateDetailedCost from @/lib/cost instead.
       // This test verifies the method still works for backward compatibility.
       const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();
-      
+
       const result = client.calculateGenerationCost(mockModel, 12); // 12 character prompt
       expect(result.inputCost).toBe(0); // Image cost not implemented (known limitation)
       expect(result.outputCost).toBeGreaterThan(0); // Text cost should be calculated
       expect(result.totalCost).toBeGreaterThan(0);
       expect(result.totalCost).toBe(result.inputCost + result.outputCost);
-      
+
       // Verify deprecation warnings are shown
       expect(consoleWarnSpy).toHaveBeenCalledWith(
         expect.stringContaining("deprecated"),
       );
-      
+
       consoleWarnSpy.mockRestore();
     });
   });

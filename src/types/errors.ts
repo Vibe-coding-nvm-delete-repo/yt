@@ -182,6 +182,7 @@ export class NetworkError extends AppError {
     message: string,
     userMessage?: string,
     context?: Partial<ErrorContext>,
+    options?: { originalError?: Error },
   ) {
     super(ErrorType.NETWORK, message, userMessage, {
       ...(context !== undefined && { context }),
@@ -192,6 +193,9 @@ export class NetworkError extends AppError {
         maxDelay: 10000,
         backoffMultiplier: 2,
       },
+      ...(options?.originalError !== undefined && {
+        originalError: options.originalError,
+      }),
     });
   }
 }
@@ -218,10 +222,18 @@ export class ValidationError extends AppError {
     userMessage?: string,
     context?: Partial<ErrorContext>,
   ) {
+    const metadata = field !== undefined ? { field } : undefined;
+    const mergedContext = context ? { ...context } : {};
+
+    if (metadata) {
+      mergedContext.metadata = {
+        ...(context?.metadata ?? {}),
+        ...metadata,
+      };
+    }
+
     super(ErrorType.VALIDATION, message, userMessage, {
-      ...(context !== undefined && {
-        context: { ...context, metadata: { field } },
-      }),
+      ...(Object.keys(mergedContext).length > 0 && { context: mergedContext }),
       retryable: false,
     });
   }
@@ -352,6 +364,7 @@ export const createErrorFromException = (
       "Network connection failed",
       "Unable to connect to the server. Please check your connection.",
       context,
+      { originalError: error },
     );
   }
 
@@ -359,6 +372,7 @@ export const createErrorFromException = (
     return new AppError(ErrorType.UNKNOWN, error.message, undefined, {
       // Fix for exactOptionalPropertyTypes: only include context if defined
       ...(context !== undefined && { context }),
+      retryable: true,
       originalError: error,
     });
   }

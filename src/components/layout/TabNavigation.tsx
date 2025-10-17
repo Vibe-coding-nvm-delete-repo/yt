@@ -61,7 +61,7 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
     >
       <div className="mx-auto px-3 sm:px-4 md:px-6 lg:px-8 max-w-4xl">
         {/* Mobile-first tab design */}
-        <div className="flex">
+        <div className="flex" role="tablist">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;

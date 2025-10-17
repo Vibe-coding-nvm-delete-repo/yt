@@ -1,5 +1,6 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element -- Modal preview assets require <img> until Next Image integration is supported. */
 import React from "react";
 import { X, Upload } from "lucide-react";
 import type { BestPracticeCategory, BestPracticeType } from "@/types";

@@ -61,61 +61,65 @@ export async function runWithConcurrency<T>(
 
   // Worker that picks next task index and runs it
   const worker = async (): Promise<void> => {
-    while (true) {
-      if (options.signal?.aborted) {
-        // Stop processing further tasks
-        throw new DOMException("Aborted", "AbortError");
-      }
-
-      const current = index++;
-      if (current >= tasks.length) {
-        return;
-      }
-
-      const taskFactory = tasks[current];
-      if (!taskFactory) {
-        // Defensive check for strict noUncheckedIndexedAccess
-        return;
-      }
-      let attempt = 0;
-
+    try {
       while (true) {
-        try {
-          const value = await taskFactory();
-          results[current] = value;
-          break;
-        } catch (err) {
-          attempt++;
-          const errName = (err as { name?: string })?.name;
-          const isAbort =
-            (err instanceof DOMException && err.name === "AbortError") ||
-            errName === "AbortError";
-          if (isAbort || options.signal?.aborted) {
-            // propagate abort
-            throw new DOMException("Aborted", "AbortError");
-          }
+        if (options.signal?.aborted) {
+          // Stop processing further tasks
+          throw new DOMException("Aborted", "AbortError");
+        }
 
-          if (attempt > retryAttempts) {
-            const error = err instanceof Error ? err : new Error(String(err));
-            results[current] = error;
-            errors.push(error);
+        const current = index++;
+        if (current >= tasks.length) {
+          return;
+        }
+
+        const taskFactory = tasks[current];
+        if (!taskFactory) {
+          // Defensive check for strict noUncheckedIndexedAccess
+          return;
+        }
+        let attempt = 0;
+
+        while (true) {
+          try {
+            const value = await taskFactory();
+            results[current] = value;
             break;
-          }
+          } catch (err) {
+            attempt++;
+            const errName = (err as { name?: string })?.name;
+            const isAbort =
+              (err instanceof DOMException && err.name === "AbortError") ||
+              errName === "AbortError";
+            if (isAbort || options.signal?.aborted) {
+              // propagate abort
+              throw new DOMException("Aborted", "AbortError");
+            }
 
-          // Exponential backoff with jitter
-          const backoff = Math.round(retryDelay * Math.pow(2, attempt - 1));
-          const jitter = Math.round(Math.random() * 0.2 * backoff); // ±20% jitter
-          await sleep(backoff + jitter);
-          // retry
+            if (attempt > retryAttempts) {
+              const error = err instanceof Error ? err : new Error(String(err));
+              results[current] = error;
+              errors.push(error);
+              break;
+            }
+
+            // Exponential backoff with jitter
+            const backoff = Math.round(retryDelay * Math.pow(2, attempt - 1));
+            const jitter = Math.round(Math.random() * 0.2 * backoff); // ±20% jitter
+            await sleep(backoff + jitter);
+            // retry
+          }
+        }
+
+        completed++;
+        try {
+          onProgress?.(completed, total);
+        } catch {
+          // ignore progress handler errors
         }
       }
-
-      completed++;
-      try {
-        onProgress?.(completed, total);
-      } catch {
-        // ignore progress handler errors
-      }
+    } catch (error) {
+      throw error instanceof Error ? error : new Error(String(error));
     }
   };
 

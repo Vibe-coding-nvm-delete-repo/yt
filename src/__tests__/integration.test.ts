@@ -60,7 +60,11 @@ describe("Error Handling Integration", () => {
 
     // First failure
     try {
-      await breaker.execute(operation);
+      await breaker.execute(operation, {
+        maxRetries: 0,
+        initialDelay: 0,
+        maxDelay: 0,
+      });
     } catch {
       // Expected to fail
     }
@@ -68,16 +72,24 @@ describe("Error Handling Integration", () => {
 
     // Second failure - opens circuit
     try {
-      await breaker.execute(operation);
+      await breaker.execute(operation, {
+        maxRetries: 0,
+        initialDelay: 0,
+        maxDelay: 0,
+      });
     } catch {
       // Expected to fail
     }
     expect(breaker.getState()).toBe("open");
 
     // Third attempt should fail immediately
-    await expect(breaker.execute(operation)).rejects.toThrow(
-      "Circuit breaker is open",
-    );
+    await expect(
+      breaker.execute(operation, {
+        maxRetries: 0,
+        initialDelay: 0,
+        maxDelay: 0,
+      }),
+    ).rejects.toThrow("Circuit breaker is open");
 
     expect(operation).toHaveBeenCalledTimes(2); // Third call blocked
   });

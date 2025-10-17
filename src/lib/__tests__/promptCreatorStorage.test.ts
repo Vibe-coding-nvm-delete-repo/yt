@@ -12,13 +12,10 @@ import type {
 describe("promptCreatorStorage", () => {
   beforeEach(() => {
     localStorage.clear();
+    const defaultConfig = promptCreatorConfigStorage.load();
     promptCreatorConfigStorage.save({
+      ...defaultConfig,
       fields: [],
-      promptGenInstructions: "Default instructions",
-      ratingRubric: "Default rubric",
-      openRouterModelId: "",
-      defaultPromptCount: 3,
-      schemaVersion: 1,
     });
     promptCreatorDraftStorage.save({
       selections: {},
