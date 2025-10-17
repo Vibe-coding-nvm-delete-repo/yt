@@ -1397,9 +1397,12 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                           className="ml-3 text-gray-400 hover:text-gray-300"
                           onClick={(e) => {
                             e.stopPropagation();
-                            // TODO: Re-implement pinned model toggle functionality
-                            console.warn(
-                              "Pinned model toggle not yet implemented",
+                            hookTogglePinnedModel(model.id);
+                            addToast(
+                              pinnedSet.has(model.id)
+                                ? "Model unpinned"
+                                : "Model pinned",
+                              "success",
                             );
                           }}
                         >

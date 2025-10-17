@@ -65,8 +65,9 @@ describe("Error Handling Integration", () => {
         initialDelay: 0,
         maxDelay: 0,
       });
-    } catch {
-      // Expected to fail
+    } catch (error: unknown) {
+      // Expected to fail - testing circuit breaker failure detection
+      expect(error).toBeDefined();
     }
     expect(breaker.getState()).toBe("closed");
 
@@ -77,8 +78,9 @@ describe("Error Handling Integration", () => {
         initialDelay: 0,
         maxDelay: 0,
       });
-    } catch {
-      // Expected to fail
+    } catch (error: unknown) {
+      // Expected to fail - second failure should open the circuit
+      expect(error).toBeDefined();
     }
     expect(breaker.getState()).toBe("open");
 

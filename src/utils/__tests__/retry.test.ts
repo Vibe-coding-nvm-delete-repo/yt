@@ -133,8 +133,9 @@ describe("Retry Utility", () => {
         });
         await flushTimers();
         await promise;
-      } catch {
-        // Expected to fail
+      } catch (error: unknown) {
+        // Expected to fail - testing first circuit breaker failure
+        expect(error).toBeDefined();
       }
       expect(breaker.getState()).toBe("closed");
 
@@ -147,8 +148,9 @@ describe("Retry Utility", () => {
         });
         await flushTimers();
         await promise;
-      } catch {
-        // Expected to fail
+      } catch (error: unknown) {
+        // Expected to fail - second failure opens the circuit
+        expect(error).toBeDefined();
       }
       expect(breaker.getState()).toBe("open");
     });
@@ -166,8 +168,9 @@ describe("Retry Utility", () => {
         });
         await flushTimers();
         await promise;
-      } catch {
-        // Expected to fail
+      } catch (error: unknown) {
+        // Expected to fail - opening circuit for subsequent test
+        expect(error).toBeDefined();
       }
 
       // Next call should fail immediately
