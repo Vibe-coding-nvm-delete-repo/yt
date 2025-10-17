@@ -48,10 +48,10 @@ Upload images and generate descriptive prompts using AI vision models.
 Customize the analysis prompt in **Settings** → **Prompt Template**:
 
 ```
-Default: "Describe this image in detail and suggest a good 
+Default: "Describe this image in detail and suggest a good
 prompt for generating similar images."
 
-Custom: "Analyze this {type} focusing on {aspect}. 
+Custom: "Analyze this {type} focusing on {aspect}.
 Provide description for AI image generation."
 ```
 
@@ -121,6 +121,7 @@ Access via **Settings** → **Prompt Creator**:
 ```
 
 Types:
+
 - `text` - Free text input
 - `dropdown` - Single selection
 - `multiselect` - Multiple selections
@@ -128,11 +129,22 @@ Types:
 - `slider` - Range slider
 
 Tiers:
+
 - `mandatory` - Required (red border if empty)
 - `optional` - Recommended
 - `free` - Additional customization
 
 ### Workflow
+
+The Prompt Creator tab includes a helpful step-by-step guide at the top explaining:
+
+1. How to configure fields in Settings
+2. The role of the locked-in prompt (always prepended to selections)
+3. How to fill mandatory and optional fields
+4. How generation works (creates 3 prompts with automatic scoring)
+5. How to review and save results
+
+Basic workflow:
 
 1. **Configure** fields in Settings
 2. **Fill** fields in Prompt Creator tab
@@ -143,6 +155,7 @@ Tiers:
 ### Example Configuration
 
 YouTube Thumbnail:
+
 ```json
 {
   "fields": [
@@ -183,6 +196,7 @@ Curated collection of prompt engineering patterns.
 ### Practice Structure
 
 Each practice includes:
+
 - **Name**: Short title
 - **Description**: Detailed explanation
 - **Category**: Classification
@@ -217,24 +231,26 @@ Each practice includes:
 ### Example Practices
 
 **Cinematic Lighting**
+
 ```
 Category: photography
 Type: must-have
 Importance: 9/10
 
-Leonardo AI: "cinematic lighting, dramatic composition, 
+Leonardo AI: "cinematic lighting, dramatic composition,
 professional color grading, film grain"
 
 When to use: High-end, professional appearance
 ```
 
 **Face Close-Up**
+
 ```
 Category: youtube-thumbnail
 Type: must-have
 Importance: 10/10
 
-Leonardo AI: "extreme close-up, exaggerated expression, 
+Leonardo AI: "extreme close-up, exaggerated expression,
 shocked face, wide eyes, dramatic lighting"
 
 When to use: Reaction videos, emotional content
@@ -257,6 +273,7 @@ Track API usage and costs.
 ### Usage View
 
 Displays:
+
 - Total spend for period
 - Number of API calls
 - Average cost per call
@@ -272,6 +289,7 @@ Models: anthropic/claude-3-opus, openai/gpt-4-vision
 ### Entry Details
 
 Each entry shows:
+
 - Timestamp
 - Model used
 - Input/output tokens
@@ -320,6 +338,7 @@ Record of all prompt generations.
 ### Bulk Operations
 
 Select multiple entries to:
+
 - Delete batch
 - Export selected
 - Add to favorites
@@ -332,6 +351,7 @@ Select multiple entries to:
 - **Retention**: Indefinite (unless cleared)
 
 Maintenance:
+
 - Delete old entries regularly
 - Export important data
 - Use favorites for must-keep items
@@ -345,12 +365,14 @@ Configuration control center.
 ### API Keys
 
 **OpenRouter API Key**
+
 - Required for all features
 - Stored in browser localStorage
 - Never transmitted except to OpenRouter
 - Validated on first use
 
 Setup:
+
 1. Get key from [openrouter.ai](https://openrouter.ai/)
 2. Paste in Settings
 3. Wait for validation ✓
@@ -358,11 +380,13 @@ Setup:
 ### Model Selection
 
 **Vision Models**
+
 - Select up to 5 models
 - Pin favorites for quick access
 - Auto-refresh every 24 hours
 
 Management:
+
 1. Click "Refresh Models"
 2. Search for models
 3. Select (max 5)
@@ -408,11 +432,13 @@ See [Prompt Creator](#prompt-creator) section.
 ### Backup & Restore
 
 **Export Settings**
+
 1. Click "Export Settings"
 2. Save JSON file
 3. Includes settings and configs (not history)
 
 **Import Settings**
+
 1. Click "Import Settings"
 2. Select JSON file
 3. Confirm import
@@ -445,33 +471,37 @@ See [Prompt Creator](#prompt-creator) section.
 
 ### Keyboard Shortcuts
 
-| Shortcut | Action |
-|----------|--------|
+| Shortcut       | Action      |
+| -------------- | ----------- |
 | `Ctrl/Cmd + V` | Paste image |
 | `Ctrl/Cmd + C` | Copy prompt |
-| `Enter` | Submit |
-| `Esc` | Close modal |
+| `Enter`        | Submit      |
+| `Esc`          | Close modal |
 
 ---
 
 ## Troubleshooting
 
 **"Invalid API Key"**
+
 - Verify format (starts with `sk-`)
 - Check account credits
 - Try refreshing page
 
 **"No Models Available"**
+
 - Click "Refresh Models"
 - Check internet connection
 - Verify API key permissions
 
 **"Generation Failed"**
+
 - Check image size (<5MB)
 - Verify format (JPG, PNG, WebP)
 - Try different model
 
 **Slow Performance**
+
 - Reduce model count
 - Close browser tabs
 - Clear cache
@@ -486,5 +516,6 @@ See [Prompt Creator](#prompt-creator) section.
 - [Engineering Standards](./ENGINEERING_STANDARDS.md)
 
 For help:
+
 - [GitHub Issues](https://github.com/Vibe-coding-nvm-delete-repo/yt/issues)
 - [Discussions](https://github.com/Vibe-coding-nvm-delete-repo/yt/discussions)
