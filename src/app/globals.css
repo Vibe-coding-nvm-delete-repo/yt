@@ -121,8 +121,3 @@ body {
 .tab-content:not(.active) {
   content-visibility: hidden;
 }
-
-/* Tab panel optimization - reduce browser work for hidden content */
-[role="tabpanel"]:not([aria-hidden="false"]) {
-  content-visibility: hidden;
-}
