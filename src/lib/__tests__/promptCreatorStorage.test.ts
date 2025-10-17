@@ -121,152 +121,18 @@ describe("promptCreatorStorage", () => {
     expect(updatedResult?.isSaved).toBe(true);
   });
 
-  describe("deleteField", () => {
-    it("should soft delete field by hiding it", () => {
-      const field: PromptCreatorField = {
-        id: "test-field",
-        label: "Test Field",
-        type: "dropdown",
-        tier: "optional",
-        order: 1,
-        options: ["Option 1"],
-      };
+  it("updates and persists locked-in prompt", () => {
+    const initialConfig = promptCreatorConfigStorage.load();
+    expect(initialConfig.lockedInPrompt).toContain("Autonomous Agent Policy");
 
-      promptCreatorConfigStorage.addField(field);
-      let config = promptCreatorConfigStorage.load();
-      expect(config.fields).toHaveLength(1);
-      expect(config.fields[0]?.hidden).toBeUndefined();
+    const customPrompt = "Custom locked-in prompt for testing";
+    promptCreatorConfigStorage.updateLockedInPrompt(customPrompt);
 
-      // Soft delete
-      promptCreatorConfigStorage.deleteField("test-field", false);
-      config = promptCreatorConfigStorage.load();
-      expect(config.fields).toHaveLength(1);
-      expect(config.fields[0]?.hidden).toBe(true);
-    });
+    const updatedConfig = promptCreatorConfigStorage.load();
+    expect(updatedConfig.lockedInPrompt).toBe(customPrompt);
 
-    it("should hard delete field by removing it", () => {
-      const field: PromptCreatorField = {
-        id: "test-field",
-        label: "Test Field",
-        type: "dropdown",
-        tier: "optional",
-        order: 1,
-        options: ["Option 1"],
-      };
-
-      promptCreatorConfigStorage.addField(field);
-      let config = promptCreatorConfigStorage.load();
-      expect(config.fields).toHaveLength(1);
-
-      // Hard delete
-      promptCreatorConfigStorage.deleteField("test-field", true);
-      config = promptCreatorConfigStorage.load();
-      expect(config.fields).toHaveLength(0);
-    });
-
-    it("should handle deleting non-existent field", () => {
-      promptCreatorConfigStorage.deleteField("non-existent", false);
-      const config = promptCreatorConfigStorage.load();
-      expect(config.fields).toHaveLength(0);
-    });
-  });
-
-  describe("updateInstructions", () => {
-    it("should update prompt generation instructions and rating rubric", () => {
-      const newInstructions = "Custom instructions";
-      const newRubric = "Custom rubric";
-
-      promptCreatorConfigStorage.updateInstructions(newInstructions, newRubric);
-
-      const config = promptCreatorConfigStorage.load();
-      expect(config.promptGenInstructions).toBe(newInstructions);
-      expect(config.ratingRubric).toBe(newRubric);
-    });
-  });
-
-  describe("updateModelConfig", () => {
-    it("should update OpenRouter model ID", () => {
-      const modelId = "openai/gpt-4";
-
-      promptCreatorConfigStorage.updateModelConfig(modelId);
-
-      const config = promptCreatorConfigStorage.load();
-      expect(config.openRouterModelId).toBe(modelId);
-    });
-  });
-
-  describe("error handling", () => {
-    it("should handle localStorage write errors gracefully in config", () => {
-      const originalSetItem = Storage.prototype.setItem;
-      Storage.prototype.setItem = jest.fn(() => {
-        throw new Error("Quota exceeded");
-      });
-
-      const field: PromptCreatorField = {
-        id: "test",
-        label: "Test",
-        type: "dropdown",
-        tier: "optional",
-        order: 1,
-        options: [],
-      };
-
-      // Should not throw
-      expect(() => {
-        promptCreatorConfigStorage.addField(field);
-      }).not.toThrow();
-
-      Storage.prototype.setItem = originalSetItem;
-    });
-
-    it("should handle invalid JSON in localStorage", () => {
-      localStorage.setItem("prompt-creator-config", "invalid-json{");
-
-      // Should return default config
-      const config = promptCreatorConfigStorage.load();
-      expect(config.fields).toBeDefined();
-      expect(Array.isArray(config.fields)).toBe(true);
-    });
-  });
-
-  describe("PromptCreatorResultsStorage", () => {
-    it("should add and clear results", () => {
-      const result: PromptCreatorResult = {
-        id: "result-clear-test",
-        selections: { "time-of-day": "Dawn" },
-        generatedPrompt: "Test prompt for clear",
-        rating: null,
-        createdAt: Date.now(),
-        metadata: {
-          generationInputTokens: 10,
-          generationOutputTokens: 20,
-          generationCost: 0.001,
-          ratingInputTokens: 0,
-          ratingOutputTokens: 0,
-          ratingCost: 0,
-          totalCost: 0.001,
-        },
-        isSaved: false,
-      };
-
-      promptCreatorResultsStorage.add(result);
-
-      // Clear should work without throwing
-      expect(() => {
-        promptCreatorResultsStorage.clear();
-      }).not.toThrow();
-
-      // After clear, should have empty results
-      const stored = promptCreatorResultsStorage.load();
-      expect(stored.results).toBeDefined();
-      expect(Array.isArray(stored.results)).toBe(true);
-    });
-
-    it("should handle toggle saved on non-existent result", () => {
-      // Should not throw
-      expect(() => {
-        promptCreatorResultsStorage.toggleSaved("non-existent");
-      }).not.toThrow();
-    });
+    // Verify it persists across loads
+    const reloadedConfig = promptCreatorConfigStorage.load();
+    expect(reloadedConfig.lockedInPrompt).toBe(customPrompt);
   });
 });

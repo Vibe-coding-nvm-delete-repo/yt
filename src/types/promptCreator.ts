@@ -35,6 +35,7 @@ export interface PromptCreatorConfig {
   ratingRubric: string;
   openRouterModelId: string;
   defaultPromptCount: 1 | 3 | 5 | 10;
+  lockedInPrompt: string;
   schemaVersion: 1;
 }
 

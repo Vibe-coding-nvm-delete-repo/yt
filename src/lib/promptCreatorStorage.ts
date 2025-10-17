@@ -6,6 +6,7 @@ import type {
   PromptCreatorResults,
   PromptCreatorValue,
 } from "@/types/promptCreator";
+import { DEFAULT_LOCKED_IN_PROMPT } from "./promptCreatorDefaults";
 
 const clone = <T>(value: T): T => {
   const cloner = (
@@ -71,6 +72,7 @@ const DEFAULT_CONFIG: PromptCreatorConfig = {
     'Rate this prompt on a scale of 1-10 based on clarity, descriptive quality, and effectiveness. Return your response as JSON with this exact format: {"score": <number>, "reasons": [<string>], "risks": [<string>], "edits": [<string>]}',
   openRouterModelId: "",
   defaultPromptCount: 3,
+  lockedInPrompt: DEFAULT_LOCKED_IN_PROMPT,
   schemaVersion: 1,
 };
 
@@ -192,6 +194,12 @@ export class PromptCreatorConfigStorage {
   updateModelConfig(modelId: string): void {
     const config = this.load();
     config.openRouterModelId = modelId;
+    this.save(config);
+  }
+
+  updateLockedInPrompt(lockedInPrompt: string): void {
+    const config = this.load();
+    config.lockedInPrompt = lockedInPrompt;
     this.save(config);
   }
 }
