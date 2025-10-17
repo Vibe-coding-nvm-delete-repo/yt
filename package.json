@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
+    "build:analyze": "ANALYZE=true next build --turbopack",
     "start": "next start",
     "prepare": "husky install",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
@@ -30,6 +31,7 @@
     "@commitlint/cli": "^20",
     "@commitlint/config-conventional": "^20",
     "@eslint/eslintrc": "^3",
+    "@next/bundle-analyzer": "^15.5.6",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6",
     "@testing-library/react": "^16.3.0",
