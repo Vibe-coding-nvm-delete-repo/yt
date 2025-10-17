@@ -1,3 +1,17 @@
+/**
+ * Storage Layer - Single Source of Truth
+ *
+ * This is the ONLY storage implementation. Do not create duplicate implementations.
+ * If performance optimizations are needed, add them here.
+ *
+ * Features:
+ * - Singleton pattern for consistent state
+ * - Pub/sub subscriptions with selective updates
+ * - Debounced writes for performance
+ * - Cross-tab synchronization
+ * - Deep equality checking to prevent unnecessary re-renders
+ */
+
 import type {
   AppSettings,
   VisionModel,
@@ -44,6 +58,17 @@ const DEFAULT_SETTINGS: AppSettings = {
   pinnedModels: [],
 };
 
+/**
+ * Centralized settings storage with localStorage persistence.
+ *
+ * This is the ONLY settings storage implementation. All components should use
+ * this singleton instance via settingsStorage or the useSettings hook.
+ *
+ * @example
+ * const storage = SettingsStorage.getInstance();
+ * storage.subscribe((settings) => console.log(settings), { keys: ['apiKey'] });
+ * storage.updateApiKey('new-key');
+ */
 export class SettingsStorage {
   private static instance: SettingsStorage;
   private settings: AppSettings;
