@@ -45,13 +45,9 @@ global.console = {
 };
 
 // Mock window.location
-Object.defineProperty(window, "location", {
-  value: {
-    href: "http://localhost:3000",
-    reload: jest.fn(),
-  },
-  writable: true,
-});
+// Note: In Jest 30 with JSDOM 26, window.location is non-configurable.
+// Since our code checks if window is defined before accessing location,
+// and JSDOM provides a default location object, we don't need to mock it.
 
 // Mock environment variables
 // NODE_ENV is automatically set to 'test' by Jest
