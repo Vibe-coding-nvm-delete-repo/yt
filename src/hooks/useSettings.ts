@@ -5,8 +5,28 @@ import type { AppSettings, VisionModel } from "@/types";
 import { settingsStorage } from "@/lib/storage";
 
 /**
- * Optimized settings hook with selective subscriptions and memoization
- * Prevents unnecessary re-renders by only subscribing to specific keys
+ * Settings Hook - Single Source of Truth
+ *
+ * This is the ONLY settings hook. Do not create duplicate implementations.
+ * If performance optimizations are needed, add them here.
+ *
+ * Features:
+ * - Selective subscriptions (subscribe to specific keys only)
+ * - Memoized settings and callbacks
+ * - SSR-safe initialization
+ * - Debounced updates for performance
+ * - Deep equality checking
+ *
+ * @param subscribeToKeys - Optional array of keys to subscribe to for optimized re-renders
+ * @returns Settings object and update methods
+ *
+ * @example
+ * // Subscribe to all settings changes
+ * const { settings, updateApiKey } = useSettings();
+ *
+ * @example
+ * // Subscribe only to API key changes (optimized)
+ * const { settings } = useSettings(['openRouterApiKey', 'isValidApiKey']);
  */
 export const useSettings = (subscribeToKeys?: (keyof AppSettings)[]) => {
   const [settings, setSettings] = useState<AppSettings>(() => {
