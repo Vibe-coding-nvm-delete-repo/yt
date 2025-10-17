@@ -47,9 +47,16 @@ const ImageToPromptTabs: React.FC = () => {
         </button>
       </div>
 
-      {active === "generate" && <ImageToPromptTab settings={settings} />}
-      {active === "history" && <HistoryTab />}
-      {active === "rating" && <RatingTab />}
+      {/* Pre-render all sub-tabs with display:none for instant switching */}
+      <div style={{ display: active === "generate" ? "block" : "none" }}>
+        <ImageToPromptTab settings={settings} />
+      </div>
+      <div style={{ display: active === "history" ? "block" : "none" }}>
+        <HistoryTab />
+      </div>
+      <div style={{ display: active === "rating" ? "block" : "none" }}>
+        <RatingTab />
+      </div>
     </div>
   );
 };
