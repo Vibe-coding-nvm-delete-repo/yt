@@ -67,6 +67,7 @@ describe("SettingsTab - Enhanced Model Dropdowns", () => {
     openRouterApiKey: "test-key",
     selectedModel: "",
     selectedVisionModels: [],
+    activeModels: [],
     customPrompt: "",
     isValidApiKey: true,
     lastApiKeyValidation: Date.now(),

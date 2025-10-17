@@ -63,10 +63,13 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   // This effect needs to observe selectedVisionModels and availableModels to properly maintain model results.
   // Alternative patterns like useMemo would not allow us to preserve existing results correctly.
   useEffect(() => {
-    if (
-      !settings.selectedVisionModels ||
-      settings.selectedVisionModels.length === 0
-    ) {
+    // Get active models (models that are both selected and active)
+    const activeModelIds =
+      settings.selectedVisionModels?.filter((id) =>
+        settings.activeModels?.includes(id),
+      ) || [];
+
+    if (activeModelIds.length === 0) {
       return;
     }
 
@@ -74,9 +77,9 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
     setModelResults((prevResults) => {
       // Get the set of current model IDs
       const prevModelIds = new Set(prevResults.map((r) => r.modelId));
-      const newModelIds = new Set(settings.selectedVisionModels);
+      const newModelIds = new Set(activeModelIds);
 
-      // If the selected models haven't changed, preserve existing results
+      // If the active models haven't changed, preserve existing results
       if (
         prevModelIds.size === newModelIds.size &&
         [...prevModelIds].every((id) => newModelIds.has(id))
@@ -98,7 +101,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
         prevResults.map((r) => [r.modelId, r]),
       );
 
-      return settings.selectedVisionModels.map((modelId) => {
+      return activeModelIds.map((modelId) => {
         const model = settings.availableModels.find((m) => m.id === modelId);
         const existing = existingResultsMap.get(modelId);
 
@@ -126,7 +129,12 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
         };
       });
     });
-  }, [settings.selectedVisionModels, settings.availableModels, sessionId]);
+  }, [
+    settings.selectedVisionModels,
+    settings.activeModels,
+    settings.availableModels,
+    sessionId,
+  ]);
 
   // Load persisted image and model results on mount
   // CRITICAL: This must run AFTER the model initialization effect to prevent race conditions
@@ -557,16 +565,21 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
       )}
 
       {(!settings.selectedVisionModels ||
-        settings.selectedVisionModels.length === 0) && (
+        settings.selectedVisionModels.length === 0 ||
+        !settings.activeModels ||
+        settings.activeModels.length === 0) && (
         <div className="bg-[#151A21] rounded-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)] border border-blue-600/30">
           <div className="flex items-center">
             <AlertCircle className="h-5 w-5 text-blue-400 mr-3" />
             <div>
               <h2 className="text-sm font-medium text-blue-300">
-                No Models Selected
+                No Active Models
               </h2>
               <p className="text-sm text-blue-400 mt-1">
-                Please select up to 5 vision models in the Settings tab.
+                {!settings.selectedVisionModels ||
+                settings.selectedVisionModels.length === 0
+                  ? "Please select up to 5 vision models in the Settings tab."
+                  : "Please enable at least one model in the Settings tab."}
               </p>
             </div>
           </div>

@@ -13,6 +13,7 @@ const mockSettings: AppSettings = {
   openRouterApiKey: "test-api-key",
   selectedModel: "test-model",
   selectedVisionModels: ["model-1", "model-2"],
+  activeModels: ["model-1", "model-2"],
   customPrompt: "Test prompt",
   isValidApiKey: true,
   lastApiKeyValidation: Date.now(),

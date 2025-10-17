@@ -16,6 +16,7 @@ export const useSettings = (subscribeToKeys?: (keyof AppSettings)[]) => {
       openRouterApiKey: "",
       selectedModel: "",
       selectedVisionModels: [],
+      activeModels: [],
       customPrompt:
         "Describe this image in detail and suggest a good prompt for generating similar images.",
       isValidApiKey: false,
@@ -106,6 +107,18 @@ export const useSettings = (subscribeToKeys?: (keyof AppSettings)[]) => {
     settingsStorage.togglePinnedModel(modelId);
   }, []);
 
+  const toggleActiveModel = useCallback((modelId: string) => {
+    settingsStorage.toggleActiveModel(modelId);
+  }, []);
+
+  const updateActiveModels = useCallback((modelIds: string[]) => {
+    settingsStorage.updateActiveModels(modelIds);
+  }, []);
+
+  const isModelActive = useCallback((modelId: string) => {
+    return settingsStorage.isModelActive(modelId);
+  }, []);
+
   const batchUpdateSettings = useCallback((updates: Partial<AppSettings>) => {
     settingsStorage.batchUpdate(updates);
   }, []);
@@ -152,6 +165,9 @@ export const useSettings = (subscribeToKeys?: (keyof AppSettings)[]) => {
       pinModel,
       unpinModel,
       togglePinnedModel,
+      toggleActiveModel,
+      updateActiveModels,
+      isModelActive,
       clearSettings,
       shouldRefreshModels,
       getModelById,
@@ -172,6 +188,9 @@ export const useSettings = (subscribeToKeys?: (keyof AppSettings)[]) => {
       pinModel,
       unpinModel,
       togglePinnedModel,
+      toggleActiveModel,
+      updateActiveModels,
+      isModelActive,
       clearSettings,
       shouldRefreshModels,
       getModelById,

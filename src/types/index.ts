@@ -15,6 +15,7 @@ export interface AppSettings {
   openRouterApiKey: string;
   selectedModel: string; // Deprecated: keeping for backward compatibility
   selectedVisionModels: string[]; // Up to 5 selected vision models
+  activeModels: string[]; // Subset of selectedVisionModels that are currently enabled
   customPrompt: string;
   isValidApiKey: boolean;
   lastApiKeyValidation: number | null;

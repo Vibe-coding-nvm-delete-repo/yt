@@ -13,6 +13,7 @@ describe("ImageToPromptTab", () => {
     openRouterApiKey: "test-key",
     selectedModel: "test-model",
     selectedVisionModels: ["model-1", "model-2"],
+    activeModels: ["model-1", "model-2"],
     customPrompt:
       "Describe this image in detail and suggest a good prompt for generating similar images.",
     isValidApiKey: true,

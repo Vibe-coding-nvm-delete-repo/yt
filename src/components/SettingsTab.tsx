@@ -146,6 +146,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     updateCustomPrompt: hookUpdateCustomPrompt,
     updateModels: hookUpdateModels,
     togglePinnedModel: hookTogglePinnedModel,
+    toggleActiveModel: hookToggleActiveModel,
     subscribe: hookSubscribe,
   } = settingsHook;
   const { addToast } = useToast();
@@ -1457,18 +1458,59 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                         <h4 className="font-semibold text-white">
                           Vision Model {index + 1}
                         </h4>
-                        {selectedModelData && (
-                          <button
-                            onClick={() => toggleModelExpansion(index)}
-                            className="text-gray-400 hover:text-gray-300"
-                          >
-                            {isExpanded ? (
-                              <ChevronUp className="h-5 w-5" />
-                            ) : (
-                              <ChevronDown className="h-5 w-5" />
-                            )}
-                          </button>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {selectedModelData && selectedModelId && (
+                            <>
+                              {/* Toggle to enable/disable model */}
+                              <label className="flex items-center gap-2 cursor-pointer">
+                                <span className="text-sm text-gray-300">
+                                  {settings.activeModels?.includes(
+                                    selectedModelId,
+                                  )
+                                    ? "Active"
+                                    : "Inactive"}
+                                </span>
+                                <button
+                                  type="button"
+                                  role="switch"
+                                  aria-checked={settings.activeModels?.includes(
+                                    selectedModelId,
+                                  )}
+                                  onClick={() => {
+                                    hookToggleActiveModel(selectedModelId);
+                                  }}
+                                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                                    settings.activeModels?.includes(
+                                      selectedModelId,
+                                    )
+                                      ? "bg-blue-600"
+                                      : "bg-gray-600"
+                                  }`}
+                                >
+                                  <span
+                                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                      settings.activeModels?.includes(
+                                        selectedModelId,
+                                      )
+                                        ? "translate-x-6"
+                                        : "translate-x-1"
+                                    }`}
+                                  />
+                                </button>
+                              </label>
+                              <button
+                                onClick={() => toggleModelExpansion(index)}
+                                className="text-gray-400 hover:text-gray-300"
+                              >
+                                {isExpanded ? (
+                                  <ChevronUp className="h-5 w-5" />
+                                ) : (
+                                  <ChevronDown className="h-5 w-5" />
+                                )}
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
 
                       {/* Enhanced Dropdown with Search, Pricing, Pinning, Grouping, and Sorting */}

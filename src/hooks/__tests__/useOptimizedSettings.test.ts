@@ -35,6 +35,7 @@ const mockSettings = {
   openRouterApiKey: "test-key",
   selectedModel: "gpt-4",
   selectedVisionModels: ["gpt-4-vision"],
+  activeModels: ["gpt-4-vision"],
   customPrompt: "test prompt",
   isValidApiKey: true,
   lastApiKeyValidation: Date.now(),

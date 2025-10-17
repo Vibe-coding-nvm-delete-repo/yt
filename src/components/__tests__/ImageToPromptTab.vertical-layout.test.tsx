@@ -13,6 +13,7 @@ describe("ImageToPromptTab - Vertical Layout (#136)", () => {
     openRouterApiKey: "sk-or-v1-test",
     selectedModel: "",
     selectedVisionModels: ["model1", "model2", "model3", "model4", "model5"],
+    activeModels: ["model1", "model2", "model3", "model4", "model5"],
     customPrompt: "Describe this image",
     isValidApiKey: true,
     lastApiKeyValidation: Date.now(),

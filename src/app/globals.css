@@ -103,3 +103,20 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
 }
+
+/* Fix dropdown option visibility */
+select option {
+  background-color: #1A212A;
+  color: #F2F5F7;
+  padding: 8px 12px;
+}
+
+select option:hover,
+select option:focus {
+  background-color: rgba(59, 130, 246, 0.2);
+}
+
+select option:disabled {
+  color: #8D99A6;
+  opacity: 0.6;
+}

@@ -34,6 +34,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   openRouterApiKey: "",
   selectedModel: "",
   selectedVisionModels: [],
+  activeModels: [],
   customPrompt:
     "Describe this image in detail and suggest a good prompt for generating similar images.",
   isValidApiKey: false,
@@ -86,7 +87,7 @@ export class SettingsStorage {
       const parsed = JSON.parse(stored);
 
       // Validate and merge with defaults to ensure all properties exist
-      return {
+      const settings: AppSettings = {
         ...DEFAULT_SETTINGS,
         ...parsed,
         // Ensure arrays are properly initialized
@@ -104,6 +105,15 @@ export class SettingsStorage {
           ? Number(parsed.lastModelFetch)
           : null,
       };
+
+      // Migration: Initialize activeModels if not present
+      if (!Array.isArray(settings.activeModels)) {
+        settings.activeModels = Array.isArray(settings.selectedVisionModels)
+          ? [...settings.selectedVisionModels]
+          : [];
+      }
+
+      return settings;
     } catch (error) {
       console.warn("Failed to load settings from localStorage:", error);
       return DEFAULT_SETTINGS;
@@ -303,6 +313,15 @@ export class SettingsStorage {
             : null,
         };
 
+        // Migration: Initialize activeModels if not present
+        if (!Array.isArray(this.settings.activeModels)) {
+          this.settings.activeModels = Array.isArray(
+            this.settings.selectedVisionModels,
+          )
+            ? [...this.settings.selectedVisionModels]
+            : [];
+        }
+
         // Determine what changed for cross-tab notifications
         const changedKeys: SettingsKey[] = [];
         (Object.keys(this.settings) as SettingsKey[]).forEach((key) => {
@@ -341,6 +360,15 @@ export class SettingsStorage {
               ? Number(parsed.lastModelFetch)
               : null,
           };
+
+          // Migration: Initialize activeModels if not present
+          if (!Array.isArray(this.settings.activeModels)) {
+            this.settings.activeModels = Array.isArray(
+              this.settings.selectedVisionModels,
+            )
+              ? [...this.settings.selectedVisionModels]
+              : [];
+          }
         }
       } catch (e) {
         console.warn("Failed to refresh settings from localStorage:", e);
@@ -369,7 +397,35 @@ export class SettingsStorage {
   }
 
   updateSelectedVisionModels(modelIds: string[]): void {
-    this.batchUpdate({ selectedVisionModels: modelIds.slice(0, 5) });
+    const newSelectedModels = modelIds.slice(0, 5);
+
+    // Initialize activeModels to include all selected models if activeModels is empty
+    // Otherwise, keep only the models that are still in the new selection
+    const currentActive = Array.isArray(this.settings.activeModels)
+      ? this.settings.activeModels
+      : [];
+
+    let newActiveModels: string[];
+    if (currentActive.length === 0) {
+      // First time or empty - activate all selected models
+      newActiveModels = [...newSelectedModels];
+    } else {
+      // Keep only active models that are still selected
+      newActiveModels = currentActive.filter((id) =>
+        newSelectedModels.includes(id),
+      );
+      // Add newly selected models as active
+      newSelectedModels.forEach((id) => {
+        if (!currentActive.includes(id)) {
+          newActiveModels.push(id);
+        }
+      });
+    }
+
+    this.batchUpdate({
+      selectedVisionModels: newSelectedModels,
+      activeModels: newActiveModels,
+    });
   }
 
   updateCustomPrompt(prompt: string): void {
@@ -395,6 +451,45 @@ export class SettingsStorage {
         ? Array.from(new Set(modelIds)).slice(0, 9)
         : [],
     });
+  }
+
+  updateActiveModels(modelIds: string[]): void {
+    // Only keep model IDs that are in selectedVisionModels
+    const validActiveModels = modelIds.filter((id) =>
+      this.settings.selectedVisionModels.includes(id),
+    );
+    this.batchUpdate({
+      activeModels: Array.from(new Set(validActiveModels)),
+    });
+  }
+
+  toggleActiveModel(modelId: string): void {
+    if (!this.settings.selectedVisionModels.includes(modelId)) {
+      // Can't activate a model that isn't selected
+      return;
+    }
+
+    const currentActive = Array.isArray(this.settings.activeModels)
+      ? [...this.settings.activeModels]
+      : [];
+
+    const index = currentActive.indexOf(modelId);
+    if (index >= 0) {
+      // Remove from active
+      currentActive.splice(index, 1);
+    } else {
+      // Add to active
+      currentActive.push(modelId);
+    }
+
+    this.batchUpdate({ activeModels: currentActive });
+  }
+
+  isModelActive(modelId: string): boolean {
+    return (
+      Array.isArray(this.settings.activeModels) &&
+      this.settings.activeModels.includes(modelId)
+    );
   }
 
   clearSettings(): void {
