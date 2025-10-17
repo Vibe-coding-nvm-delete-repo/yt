@@ -530,6 +530,10 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
     }
 
     const variablesText = buildVariablesText(visibleFields, draft.selections);
+    const lockedInPrompt = config.lockedInPrompt || "";
+    const fullPromptInput = lockedInPrompt
+      ? `${lockedInPrompt}\n\n${variablesText}`
+      : variablesText;
     const ratingSystemPrompt = `You are a prompt quality rater. Follow these instructions:\n${config.ratingRubric}\n${ratingPromptTemplate}`;
 
     setIsGenerating(true);
@@ -539,7 +543,7 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
       for (let index = 0; index < count; index += 1) {
         const generation = await callChatCompletion(
           config.promptGenInstructions,
-          variablesText,
+          fullPromptInput,
         );
 
         let ratingRaw: string;

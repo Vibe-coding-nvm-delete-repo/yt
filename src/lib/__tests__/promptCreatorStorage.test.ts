@@ -120,4 +120,19 @@ describe("promptCreatorStorage", () => {
     const [updatedResult] = stored.results;
     expect(updatedResult?.isSaved).toBe(true);
   });
+
+  it("updates and persists locked-in prompt", () => {
+    const initialConfig = promptCreatorConfigStorage.load();
+    expect(initialConfig.lockedInPrompt).toContain("Autonomous Agent Policy");
+
+    const customPrompt = "Custom locked-in prompt for testing";
+    promptCreatorConfigStorage.updateLockedInPrompt(customPrompt);
+
+    const updatedConfig = promptCreatorConfigStorage.load();
+    expect(updatedConfig.lockedInPrompt).toBe(customPrompt);
+
+    // Verify it persists across loads
+    const reloadedConfig = promptCreatorConfigStorage.load();
+    expect(reloadedConfig.lockedInPrompt).toBe(customPrompt);
+  });
 });
