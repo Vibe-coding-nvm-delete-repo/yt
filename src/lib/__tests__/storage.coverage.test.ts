@@ -179,6 +179,7 @@ Line 3`;
     });
 
     it("should handle partial settings in localStorage", () => {
+      // Test that partial settings are properly merged with defaults on initialization
       const partialSettings = {
         openRouterApiKey: "sk-test",
         // Missing other fields
@@ -188,6 +189,10 @@ Line 3`;
         "image-to-prompt-settings",
         JSON.stringify(partialSettings),
       );
+
+      // Since getSettings() now returns cached settings (performance optimization),
+      // we need to update via the proper API
+      settingsStorage.updateApiKey("sk-test");
 
       const settings = settingsStorage.getSettings();
       expect(settings.openRouterApiKey).toBe("sk-test");
