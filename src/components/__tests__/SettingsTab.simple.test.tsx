@@ -5,6 +5,7 @@
 import React from "react";
 import { render } from "@testing-library/react";
 import { SettingsTab } from "../SettingsTab";
+import { ToastProvider } from "@/contexts/ToastContext";
 
 // Mock dependencies
 jest.mock("@/lib/storage", () => ({
@@ -49,7 +50,9 @@ describe("SettingsTab Simple Tests", () => {
     };
 
     const { container } = render(
-      <SettingsTab settings={settings} onSettingsUpdate={mockOnUpdate} />,
+      <ToastProvider>
+        <SettingsTab settings={settings} onSettingsUpdate={mockOnUpdate} />
+      </ToastProvider>,
     );
 
     expect(container).toBeTruthy();
@@ -70,7 +73,9 @@ describe("SettingsTab Simple Tests", () => {
     };
 
     const { container } = render(
-      <SettingsTab settings={settings} onSettingsUpdate={mockOnUpdate} />,
+      <ToastProvider>
+        <SettingsTab settings={settings} onSettingsUpdate={mockOnUpdate} />
+      </ToastProvider>,
     );
 
     expect(container).toBeTruthy();
@@ -91,7 +96,9 @@ describe("SettingsTab Simple Tests", () => {
     };
 
     const { container } = render(
-      <SettingsTab settings={settings} onSettingsUpdate={mockOnUpdate} />,
+      <ToastProvider>
+        <SettingsTab settings={settings} onSettingsUpdate={mockOnUpdate} />
+      </ToastProvider>,
     );
 
     expect(container).toBeTruthy();
@@ -112,7 +119,9 @@ describe("SettingsTab Simple Tests", () => {
     };
 
     const { container } = render(
-      <SettingsTab settings={settings} onSettingsUpdate={mockOnUpdate} />,
+      <ToastProvider>
+        <SettingsTab settings={settings} onSettingsUpdate={mockOnUpdate} />
+      </ToastProvider>,
     );
 
     expect(container).toBeTruthy();

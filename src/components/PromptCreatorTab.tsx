@@ -675,6 +675,16 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
 
   const hasConfig = visibleFields.length > 0;
   const defaultCount = config.defaultPromptCount ?? 1;
+  const isGenerationDisabled =
+    !allMandatoryFilled || isGenerating || !hasConfig;
+  const getGenerateButtonClass = (isActive: boolean) =>
+    `rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+      isGenerationDisabled
+        ? "border-transparent bg-gray-700 text-gray-400"
+        : isActive
+          ? "border-blue-200 bg-blue-600 text-white shadow-[0_0_0_2px_rgba(191,219,254,0.35)] hover:bg-blue-500"
+          : "border-transparent bg-blue-600 text-white hover:bg-blue-500"
+    }`;
 
   return (
     <div className="space-y-6">
@@ -682,24 +692,26 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-white">Prompt Creator</h1>
           <div className="flex items-center gap-2">
-            {[1, 3, 5, 10].map((count) => {
-              const isDisabled =
-                !allMandatoryFilled || isGenerating || !hasConfig;
+            <button
+              type="button"
+              onClick={() => generatePrompts(3)}
+              disabled={isGenerationDisabled}
+              aria-pressed={defaultCount === 3}
+              className={getGenerateButtonClass(defaultCount === 3)}
+              title="Generate 3 prompts with the selected text model"
+            >
+              Generate 3
+            </button>
+            {[1, 5, 10].map((count) => {
               const isDefaultCount = count === defaultCount;
               return (
                 <button
                   key={count}
                   type="button"
                   onClick={() => generatePrompts(count)}
-                  disabled={isDisabled}
+                  disabled={isGenerationDisabled}
                   aria-pressed={isDefaultCount}
-                  className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
-                    isDisabled
-                      ? "border-transparent bg-gray-700 text-gray-400"
-                      : isDefaultCount
-                        ? "border-blue-200 bg-blue-600 text-white shadow-[0_0_0_2px_rgba(191,219,254,0.35)] hover:bg-blue-500"
-                        : "border-transparent bg-blue-600 text-white hover:bg-blue-500"
-                  }`}
+                  className={getGenerateButtonClass(isDefaultCount)}
                   title={
                     isDefaultCount
                       ? `Default prompt count (${count})`

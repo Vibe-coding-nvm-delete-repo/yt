@@ -7,10 +7,10 @@ export interface PersistedRatingState {
   schemaVersion: 1;
 }
 
-const DEFAULT_RATING_STATE: PersistedRatingState = {
-  ratings: [],
-  schemaVersion: 1,
-};
+const DEFAULT_RATING_STATE: PersistedRatingState = Object.freeze({
+  ratings: [] as Rating[],
+  schemaVersion: 1 as const,
+});
 
 export class RatingStorage {
   private static instance: RatingStorage;
@@ -28,10 +28,12 @@ export class RatingStorage {
   }
 
   private load(): PersistedRatingState {
-    if (typeof window === "undefined") return DEFAULT_RATING_STATE;
+    if (typeof window === "undefined") {
+      return { ...DEFAULT_RATING_STATE, ratings: [] };
+    }
     try {
       const raw = localStorage.getItem(RATING_KEY);
-      if (!raw) return DEFAULT_RATING_STATE;
+      if (!raw) return { ...DEFAULT_RATING_STATE, ratings: [] };
       const parsed = JSON.parse(raw);
       return {
         ...DEFAULT_RATING_STATE,
@@ -40,7 +42,7 @@ export class RatingStorage {
       } as PersistedRatingState;
     } catch (e) {
       console.warn("Failed to load rating state", e);
-      return DEFAULT_RATING_STATE;
+      return { ...DEFAULT_RATING_STATE, ratings: [] };
     }
   }
 
@@ -236,7 +238,7 @@ export class RatingStorage {
    * Clear all ratings
    */
   clearAllRatings(): void {
-    this.state = DEFAULT_RATING_STATE;
+    this.state = { ...DEFAULT_RATING_STATE, ratings: [] };
     this.save();
   }
 }

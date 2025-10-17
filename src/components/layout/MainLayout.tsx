@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { TabNavigation } from "./TabNavigation";
 import type { TabState } from "@/types";
 import { usageStorage } from "@/lib/usage";
@@ -19,22 +19,20 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   activeTab,
   onTabChange,
 }) => {
-  const [updateTrigger, setUpdateTrigger] = useState(0);
+  const computeTotalCost = useCallback(() => {
+    const allEntries = usageStorage.list();
+    return allEntries.reduce((sum, entry) => sum + entry.totalCost, 0);
+  }, []);
+
+  const [totalCost, setTotalCost] = useState<number>(() => computeTotalCost());
 
   // Subscribe to usage storage changes to update total cost
   useEffect(() => {
     const unsubscribe = usageStorage.subscribe(() => {
-      setUpdateTrigger((prev) => prev + 1);
+      setTotalCost(computeTotalCost());
     });
     return unsubscribe;
-  }, []);
-
-  // Calculate total cost from all usage entries
-
-  const totalCost = useMemo(() => {
-    const allEntries = usageStorage.list();
-    return allEntries.reduce((sum, entry) => sum + entry.totalCost, 0);
-  }, [updateTrigger]);
+  }, [computeTotalCost]);
 
   const formatCurrency = (n: number) => {
     // Always show exactly 2 decimal places for all amounts

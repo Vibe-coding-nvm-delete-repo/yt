@@ -5,6 +5,7 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { SettingsTab } from "../SettingsTab";
+import { ToastProvider } from "@/contexts/ToastContext";
 import type { AppSettings, VisionModel } from "@/types";
 
 // Mock dependencies
@@ -79,7 +80,9 @@ describe("SettingsTab - Enhanced Model Dropdowns", () => {
   it("renders 5 model selectors when models are available", () => {
     const settings = createMockSettings();
     const { container } = render(
-      <SettingsTab settings={settings} onSettingsUpdate={jest.fn()} />,
+      <ToastProvider>
+        <SettingsTab settings={settings} onSettingsUpdate={jest.fn()} />
+      </ToastProvider>,
     );
 
     // Switch to model selection tab
@@ -100,7 +103,9 @@ describe("SettingsTab - Enhanced Model Dropdowns", () => {
   it("displays model names in dropdowns", () => {
     const settings = createMockSettings();
     const { container } = render(
-      <SettingsTab settings={settings} onSettingsUpdate={jest.fn()} />,
+      <ToastProvider>
+        <SettingsTab settings={settings} onSettingsUpdate={jest.fn()} />
+      </ToastProvider>,
     );
 
     // Switch to model selection tab
@@ -118,7 +123,9 @@ describe("SettingsTab - Enhanced Model Dropdowns", () => {
     });
 
     const { container } = render(
-      <SettingsTab settings={settings} onSettingsUpdate={jest.fn()} />,
+      <ToastProvider>
+        <SettingsTab settings={settings} onSettingsUpdate={jest.fn()} />
+      </ToastProvider>,
     );
 
     // Switch to model selection tab
@@ -134,7 +141,9 @@ describe("SettingsTab - Enhanced Model Dropdowns", () => {
   it("renders without top dropdown", () => {
     const settings = createMockSettings();
     const { container } = render(
-      <SettingsTab settings={settings} onSettingsUpdate={jest.fn()} />,
+      <ToastProvider>
+        <SettingsTab settings={settings} onSettingsUpdate={jest.fn()} />
+      </ToastProvider>,
     );
 
     // Switch to model selection tab
@@ -150,19 +159,21 @@ describe("SettingsTab - Enhanced Model Dropdowns", () => {
     expect(allText).toContain("Vision Model 2");
   });
 
-  it("shows fetched models count", () => {
+  it("shows selected models count", () => {
     const settings = createMockSettings();
 
     const { container } = render(
-      <SettingsTab settings={settings} onSettingsUpdate={jest.fn()} />,
+      <ToastProvider>
+        <SettingsTab settings={settings} onSettingsUpdate={jest.fn()} />
+      </ToastProvider>,
     );
 
     // Switch to model selection tab
     const modelTab = screen.getByText("Model Selection");
     fireEvent.click(modelTab);
 
-    // Should show the count of fetched models
+    // Should show the count of selected models out of 5
     const text = container.textContent || "";
-    expect(text).toContain("3 vision models");
+    expect(text).toContain("Selected: 0 / 5");
   });
 });

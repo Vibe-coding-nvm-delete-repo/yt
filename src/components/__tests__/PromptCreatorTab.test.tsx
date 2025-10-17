@@ -55,7 +55,7 @@ describe("PromptCreatorTab", () => {
   it("disables generation until mandatory fields are selected", async () => {
     render(<PromptCreatorTab apiKey="sk-test" />);
 
-    await screen.findByLabelText("Time of Day");
+    await screen.findByLabelText(/Time of Day$/);
 
     expect(
       await screen.findByText(
@@ -64,11 +64,11 @@ describe("PromptCreatorTab", () => {
     ).toBeInTheDocument();
 
     const generateOneButton = screen.getByRole("button", {
-      name: /Generate 1/i,
+      name: /^Generate 1$/i,
     });
     expect(generateOneButton).toBeDisabled();
 
-    const dropdown = await screen.findByLabelText("Time of Day");
+    const dropdown = await screen.findByLabelText(/Time of Day$/);
     fireEvent.change(dropdown, { target: { value: "Dusk" } });
 
     await waitFor(() => {

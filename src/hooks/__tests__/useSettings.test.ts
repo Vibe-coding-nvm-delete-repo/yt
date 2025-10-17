@@ -1,49 +1,149 @@
 import { renderHook, act } from "@testing-library/react";
-import { useSettings } from "@/hooks/useSettings";
 import type { AppSettings } from "@/types";
 
 // Mock storage class
+const DEFAULT_SETTINGS: AppSettings = {
+  openRouterApiKey: "",
+  customPrompt:
+    "Describe this image in detail and suggest a good prompt for generating similar images.",
+  selectedModel: "",
+  selectedVisionModels: [],
+  availableModels: [],
+  preferredModels: [],
+  pinnedModels: [],
+  isValidApiKey: false,
+  lastApiKeyValidation: null,
+  lastModelFetch: null,
+};
+
 class MockSettingsStorage {
-  private settings = {} as AppSettings;
-  private listeners = [] as Array<() => void>;
+  private settings: AppSettings = { ...DEFAULT_SETTINGS };
+  private listeners: Array<
+    (
+      newSettings: AppSettings,
+      oldSettings: AppSettings,
+      changedKeys: (keyof AppSettings)[],
+    ) => void
+  > = [];
 
   getSettings() {
     return this.settings;
   }
 
-  updateSettings(newSettings: Partial<AppSettings>) {
+  private emit(prev: AppSettings, changedKeys: (keyof AppSettings)[]) {
+    const snapshot = { ...this.settings };
+    const previousSnapshot = { ...prev };
+    this.listeners.forEach((listener) =>
+      listener(snapshot, previousSnapshot, changedKeys),
+    );
+  }
+
+  batchUpdate(newSettings: Partial<AppSettings>) {
+    const prev = this.settings;
     this.settings = { ...this.settings, ...newSettings };
-    this.notifyListeners();
+    const changedKeys = Object.keys(newSettings) as (keyof AppSettings)[];
+    this.emit(prev, changedKeys);
+    return prev;
   }
 
-  subscribe(listener: () => void) {
+  updateApiKey(apiKey: string) {
+    this.batchUpdate({ openRouterApiKey: apiKey, isValidApiKey: false });
+  }
+
+  validateApiKey(isValid: boolean) {
+    this.batchUpdate({ isValidApiKey: isValid });
+  }
+
+  updateSelectedModel(modelId: string) {
+    this.batchUpdate({ selectedModel: modelId });
+  }
+
+  updateCustomPrompt(prompt: string) {
+    this.batchUpdate({ customPrompt: prompt });
+  }
+
+  updateModels(models: AppSettings["availableModels"]) {
+    this.batchUpdate({ availableModels: models });
+  }
+
+  updatePinnedModels(pinned: string[]) {
+    this.batchUpdate({ pinnedModels: pinned });
+  }
+
+  pinModel(modelId: string) {
+    this.batchUpdate({
+      pinnedModels: [...(this.settings.pinnedModels ?? []), modelId],
+    });
+  }
+
+  unpinModel(modelId: string) {
+    this.batchUpdate({
+      pinnedModels: (this.settings.pinnedModels ?? []).filter(
+        (id) => id !== modelId,
+      ),
+    });
+  }
+
+  togglePinnedModel(modelId: string) {
+    const pinned = new Set(this.settings.pinnedModels ?? []);
+    if (pinned.has(modelId)) {
+      pinned.delete(modelId);
+    } else {
+      pinned.add(modelId);
+    }
+    this.batchUpdate({ pinnedModels: Array.from(pinned) });
+  }
+
+  clearSettings() {
+    const prev = this.settings;
+    this.settings = { ...DEFAULT_SETTINGS };
+    this.emit(prev, []);
+  }
+
+  shouldRefreshModels() {
+    return false;
+  }
+
+  getModelById() {
+    return undefined;
+  }
+
+  getSelectedModel() {
+    return this.settings.selectedModel;
+  }
+
+  getPinnedModels() {
+    return this.settings.pinnedModels ?? [];
+  }
+
+  subscribe(
+    listener: (
+      newSettings: AppSettings,
+      oldSettings: AppSettings,
+      changedKeys: (keyof AppSettings)[],
+    ) => void,
+  ) {
     this.listeners.push(listener);
+    return () => {
+      this.listeners = this.listeners.filter((cb) => cb !== listener);
+    };
   }
 
-  unsubscribe(listener: () => void) {
-    this.listeners = this.listeners.filter((l) => l !== listener);
-  }
-
-  private notifyListeners() {
-    this.listeners.forEach((l) => l());
+  subscribeToKey() {
+    return () => {};
   }
 }
 
 const mockStorage = new MockSettingsStorage();
 
-jest.doMock("@/lib/storage", () => ({
+jest.mock("@/lib/storage", () => ({
   settingsStorage: mockStorage,
 }));
 
+import { useSettings } from "@/hooks/useSettings";
+
 beforeEach(() => {
-  mockStorage.updateSettings({
-    openRouterApiKey: "",
-    customPrompt:
-      "Describe this image in detail and suggest a good prompt for generating similar images.",
-    selectedModel: "",
-    availableModels: [],
-    isValidApiKey: false,
-  });
+  mockStorage.clearSettings();
 });
 
 describe("useSettings hook", () => {

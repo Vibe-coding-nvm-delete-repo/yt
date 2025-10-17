@@ -5,6 +5,13 @@ import { ErrorType } from "../../types/errors";
 jest.useFakeTimers();
 
 describe("useErrorHandler", () => {
+  const defaultTestRetryOptions = {
+    maxRetries: 0,
+    initialDelay: 0,
+    maxDelay: 0,
+    backoffMultiplier: 1,
+  };
+
   afterEach(() => {
     jest.clearAllTimers();
   });
@@ -52,7 +59,9 @@ describe("useErrorHandler", () => {
   });
 
   it("should execute async operations with error handling", async () => {
-    const { result } = renderHook(() => useErrorHandler());
+    const { result } = renderHook(() =>
+      useErrorHandler({ defaultRetryOptions: defaultTestRetryOptions }),
+    );
 
     const asyncOperation = jest.fn().mockResolvedValue("success");
 
@@ -69,7 +78,9 @@ describe("useErrorHandler", () => {
   });
 
   it("should handle async operation failures", async () => {
-    const { result } = renderHook(() => useErrorHandler());
+    const { result } = renderHook(() =>
+      useErrorHandler({ defaultRetryOptions: defaultTestRetryOptions }),
+    );
 
     const failingOperation = jest
       .fn()
@@ -92,7 +103,12 @@ describe("useErrorHandler", () => {
 
   it("should call onError callback", () => {
     const onError = jest.fn();
-    const { result } = renderHook(() => useErrorHandler({ onError }));
+    const { result } = renderHook(() =>
+      useErrorHandler({
+        onError,
+        defaultRetryOptions: defaultTestRetryOptions,
+      }),
+    );
 
     act(() => {
       result.current.handleError(new Error("Test error"));
@@ -102,7 +118,9 @@ describe("useErrorHandler", () => {
   });
 
   it("should track retry attempts", async () => {
-    const { result } = renderHook(() => useErrorHandler());
+    const { result } = renderHook(() =>
+      useErrorHandler({ defaultRetryOptions: defaultTestRetryOptions }),
+    );
 
     // First add an error with retryable option
     act(() => {

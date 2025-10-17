@@ -9,7 +9,11 @@ import React, {
 } from "react";
 import type { AppSettings, ValidationState, ModelState } from "@/types";
 import { settingsStorage } from "@/lib/storage";
-import { createOpenRouterClient, isValidApiKeyFormat } from "@/lib/openrouter";
+import {
+  createOpenRouterClient,
+  isValidApiKeyFormat,
+  type TextModel,
+} from "@/lib/openrouter";
 import {
   promptCreatorConfigStorage,
   promptCreatorDraftStorage,
@@ -114,6 +118,23 @@ const parseOptionList = (text: string): string[] =>
     .map((item) => item.trim())
     .filter((item) => item.length > 0);
 
+const buildModelDrivenInstructions = (model: TextModel): string =>
+  [
+    `You are ${model.name}, an advanced text generation model that specializes in high quality prompt construction.`,
+    model.description ? `Model context: ${model.description.trim()}` : null,
+    "Use the provided variables to synthesize a complete creative brief. The prompt must be production ready, richly descriptive, and stay faithful to every variable.",
+    "Respond with a single prompt that can be executed directly without further editing.",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+const buildModelDrivenRubric = (model: TextModel): string =>
+  [
+    `Evaluate how well the generated prompt would perform when executed by ${model.name}.`,
+    "Score from 1-10 based on clarity, alignment with the supplied variables, actionable detail, and readiness for immediate use.",
+    "Call out missing variables, vague language, or risky phrasing. Provide specific improvement guidance when the score is below 8.",
+  ].join("\n");
+
 export const SettingsTab: React.FC<SettingsTabProps> = ({
   settings,
   onSettingsUpdate,
@@ -182,6 +203,9 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   const [pcModelId, setPcModelId] = useState(
     promptCreatorConfigState.openRouterModelId,
   );
+  const [textModels, setTextModels] = useState<TextModel[]>([]);
+  const [isFetchingTextModels, setIsFetchingTextModels] = useState(false);
+  const [textModelError, setTextModelError] = useState<string | null>(null);
   const [defaultPromptCount, setDefaultPromptCount] = useState(
     promptCreatorConfigState.defaultPromptCount,
   );
@@ -200,6 +224,11 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         return a.order - b.order;
       }),
     [promptCreatorConfigState.fields],
+  );
+
+  const selectedTextModel = useMemo(
+    () => textModels.find((model) => model.id === pcModelId) || null,
+    [pcModelId, textModels],
   );
 
   // Handle settings updates from storage
@@ -433,6 +462,47 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       }));
     }
   }, [apiKey, validationState.isValid, hookUpdateModels, addToast]);
+
+  const fetchTextModels = useCallback(async () => {
+    if (!validationState.isValid) {
+      setTextModelError("Please validate your API key first");
+      return;
+    }
+
+    setIsFetchingTextModels(true);
+    setTextModelError(null);
+    try {
+      const client = createOpenRouterClient(apiKey);
+      const models = await client.getTextModels();
+      setTextModels(models);
+    } catch (error) {
+      console.error("Text model fetch error:", error);
+      setTextModelError(
+        error instanceof Error ? error.message : "Failed to fetch text models",
+      );
+    } finally {
+      setIsFetchingTextModels(false);
+    }
+  }, [apiKey, validationState.isValid]);
+
+  const handleTextModelSelect = useCallback(
+    (modelId: string) => {
+      setPcModelId(modelId);
+      setTextModelError(null);
+      if (!modelId) {
+        return;
+      }
+
+      const model = textModels.find((candidate) => candidate.id === modelId);
+      if (!model) {
+        return;
+      }
+
+      setPromptInstructions(buildModelDrivenInstructions(model));
+      setRatingRubric(buildModelDrivenRubric(model));
+    },
+    [textModels],
+  );
 
   const toggleModelExpansion = useCallback((index: number) => {
     setExpandedModels((prev: Set<number>) => {
@@ -796,16 +866,62 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         </div>
 
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div className="flex-1 space-y-2">
+          <div className="flex-1 space-y-3">
             <label className="text-sm font-semibold text-white">
-              OpenRouter model ID
+              OpenRouter text generation model
             </label>
-            <input
-              value={pcModelId}
-              onChange={(event) => setPcModelId(event.target.value)}
-              placeholder="anthropic/claude-3.5-sonnet"
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
-            />
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <button
+                type="button"
+                onClick={fetchTextModels}
+                disabled={isFetchingTextModels || !validationState.isValid}
+                className="inline-flex items-center justify-center rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <RefreshCw
+                  className={`mr-2 h-4 w-4 ${
+                    isFetchingTextModels ? "animate-spin" : ""
+                  }`}
+                />
+                {isFetchingTextModels ? "Fetching…" : "Fetch text models"}
+              </button>
+              <select
+                value={pcModelId}
+                onChange={(event) => handleTextModelSelect(event.target.value)}
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none"
+                aria-label="Select OpenRouter text model"
+              >
+                <option value="">Select a text model…</option>
+                {pcModelId &&
+                  !textModels.some((model) => model.id === pcModelId) && (
+                    <option value={pcModelId}>{pcModelId}</option>
+                  )}
+                {textModels.map((model) => (
+                  <option key={model.id} value={model.id}>
+                    {model.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {textModelError && (
+              <p className="text-xs text-red-400">{textModelError}</p>
+            )}
+            {pcModelId && !selectedTextModel && (
+              <p className="text-xs text-gray-400">
+                Using stored model ID: {pcModelId}
+              </p>
+            )}
+            {selectedTextModel && (
+              <p className="text-xs text-gray-400">
+                {selectedTextModel.description
+                  ? `${selectedTextModel.description} · `
+                  : ""}
+                Prompt {formatPrice(selectedTextModel.pricing.prompt)} ·
+                Completion {formatPrice(selectedTextModel.pricing.completion)}
+                {selectedTextModel.context_length
+                  ? ` · Context ${selectedTextModel.context_length.toLocaleString()} tokens`
+                  : ""}
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <button

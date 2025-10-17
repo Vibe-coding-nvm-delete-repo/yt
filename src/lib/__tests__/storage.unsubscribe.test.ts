@@ -1,15 +1,20 @@
-import { settingsStorage, imageStateStorage } from '@/lib/storage';
+import { waitFor } from "@testing-library/react";
+import { settingsStorage, imageStateStorage } from "@/lib/storage";
 
-describe('Storage subscribe/unsubscribe behavior', () => {
+describe("Storage subscribe/unsubscribe behavior", () => {
   beforeEach(() => {
     // Clear persisted state between tests to avoid cross-test interference
-    if (typeof window !== 'undefined' && window.localStorage) {
+    if (typeof window !== "undefined" && window.localStorage) {
       localStorage.clear();
     }
     jest.clearAllMocks();
+    (
+      settingsStorage as unknown as { subscriptions?: Map<string, unknown> }
+    ).subscriptions?.clear?.();
+    settingsStorage.clearSettings();
   });
 
-  test('settingsStorage: subscribe returns an unsubscribe that removes the listener', () => {
+  test("settingsStorage: subscribe returns an unsubscribe that removes the listener", async () => {
     const calls = jest.fn();
 
     const unsubscribers: Array<() => void> = [];
@@ -23,10 +28,11 @@ describe('Storage subscribe/unsubscribe behavior', () => {
     }
 
     // Trigger a change that causes notifyListeners()
-    settingsStorage.updateCustomPrompt('first-run');
+    settingsStorage.updateCustomPrompt("first-run");
 
-    // The mock should have been called SUB_COUNT times (one per subscription)
-    expect(calls.mock.calls.length).toBe(SUB_COUNT);
+    await waitFor(() => {
+      expect(calls.mock.calls.length).toBe(SUB_COUNT);
+    });
 
     // Unsubscribe all listeners
     unsubscribers.forEach((u) => u());
@@ -35,11 +41,13 @@ describe('Storage subscribe/unsubscribe behavior', () => {
     calls.mockReset();
 
     // Trigger another change - no calls should be made to our mock
-    settingsStorage.updateCustomPrompt('second-run');
-    expect(calls.mock.calls.length).toBe(0);
+    settingsStorage.updateCustomPrompt("second-run");
+    await waitFor(() => {
+      expect(calls.mock.calls.length).toBe(0);
+    });
   });
 
-  test('imageStateStorage: subscribe/unsubscribe works and unsubscribed listeners are not invoked', () => {
+  test("imageStateStorage: subscribe/unsubscribe works and unsubscribed listeners are not invoked", async () => {
     const calls = jest.fn();
 
     const unsubscribers: Array<() => void> = [];
@@ -52,16 +60,30 @@ describe('Storage subscribe/unsubscribe behavior', () => {
     }
 
     // Trigger notify via saving an uploaded image
-    imageStateStorage.saveUploadedImage('data:image/png;base64,test', 'img.png', 123, 'image/png');
+    imageStateStorage.saveUploadedImage(
+      "data:image/png;base64,test",
+      "img.png",
+      123,
+      "image/png",
+    );
 
-    expect(calls.mock.calls.length).toBe(SUB_COUNT);
+    await waitFor(() => {
+      expect(calls.mock.calls.length).toBe(SUB_COUNT);
+    });
 
     // Unsubscribe and reset
     unsubscribers.forEach((u) => u());
     calls.mockReset();
 
     // Trigger another save - our mock should not be called
-    imageStateStorage.saveUploadedImage('data:image/png;base64,again', 'img2.png', 456, 'image/png');
-    expect(calls.mock.calls.length).toBe(0);
+    imageStateStorage.saveUploadedImage(
+      "data:image/png;base64,again",
+      "img2.png",
+      456,
+      "image/png",
+    );
+    await waitFor(() => {
+      expect(calls.mock.calls.length).toBe(0);
+    });
   });
 });

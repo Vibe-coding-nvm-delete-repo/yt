@@ -1,5 +1,6 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element -- Static reference cards require direct <img> usage for current asset pipeline. */
 import React from "react";
 import { Edit, Trash2, Calendar } from "lucide-react";
 import type { BestPractice } from "@/types";
@@ -52,9 +53,7 @@ export const BestPracticeCard: React.FC<BestPracticeCardProps> = ({
             </span>
           </div>
 
-          <p className="text-gray-300 mb-2">
-            {practice.description}
-          </p>
+          <p className="text-gray-300 mb-2">{practice.description}</p>
 
           {practice.leonardoAiLanguage && (
             <div className="mb-2">

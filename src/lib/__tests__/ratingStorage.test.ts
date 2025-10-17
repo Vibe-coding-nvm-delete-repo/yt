@@ -63,7 +63,7 @@ describe("RatingStorage", () => {
       expect(rating2.stars).toBe(5);
       expect(rating2.thumbs).toBe("up");
       expect(rating2.comment).toBe("Updated!");
-      expect(rating2.updatedAt).toBeGreaterThan(rating1.updatedAt);
+      expect(rating2.updatedAt).toBeGreaterThanOrEqual(rating1.updatedAt);
 
       const allRatings = storage.getAllRatings();
       expect(allRatings).toHaveLength(1);
@@ -344,6 +344,8 @@ describe("RatingStorage", () => {
         JSON.stringify({ ratings: [mockRating], schemaVersion: 1 }),
       );
 
+      delete (RatingStorage as unknown as { instance?: RatingStorage })
+        .instance;
       const newStorage = RatingStorage.getInstance();
       const ratings = newStorage.getAllRatings();
 

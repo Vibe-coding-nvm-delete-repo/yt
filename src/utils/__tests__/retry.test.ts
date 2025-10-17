@@ -1,13 +1,21 @@
 import { retryAsync, CircuitBreaker, RetryStrategies } from "../retry";
 import { AppError, ErrorType } from "../../types/errors";
 
-// Mock timers
-jest.useFakeTimers();
-
 describe("Retry Utility", () => {
-  afterEach(() => {
-    jest.clearAllTimers();
+  beforeEach(() => {
+    jest.useFakeTimers();
   });
+
+  afterEach(() => {
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
+  });
+
+  const flushTimers = async () => {
+    jest.runAllTimers();
+    await Promise.resolve();
+    await Promise.resolve();
+  };
 
   describe("retryAsync", () => {
     it("should succeed on first attempt", async () => {
@@ -29,11 +37,11 @@ describe("Retry Utility", () => {
 
       const promise = retryAsync(operation, {
         maxRetries: 3,
-        initialDelay: 10,
+        initialDelay: 0,
+        maxDelay: 0,
       });
 
-      // Fast forward timers
-      jest.runAllTimers();
+      await flushTimers();
 
       const result = await promise;
 
@@ -47,9 +55,10 @@ describe("Retry Utility", () => {
 
       const promise = retryAsync(operation, {
         maxRetries: 2,
-        initialDelay: 10,
+        initialDelay: 0,
+        maxDelay: 0,
       });
-      jest.runAllTimers();
+      await flushTimers();
 
       await expect(promise).rejects.toThrow();
       expect(operation).toHaveBeenCalledTimes(3); // Initial + 2 retries
@@ -92,8 +101,12 @@ describe("Retry Utility", () => {
 
       const onRetry = jest.fn();
 
-      const promise = retryAsync(operation, { onRetry, initialDelay: 10 });
-      jest.runAllTimers();
+      const promise = retryAsync(operation, {
+        onRetry,
+        initialDelay: 0,
+        maxDelay: 0,
+      });
+      await flushTimers();
 
       await promise;
 
@@ -113,7 +126,13 @@ describe("Retry Utility", () => {
 
       // First failure
       try {
-        await breaker.execute(operation);
+        const promise = breaker.execute(operation, {
+          maxRetries: 0,
+          initialDelay: 0,
+          maxDelay: 0,
+        });
+        await flushTimers();
+        await promise;
       } catch {
         // Expected to fail
       }
@@ -121,7 +140,13 @@ describe("Retry Utility", () => {
 
       // Second failure - should open
       try {
-        await breaker.execute(operation);
+        const promise = breaker.execute(operation, {
+          maxRetries: 0,
+          initialDelay: 0,
+          maxDelay: 0,
+        });
+        await flushTimers();
+        await promise;
       } catch {
         // Expected to fail
       }
@@ -134,15 +159,29 @@ describe("Retry Utility", () => {
 
       // Trigger failure to open circuit
       try {
-        await breaker.execute(operation);
+        const promise = breaker.execute(operation, {
+          maxRetries: 0,
+          initialDelay: 0,
+          maxDelay: 0,
+        });
+        await flushTimers();
+        await promise;
       } catch {
         // Expected to fail
       }
 
       // Next call should fail immediately
-      await expect(breaker.execute(operation)).rejects.toThrow(
-        "Circuit breaker is open",
-      );
+      await expect(
+        (async () => {
+          const promise = breaker.execute(operation, {
+            maxRetries: 0,
+            initialDelay: 0,
+            maxDelay: 0,
+          });
+          await flushTimers();
+          await promise;
+        })(),
+      ).rejects.toThrow("Circuit breaker is open");
       expect(operation).toHaveBeenCalledTimes(1); // Not called again
     });
 

@@ -1,6 +1,17 @@
 import type { VisionModel } from "@/types";
 import { ApiError } from "@/types";
 
+export interface TextModel {
+  id: string;
+  name: string;
+  description?: string;
+  pricing: {
+    prompt: number;
+    completion: number;
+  };
+  context_length?: number;
+}
+
 interface OpenRouterModelResponse {
   id: string;
   name: string;
@@ -180,7 +191,6 @@ export class OpenRouterClient {
       );
 
       if (!response?.data || !Array.isArray(response.data)) {
-        console.error("Invalid response format:", response);
         throw new ApiError(
           "Invalid response format from OpenRouter API",
           undefined,
@@ -234,6 +244,74 @@ export class OpenRouterClient {
       }
       throw new ApiError(
         "Failed to fetch models from OpenRouter API",
+        undefined,
+        error instanceof Error ? error.toString() : String(error),
+      );
+    }
+  }
+
+  async getTextModels(): Promise<TextModel[]> {
+    try {
+      const response = await this.makeRequest<OpenRouterModelsResponse>(
+        "/models",
+        { method: "GET" },
+      );
+
+      if (!response?.data || !Array.isArray(response.data)) {
+        console.error("Invalid response format:", response);
+        throw new ApiError(
+          "Invalid response format from OpenRouter API",
+          undefined,
+          response,
+        );
+      }
+
+      const models = response.data
+        .filter(
+          (model): model is OpenRouterModelResponse =>
+            Boolean(model?.id) && Boolean(model?.name),
+        )
+        .filter((model) => {
+          const outputModalities =
+            model.architecture?.output_modalities?.map((item) =>
+              item.toLowerCase(),
+            ) ?? [];
+          const modality = model.architecture?.modality?.toLowerCase() ?? "";
+          const supportsText =
+            outputModalities.includes("text") || modality.includes("text");
+          const isEmbedding =
+            modality.includes("embedding") ||
+            outputModalities.includes("embedding");
+          return supportsText && !isEmbedding;
+        })
+        .map(
+          (model) =>
+            ({
+              id: model.id,
+              name: model.name,
+              description: model.description ?? "",
+              pricing: {
+                prompt: this.safeNumber(model.pricing?.prompt, 0),
+                completion: this.safeNumber(model.pricing?.completion, 0),
+              },
+              context_length: this.safeNumber(model.context_length, 0),
+            }) satisfies TextModel,
+        )
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      if (models.length === 0) {
+        throw new ApiError(
+          "No text models found. Please check your API key and try again.",
+        );
+      }
+
+      return models;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      throw new ApiError(
+        "Failed to fetch text models from OpenRouter API",
         undefined,
         error instanceof Error ? error.toString() : String(error),
       );
