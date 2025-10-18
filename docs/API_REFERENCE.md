@@ -34,12 +34,13 @@ constructor(apiKey: string)
 Analyze an image using a vision model.
 
 **Example:**
+
 ```typescript
-const client = createOpenRouterClient('sk-...');
+const client = createOpenRouterClient("sk-...");
 const prompt = await client.analyzeImage(
-  'anthropic/claude-3-opus',
-  'data:image/jpeg;base64,...',
-  'Describe this image for a YouTube thumbnail'
+  "anthropic/claude-3-opus",
+  "data:image/jpeg;base64,...",
+  "Describe this image for a YouTube thumbnail",
 );
 ```
 
@@ -48,6 +49,7 @@ const prompt = await client.analyzeImage(
 Fetch available models from OpenRouter.
 
 **Example:**
+
 ```typescript
 const visionModels = await client.fetchModels(true);
 ```
@@ -57,14 +59,12 @@ const visionModels = await client.fetchModels(true);
 Send a chat completion request.
 
 **Example:**
+
 ```typescript
-const response = await client.chat(
-  'openai/gpt-4',
-  [
-    { role: 'system', content: 'You are helpful' },
-    { role: 'user', content: 'Generate a prompt' }
-  ]
-);
+const response = await client.chat("openai/gpt-4", [
+  { role: "system", content: "You are helpful" },
+  { role: "user", content: "Generate a prompt" },
+]);
 ```
 
 ---
@@ -88,7 +88,7 @@ const cost = calcTextCost(1000, 0.00003); // $0.03
 Estimate tokens for image processing (85-200 tokens).
 
 ```typescript
-const tokens = estimateImageTokens('data:image/jpeg;base64,...');
+const tokens = estimateImageTokens("data:image/jpeg;base64,...");
 ```
 
 #### `estimateTextTokens(text: string): number`
@@ -96,7 +96,7 @@ const tokens = estimateImageTokens('data:image/jpeg;base64,...');
 Estimate tokens for text (~1 token per 4 characters).
 
 ```typescript
-const tokens = estimateTextTokens('Sample text');
+const tokens = estimateTextTokens("Sample text");
 ```
 
 #### `calculateDetailedCost(model, imageDataUrl, outputText)`
@@ -129,16 +129,17 @@ subscribe(listener: (T) => void): () => void  // Subscribe to changes
 ```
 
 **Example:**
-```typescript
-const storage = new StorageAdapter<AppSettings>('settings', DEFAULT_SETTINGS);
 
-storage.update(current => ({
+```typescript
+const storage = new StorageAdapter<AppSettings>("settings", DEFAULT_SETTINGS);
+
+storage.update((current) => ({
   ...current,
-  selectedModel: 'claude-3-opus'
+  selectedModel: "claude-3-opus",
 }));
 
-const unsubscribe = storage.subscribe(newSettings => {
-  console.log('Settings changed:', newSettings);
+const unsubscribe = storage.subscribe((newSettings) => {
+  console.log("Settings changed:", newSettings);
 });
 ```
 
@@ -162,10 +163,10 @@ Access and update application settings.
 const { settings, updateApiKey, updateSelectedModel } = useSettings();
 
 // Update API key
-updateApiKey('sk-...');
+updateApiKey("sk-...");
 
 // Select model
-updateSelectedModel('anthropic/claude-3-opus');
+updateSelectedModel("anthropic/claude-3-opus");
 ```
 
 ### `useHistory()`
@@ -178,9 +179,9 @@ Manage prompt generation history.
 const { history, addToHistory, clearHistory } = useHistory();
 
 addToHistory({
-  prompt: 'Generated prompt text',
-  modelId: 'claude-3-opus',
-  cost: 0.05
+  prompt: "Generated prompt text",
+  modelId: "claude-3-opus",
+  cost: 0.05,
 });
 ```
 
@@ -196,7 +197,7 @@ const { handleError, clearError } = useErrorHandler();
 try {
   await api.fetchModels();
 } catch (error) {
-  handleError(error, 'Failed to fetch models');
+  handleError(error, "Failed to fetch models");
 }
 ```
 
@@ -222,15 +223,15 @@ return isMobile ? <MobileView /> : <DesktopView />;
 
 ```typescript
 interface VisionModel {
-  id: string;                    // Model ID
-  name: string;                  // Display name
-  description?: string;          // Description
+  id: string; // Model ID
+  name: string; // Display name
+  description?: string; // Description
   pricing: {
-    prompt: number;              // Input price per token
-    completion: number;          // Output price per token
+    prompt: number; // Input price per token
+    completion: number; // Output price per token
   };
-  context_length?: number;       // Max context length
-  supports_vision?: boolean;     // Vision support
+  context_length?: number; // Max context length
+  supports_vision?: boolean; // Vision support
 }
 ```
 
@@ -239,7 +240,7 @@ interface VisionModel {
 ```typescript
 interface AppSettings {
   openRouterApiKey: string;
-  selectedVisionModels: string[];     // Up to 5 models
+  selectedVisionModels: string[]; // Up to 3 models
   customPrompt: string;
   isValidApiKey: boolean;
   lastApiKeyValidation: number | null;
@@ -277,7 +278,7 @@ interface HistoryEntry {
   imageDataUrl?: string;
   cost: number;
   isFavorite?: boolean;
-  rating?: number;              // 1-5 stars
+  rating?: number; // 1-5 stars
 }
 ```
 
@@ -294,7 +295,7 @@ interface HistoryEntry {
 Truncate string with middle ellipsis.
 
 ```typescript
-const truncated = middleEllipsis('anthropic/claude-3-opus-20240229', 25);
+const truncated = middleEllipsis("anthropic/claude-3-opus-20240229", 25);
 // Result: "anthropic/cl...40229"
 ```
 
@@ -316,15 +317,12 @@ const maxLen = getResponsiveMaxLength(window.innerWidth);
 Retry async operations with exponential backoff.
 
 ```typescript
-const result = await retryAsync(
-  () => api.fetchModels(),
-  {
-    maxRetries: 3,
-    initialDelay: 1000,
-    maxDelay: 10000,
-    backoffMultiplier: 2
-  }
-);
+const result = await retryAsync(() => api.fetchModels(), {
+  maxRetries: 3,
+  initialDelay: 1000,
+  maxDelay: 10000,
+  backoffMultiplier: 2,
+});
 ```
 
 #### `CircuitBreaker`
@@ -346,7 +344,7 @@ const data = await breaker.execute(() => api.call());
 
 ```typescript
 class ApiError extends Error {
-  constructor(message: string, statusCode?: number, originalError?: unknown)
+  constructor(message: string, statusCode?: number, originalError?: unknown);
 }
 ```
 
@@ -372,10 +370,10 @@ try {
 ```typescript
 // ✅ Store securely in localStorage
 const { updateApiKey } = useSettings();
-updateApiKey('sk-...');
+updateApiKey("sk-...");
 
 // ❌ Never hardcode
-const apiKey = 'sk-actual-key'; // NEVER!
+const apiKey = "sk-actual-key"; // NEVER!
 ```
 
 ### Error Handling
@@ -386,7 +384,7 @@ const { handleError } = useErrorHandler();
 try {
   await operation();
 } catch (error) {
-  handleError(error, 'Operation failed');
+  handleError(error, "Operation failed");
 }
 ```
 
@@ -398,7 +396,7 @@ const cost = calculateDetailedCost(model, image, output);
 usageStorage.add({
   modelId: model.id,
   totalCost: cost.totalCost,
-  timestamp: Date.now()
+  timestamp: Date.now(),
 });
 ```
 
@@ -411,7 +409,7 @@ interface Props {
 }
 
 // ❌ Avoid 'any'
-const Component = (props: any) => { }
+const Component = (props: any) => {};
 ```
 
 ---

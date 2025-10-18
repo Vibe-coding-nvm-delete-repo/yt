@@ -119,7 +119,11 @@ export class SettingsStorage {
           ? parsed.availableModels
           : [],
         preferredModels: Array.isArray(parsed.preferredModels)
-          ? parsed.preferredModels
+          ? parsed.preferredModels.slice(0, 3)
+          : [],
+        // Trim selectedVisionModels to max 3 for migration from old limit of 5
+        selectedVisionModels: Array.isArray(parsed.selectedVisionModels)
+          ? parsed.selectedVisionModels.slice(0, 3)
           : [],
         // Ensure numeric values are correct
         lastApiKeyValidation: parsed.lastApiKeyValidation
@@ -372,7 +376,7 @@ export class SettingsStorage {
   }
 
   updateSelectedVisionModels(modelIds: string[]): void {
-    this.batchUpdate({ selectedVisionModels: modelIds.slice(0, 5) });
+    this.batchUpdate({ selectedVisionModels: modelIds.slice(0, 3) });
   }
 
   updateCustomPrompt(prompt: string): void {
@@ -388,7 +392,7 @@ export class SettingsStorage {
 
   updatePreferredModels(modelIds: string[]): void {
     this.batchUpdate({
-      preferredModels: Array.isArray(modelIds) ? modelIds.slice(0, 5) : [],
+      preferredModels: Array.isArray(modelIds) ? modelIds.slice(0, 3) : [],
     });
   }
 

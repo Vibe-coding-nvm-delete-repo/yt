@@ -19,7 +19,7 @@ Upload images and generate descriptive prompts using AI vision models.
 
 ### Key Features
 
-- **Multi-Model Comparison**: Test up to 5 vision models simultaneously
+- **Multi-Model Comparison**: Test up to 3 vision models simultaneously
 - **Real-Time Cost Tracking**: See cost per generation
 - **Batch Processing**: Process multiple images at once
 - **Rating System**: Rate prompt quality
@@ -31,7 +31,7 @@ Upload images and generate descriptive prompts using AI vision models.
 
 1. Go to **Image to Prompt** tab
 2. Upload image (click or drag & drop)
-3. Select models in Settings (up to 5)
+3. Select models in Settings (up to 3)
 4. Click "Generate"
 5. View results from all models
 
@@ -380,7 +380,7 @@ Setup:
 
 **Vision Models**
 
-- Select up to 5 models
+- Select up to 3 models
 - Pin favorites for quick access
 - Auto-refresh every 24 hours
 

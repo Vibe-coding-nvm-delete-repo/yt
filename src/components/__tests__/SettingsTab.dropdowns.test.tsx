@@ -77,7 +77,7 @@ describe("SettingsTab - Enhanced Model Dropdowns", () => {
     ...overrides,
   });
 
-  it("renders 5 model selectors when models are available", () => {
+  it("renders 3 model selectors when models are available", () => {
     const settings = createMockSettings();
     const { container } = render(
       <ToastProvider>
@@ -149,7 +149,7 @@ describe("SettingsTab - Enhanced Model Dropdowns", () => {
     fireEvent.click(modelTab);
 
     // The old top dropdown should not exist
-    // We verify this by checking that there's no standalone dropdown above the 5 model selectors
+    // We verify this by checking that there's no standalone dropdown above the 3 model selectors
     const allText = container.textContent || "";
 
     // Should have "Vision Model 1", "Vision Model 2", etc.

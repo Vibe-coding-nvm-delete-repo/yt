@@ -5,14 +5,14 @@ import type { AppSettings } from "@/types";
 
 /**
  * Test suite for issue #136: Redesign outputs to vertical layout
- * Verifies minimalist vertical layout with all 5 outputs visible without scrolling
+ * Verifies minimalist vertical layout with all 3 outputs visible without scrolling
  */
 
 describe("ImageToPromptTab - Vertical Layout (#136)", () => {
   const mockSettings: AppSettings = {
     openRouterApiKey: "sk-or-v1-test",
     selectedModel: "",
-    selectedVisionModels: ["model1", "model2", "model3", "model4", "model5"],
+    selectedVisionModels: ["model1", "model2", "model3"],
     customPrompt: "Describe this image",
     isValidApiKey: true,
     lastApiKeyValidation: Date.now(),
@@ -39,20 +39,6 @@ describe("ImageToPromptTab - Vertical Layout (#136)", () => {
         pricing: { prompt: 0.001, completion: 0.002 },
         context_length: 4096,
       },
-      {
-        id: "model4",
-        name: "Test Model 4",
-        description: "Test",
-        pricing: { prompt: 0.001, completion: 0.002 },
-        context_length: 4096,
-      },
-      {
-        id: "model5",
-        name: "Test Model 5",
-        description: "Test",
-        pricing: { prompt: 0.001, completion: 0.002 },
-        context_length: 4096,
-      },
     ],
     preferredModels: [],
     pinnedModels: [],
@@ -66,15 +52,13 @@ describe("ImageToPromptTab - Vertical Layout (#136)", () => {
     expect(screen.getByText(/completed/i)).toBeInTheDocument();
   });
 
-  test("renders all 5 model output cards vertically", () => {
+  test("renders all 3 model output cards vertically", () => {
     render(<ImageToPromptTab settings={mockSettings} />);
 
-    // Verify all 5 models are rendered
+    // Verify all 3 models are rendered
     expect(screen.getByText("Test Model 1")).toBeInTheDocument();
     expect(screen.getByText("Test Model 2")).toBeInTheDocument();
     expect(screen.getByText("Test Model 3")).toBeInTheDocument();
-    expect(screen.getByText("Test Model 4")).toBeInTheDocument();
-    expect(screen.getByText("Test Model 5")).toBeInTheDocument();
   });
 
   test("renders compact cost breakdown format", () => {
@@ -90,8 +74,8 @@ describe("ImageToPromptTab - Vertical Layout (#136)", () => {
 
     // Verify the container structure exists for model outputs
     const modelNames = screen.getAllByText(/Test Model/i);
-    // All 5 models should be rendered
-    expect(modelNames.length).toBe(5);
+    // All 3 models should be rendered
+    expect(modelNames.length).toBe(3);
   });
 
   test("copy button is present for generated prompts", async () => {
@@ -125,12 +109,10 @@ describe("ImageToPromptTab - Vertical Layout (#136)", () => {
   test("all model outputs render in vertical layout", () => {
     render(<ImageToPromptTab settings={mockSettings} />);
 
-    // Verify all 5 models are rendered vertically
+    // Verify all 3 models are rendered vertically
     expect(screen.getByText("Test Model 1")).toBeInTheDocument();
     expect(screen.getByText("Test Model 2")).toBeInTheDocument();
     expect(screen.getByText("Test Model 3")).toBeInTheDocument();
-    expect(screen.getByText("Test Model 4")).toBeInTheDocument();
-    expect(screen.getByText("Test Model 5")).toBeInTheDocument();
 
     // Verify total cost display exists for each
     const totalTexts = screen.getAllByText(/Total Cost/i);
