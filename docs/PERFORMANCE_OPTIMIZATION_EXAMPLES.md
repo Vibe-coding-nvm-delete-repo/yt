@@ -11,7 +11,7 @@ This document shows how to use the optimized storage and hooks patterns to maxim
 const MyComponent = () => {
   const { settings } = useSettings(); // Re-renders for ALL changes
   const [localState, setLocalState] = useState('');
-  
+
   // Even if this component only uses customPrompt,
   // it will re-render when API key changes, models update, etc.
   return <div>{settings.customPrompt}</div>;
@@ -49,7 +49,7 @@ const MyComponent = () => {
 const ApiKeyInput = () => {
   const { settings, updateApiKey } = useSettings();
   return (
-    <input 
+    <input
       value={settings.openRouterApiKey}
       onChange={(e) => updateApiKey(e.target.value)}
     />
@@ -60,7 +60,7 @@ const ApiKeyInput = () => {
 const ApiKeyInput = () => {
   const [apiKey, setApiKey] = useApiKey();
   return (
-    <input 
+    <input
       value={apiKey}
       onChange={(e) => setApiKey(e.target.value)}
     />
@@ -74,7 +74,7 @@ const ApiKeyInput = () => {
 // ✅ Optimized model selector
 const ModelSelector = () => {
   const { selectedModel, availableModels, setSelectedModel } = useModelSelection();
-  
+
   return (
     <select value={selectedModel} onChange={(e) => setSelectedModel(e.target.value)}>
       {availableModels.map(model => (
@@ -91,7 +91,7 @@ const ModelSelector = () => {
 // ✅ Optimized pinned models component
 const PinnedModelsList = () => {
   const { pinnedModels, togglePinnedModel, isModelPinned } = usePinnedModels();
-  
+
   return (
     <div>
       {pinnedModels.map(model => (
@@ -117,9 +117,9 @@ const MyComponent = () => {
   // Track renders and lifecycle in development
   useRenderTracker('MyComponent', { logThreshold: 3 });
   useComponentLifecycle('MyComponent');
-  
+
   const [customPrompt] = useSettingsKey('customPrompt');
-  
+
   return <div>{customPrompt}</div>;
 };
 ```
@@ -133,7 +133,7 @@ const ComplexComponent = () => {
     trackLifecycle: true,
     trackMemory: true // Only in development
   });
-  
+
   const handleExpensiveOperation = async () => {
     const { result, duration } = await perf.timeOperation(
       'complexCalculation',
@@ -142,11 +142,11 @@ const ComplexComponent = () => {
         return await someComplexCalculation();
       }
     );
-    
+
     console.log(`Operation completed in ${duration}ms`);
     return result;
   };
-  
+
   return (
     <div>
       <button onClick={handleExpensiveOperation}>
@@ -164,9 +164,9 @@ const ComplexComponent = () => {
 ```typescript
 // This triggers 3 separate storage updates and notifications
 const updateMultipleSettings = () => {
-  settingsStorage.updateApiKey('new-key');
-  settingsStorage.updateSelectedModel('model-id');
-  settingsStorage.updateCustomPrompt('new prompt');
+  settingsStorage.updateApiKey("new-key");
+  settingsStorage.updateSelectedModel("model-id");
+  settingsStorage.updateCustomPrompt("new prompt");
 };
 ```
 
@@ -176,9 +176,9 @@ const updateMultipleSettings = () => {
 // This triggers only 1 storage update and notification
 const updateMultipleSettings = () => {
   settingsStorage.batchUpdate({
-    openRouterApiKey: 'new-key',
-    selectedModel: 'model-id',
-    customPrompt: 'new prompt'
+    openRouterApiKey: "new-key",
+    selectedModel: "model-id",
+    customPrompt: "new prompt",
   });
 };
 ```
@@ -191,11 +191,11 @@ const updateMultipleSettings = () => {
 // ✅ Prevent re-renders when props haven't changed
 const ExpensiveComponent = React.memo(({ modelId }: { modelId: string }) => {
   const [apiKey] = useApiKey(); // Only re-renders when API key changes
-  
+
   const expensiveCalculation = useMemo(() => {
     return performExpensiveCalculation(modelId, apiKey);
   }, [modelId, apiKey]);
-  
+
   return <div>{expensiveCalculation}</div>;
 });
 ```
@@ -206,12 +206,12 @@ const ExpensiveComponent = React.memo(({ modelId }: { modelId: string }) => {
 // ✅ Prevent child re-renders due to function reference changes
 const ParentComponent = () => {
   const [selectedModel, setSelectedModel] = useSettingsKey('selectedModel');
-  
+
   // Memoized callback prevents child re-renders
   const handleModelChange = useCallback((modelId: string) => {
     setSelectedModel(modelId);
   }, [setSelectedModel]);
-  
+
   return <ModelSelector onModelChange={handleModelChange} />;
 };
 ```
@@ -241,25 +241,25 @@ With these optimizations, you should see:
 const { settings } = useSettings();
 
 // Use:
-const { settings } = useSettings(['specificKey1', 'specificKey2']);
+const { settings } = useSettings(["specificKey1", "specificKey2"]);
 ```
 
 ### Step 3: Replace Individual Updates with Batch Updates
 
 ```typescript
 // Instead of multiple individual updates:
-updateApiKey('key');
-updateModel('model');
+updateApiKey("key");
+updateModel("model");
 
 // Use batch updates:
-batchUpdate({ openRouterApiKey: 'key', selectedModel: 'model' });
+batchUpdate({ openRouterApiKey: "key", selectedModel: "model" });
 ```
 
 ### Step 4: Add Performance Monitoring
 
 ```typescript
 // Add to components during development:
-useRenderTracker('ComponentName');
+useRenderTracker("ComponentName");
 ```
 
 ## 🎯 Common Patterns
@@ -271,12 +271,12 @@ const SettingsForm = () => {
   // Only subscribe to what this form actually uses
   const { settings } = useSettings(['openRouterApiKey', 'selectedModel', 'customPrompt']);
   const { batchUpdate } = useSettings();
-  
+
   const handleSubmit = (formData: Partial<AppSettings>) => {
     // Single atomic update
     batchUpdate(formData);
   };
-  
+
   return <form onSubmit={handleSubmit}>{/* form fields */}</form>;
 };
 ```
@@ -287,7 +287,7 @@ const SettingsForm = () => {
 const ApiKeyStatus = () => {
   // Only care about validation state
   const { isValidApiKey, lastApiKeyValidation } = useApiKeyValidation();
-  
+
   return (
     <div className={isValidApiKey ? 'text-green-600' : 'text-red-600'}>
       {isValidApiKey ? '✅ Valid' : '❌ Invalid'}
@@ -305,11 +305,11 @@ const ApiKeyStatus = () => {
 const ModelManager = () => {
   const { availableModels, updateModels } = useModelManagement();
   const { pinnedModels, togglePinnedModel } = usePinnedModels();
-  
+
   return (
     <div>
       {availableModels.map(model => (
-        <ModelCard 
+        <ModelCard
           key={model.id}
           model={model}
           isPinned={pinnedModels.some(p => p.id === model.id)}

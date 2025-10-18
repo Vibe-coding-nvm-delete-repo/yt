@@ -58,6 +58,7 @@ Complete index of all documentation in the YouTube Tools project.
 ### Reference
 
 - **[Prompt Metrics Followup](./PROMPT_METRICS_FOLLOWUP.md)** - Prompt metrics documentation
+- **[Stardew Valley Game Design Analysis](./STARDEW_VALLEY_GAME_DESIGN_ANALYSIS.md)** - Game design principles and browser game adaptation strategies
 
 ## 🔐 Security
 

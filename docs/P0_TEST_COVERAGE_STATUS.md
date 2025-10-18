@@ -9,12 +9,14 @@
 ## Progress Made
 
 ### Test Suite Growth
+
 - **Baseline**: 68 tests (64 passing, 4 failing)
 - **Current**: 110 tests (97 passing, 13 failing)
 - **New Tests Added**: +42 tests
 - **New Passing Tests**: +33
 
 ### Coverage Improvements
+
 - **Overall**: 43.81% → 46.74% (+2.93%)
 - **SettingsTab**: 4.97% → 20.4% (+15.43%)
 - **storage.ts**: 57.14% → 38.62% (tests added but more branches)
@@ -43,11 +45,11 @@
 
 The main coverage gap is in **legacy files that are exempt from P0 rules**:
 
-| File | Coverage | Lines | Status |
-|------|----------|-------|--------|
-| SettingsTab.tsx | 20.4% | 760 | P1 Refactor |
-| ImageToPromptTab.tsx | 23.72% | 405 | P1 Refactor |
-| storage.ts | 38.62% | 476 | P1 Refactor |
+| File                 | Coverage | Lines | Status      |
+| -------------------- | -------- | ----- | ----------- |
+| SettingsTab.tsx      | 20.4%    | 760   | P1 Refactor |
+| ImageToPromptTab.tsx | 23.72%   | 405   | P1 Refactor |
+| storage.ts           | 38.62%   | 476   | P1 Refactor |
 
 These three files alone account for **1,641 lines** of legacy code that would need extensive refactoring to reach 60% coverage.
 

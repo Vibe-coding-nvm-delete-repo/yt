@@ -5,6 +5,7 @@ This document details the frontend asset optimization strategies implemented in 
 ## Overview
 
 Our optimization strategy focuses on four key areas:
+
 1. **Image Optimization** - Using modern formats (WebP, AVIF) and responsive sizing
 2. **Code Minification** - Automatic minification of CSS and JavaScript
 3. **Code Splitting** - Dynamic imports and route-based splitting
@@ -20,6 +21,7 @@ The application is configured to serve images in modern, highly compressed forma
 - **AVIF**: ~50% smaller than JPEG with better quality
 
 **Configuration** (`next.config.ts`):
+
 ```typescript
 images: {
   formats: ["image/webp", "image/avif"],
@@ -35,6 +37,7 @@ Images are automatically generated at multiple sizes for different devices and s
 - **Icon Sizes**: 16px, 32px, 48px, 64px, 96px, 128px, 256px, 384px
 
 **Usage**:
+
 ```typescript
 import Image from 'next/image';
 
@@ -57,6 +60,7 @@ import Image from 'next/image';
 5. **Provide alt text** for accessibility
 
 **Example**:
+
 ```typescript
 // Above-the-fold hero image
 <Image
@@ -86,11 +90,13 @@ import Image from 'next/image';
 Next.js automatically minifies JavaScript using **SWC** (Speedy Web Compiler), which is faster than traditional minifiers:
 
 **Configuration**:
+
 ```typescript
 swcMinify: true, // Enabled by default in Next.js 13+
 ```
 
 **Benefits**:
+
 - Removes whitespace and comments
 - Shortens variable names
 - Optimizes code structure
@@ -106,10 +112,11 @@ CSS is automatically minified during production builds:
 - Removes unused CSS (with Tailwind's purge feature)
 
 **Tailwind CSS Configuration** (`postcss.config.mjs`):
+
 ```javascript
 export default {
   plugins: {
-    '@tailwindcss/postcss': {}, // Automatically purges unused CSS
+    "@tailwindcss/postcss": {}, // Automatically purges unused CSS
   },
 };
 ```
@@ -119,6 +126,7 @@ export default {
 Production builds automatically remove console logs (except errors and warnings):
 
 **Configuration**:
+
 ```typescript
 compiler: {
   removeConsole: process.env.NODE_ENV === "production" ? {
@@ -142,6 +150,7 @@ Next.js automatically splits code by routes, ensuring users only load what they 
 For large components or libraries, use dynamic imports to reduce initial bundle size:
 
 **Basic Dynamic Import**:
+
 ```typescript
 import dynamic from 'next/dynamic';
 
@@ -157,13 +166,14 @@ export default function Page() {
 ```
 
 **Selective Library Imports**:
+
 ```typescript
 // ❌ Bad: Imports entire library
-import { HeavyFunction } from 'heavy-library';
+import { HeavyFunction } from "heavy-library";
 
 // ✅ Good: Imports only what's needed
-const HeavyFunction = dynamic(() => 
-  import('heavy-library').then(mod => mod.HeavyFunction)
+const HeavyFunction = dynamic(() =>
+  import("heavy-library").then((mod) => mod.HeavyFunction),
 );
 ```
 
@@ -172,6 +182,7 @@ const HeavyFunction = dynamic(() =>
 Large icon and UI libraries are configured for tree-shaking:
 
 **Configuration**:
+
 ```typescript
 experimental: {
   optimizePackageImports: ["lucide-react", "@radix-ui/react-tooltip"],
@@ -181,12 +192,13 @@ experimental: {
 This ensures only imported icons/components are included in the bundle.
 
 **Best Practices**:
+
 ```typescript
 // ✅ Good: Named imports are tree-shaken
-import { Search, Menu, X } from 'lucide-react';
+import { Search, Menu, X } from "lucide-react";
 
 // ❌ Bad: Imports everything
-import * as Icons from 'lucide-react';
+import * as Icons from "lucide-react";
 ```
 
 ## 🏗️ Build Process Optimization
@@ -194,16 +206,19 @@ import * as Icons from 'lucide-react';
 ### Production Build Configuration
 
 **Compression**: Automatic gzip/brotli compression
+
 ```typescript
 compress: true, // Enable in next.config.ts
 ```
 
 **Source Maps**: Disabled in production for smaller bundles
+
 ```typescript
 productionBrowserSourceMaps: false,
 ```
 
 **React Optimizations**: Strict mode enabled for better performance
+
 ```typescript
 reactStrictMode: true,
 ```
@@ -211,6 +226,7 @@ reactStrictMode: true,
 ### Build Scripts
 
 **package.json**:
+
 ```json
 {
   "scripts": {
@@ -226,22 +242,25 @@ reactStrictMode: true,
 To analyze your bundle size and identify optimization opportunities:
 
 1. Install the analyzer:
+
 ```bash
 npm install --save-dev @next/bundle-analyzer
 ```
 
 2. Update `next.config.ts`:
+
 ```typescript
-import bundleAnalyzer from '@next/bundle-analyzer';
+import bundleAnalyzer from "@next/bundle-analyzer";
 
 const withBundleAnalyzer = bundleAnalyzer({
-  enabled: process.env.ANALYZE === 'true',
+  enabled: process.env.ANALYZE === "true",
 });
 
 export default withBundleAnalyzer(nextConfig);
 ```
 
 3. Run analysis:
+
 ```bash
 ANALYZE=true npm run build
 ```
@@ -275,7 +294,6 @@ For optimal performance, configure your CDN to:
 
 1. **Cache static assets** for 1 year:
    - `/_next/static/*` → `Cache-Control: public, max-age=31536000, immutable`
-   
 2. **Cache images** for 60 days:
    - `/_next/image/*` → `Cache-Control: public, max-age=5184000, immutable`
 
@@ -291,15 +309,19 @@ No additional environment variables are required for these optimizations. They a
 ### Common Issues
 
 **Issue**: Images not optimizing
+
 - **Solution**: Ensure you're using `next/image` component, not `<img>` tags
 
 **Issue**: Bundle size still large
+
 - **Solution**: Run `ANALYZE=true npm run build` to identify large dependencies
 
 **Issue**: CSS not being purged
+
 - **Solution**: Ensure Tailwind configuration has correct content paths
 
 **Issue**: Console logs appearing in production
+
 - **Solution**: Check `NODE_ENV=production` is set during build
 
 ## 📚 Additional Resources

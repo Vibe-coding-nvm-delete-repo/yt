@@ -20,6 +20,7 @@ This report identifies code smells and technical debt in the codebase based on i
 7. **Type safety issues** (use of `any`, suppressed warnings)
 
 **Key Findings:**
+
 - 12 files exceed 300 lines (largest: 1,610 lines)
 - 6 functions exceed 50 lines (longest: 185 lines)
 - Several duplicate patterns identified for abstraction
@@ -32,35 +33,39 @@ This report identifies code smells and technical debt in the codebase based on i
 ## 1. Large Files (>300 lines)
 
 ### Overview
+
 Large files violate the Single Responsibility Principle and are harder to maintain, test, and review. Files over 300 lines should be considered for refactoring.
 
-| File | Lines | Severity | Priority |
-|------|-------|----------|----------|
-| `src/components/SettingsTab.tsx` | 1,610 | 🔴 Critical | High |
-| `src/components/PromptCreatorTab.tsx` | 877 | 🔴 Critical | High |
-| `src/components/ImageToPromptTab.tsx` | 838 | 🔴 Critical | High |
-| `src/lib/storage.ts` | 745 | 🟡 High | Medium |
-| `src/lib/openrouter.ts` | 451 | 🟡 High | Medium |
-| `src/components/BestPracticesTab.tsx` | 416 | 🟡 High | Low |
-| `src/types/errors.ts` | 412 | 🟡 High | Low |
-| `src/components/RatingTab.tsx` | 395 | 🟡 High | Low |
-| `src/hooks/usePerformance.ts` | 363 | 🟡 High | Low |
-| `src/hooks/useSettings.ts` | 350 | 🟡 High | Low |
-| `src/lib/promptCreatorStorage.ts` | 348 | 🟡 High | Low |
-| `src/components/RatingWidget.tsx` | 318 | 🟡 High | Low |
+| File                                  | Lines | Severity    | Priority |
+| ------------------------------------- | ----- | ----------- | -------- |
+| `src/components/SettingsTab.tsx`      | 1,610 | 🔴 Critical | High     |
+| `src/components/PromptCreatorTab.tsx` | 877   | 🔴 Critical | High     |
+| `src/components/ImageToPromptTab.tsx` | 838   | 🔴 Critical | High     |
+| `src/lib/storage.ts`                  | 745   | 🟡 High     | Medium   |
+| `src/lib/openrouter.ts`               | 451   | 🟡 High     | Medium   |
+| `src/components/BestPracticesTab.tsx` | 416   | 🟡 High     | Low      |
+| `src/types/errors.ts`                 | 412   | 🟡 High     | Low      |
+| `src/components/RatingTab.tsx`        | 395   | 🟡 High     | Low      |
+| `src/hooks/usePerformance.ts`         | 363   | 🟡 High     | Low      |
+| `src/hooks/useSettings.ts`            | 350   | 🟡 High     | Low      |
+| `src/lib/promptCreatorStorage.ts`     | 348   | 🟡 High     | Low      |
+| `src/components/RatingWidget.tsx`     | 318   | 🟡 High     | Low      |
 
 ### Detailed Findings
 
 #### 1.1 SettingsTab.tsx (1,610 lines) 🔴 CRITICAL
+
 **File:** `src/components/SettingsTab.tsx`
 
 **Issues:**
+
 - Contains 5 distinct sub-tabs (API Keys, Model Selection, Custom Prompts, Prompt Creator, Categories)
 - Manages complex state for multiple unrelated concerns
 - Mixes UI rendering, business logic, and data fetching
 - Has an ESLint disable for max-file-size
 
 **Refactoring Approach:**
+
 1. **Extract sub-tab components:** Create separate files for each sub-tab:
    - `src/components/settings/ApiKeysTab.tsx`
    - `src/components/settings/ModelSelectionTab.tsx`
@@ -80,6 +85,7 @@ Large files violate the Single Responsibility Principle and are harder to mainta
    - `src/hooks/usePromptCreatorForm.ts`
 
 **Benefits:**
+
 - Improved testability (each sub-tab can be tested independently)
 - Better code organization and maintainability
 - Easier to locate and fix bugs
@@ -89,15 +95,18 @@ Large files violate the Single Responsibility Principle and are harder to mainta
 ---
 
 #### 1.2 PromptCreatorTab.tsx (877 lines) 🔴 CRITICAL
+
 **File:** `src/components/PromptCreatorTab.tsx`
 
 **Issues:**
+
 - Already has ESLint disable comment for max-file-size
 - Handles complex form rendering, state management, and API calls
 - Contains long render functions (185 lines)
 - Mixes concerns: UI, business logic, storage, API calls
 
 **Refactoring Approach:**
+
 1. **Extract field renderer component:**
    - `src/components/promptCreator/FieldRenderer.tsx`
    - Separate dropdown, multiselect, slider, number, and text field renderers
@@ -114,6 +123,7 @@ Large files violate the Single Responsibility Principle and are harder to mainta
    - `src/hooks/usePromptGeneration.ts`
 
 **Benefits:**
+
 - Each component has a clear, single responsibility
 - Easier to add new field types
 - Better test coverage (can test field renderers in isolation)
@@ -122,15 +132,18 @@ Large files violate the Single Responsibility Principle and are harder to mainta
 ---
 
 #### 1.3 ImageToPromptTab.tsx (838 lines) 🔴 CRITICAL
+
 **File:** `src/components/ImageToPromptTab.tsx`
 
 **Issues:**
+
 - Handles file upload, drag-and-drop, image processing, API calls, and results display
 - Contains complex state management with 8+ state hooks
 - Has long functions (generatePrompt is 152 lines)
 - Mixes UI concerns with business logic
 
 **Refactoring Approach:**
+
 1. **Extract upload component:**
    - `src/components/imageToPrompt/ImageUploader.tsx`
    - Handle file input, drag-drop, preview
@@ -149,6 +162,7 @@ Large files violate the Single Responsibility Principle and are harder to mainta
    - `src/domain/generation/costCalculation.ts` - centralize cost logic
 
 **Benefits:**
+
 - Clear separation between upload UI, results UI, and business logic
 - Reusable hooks (useCopyToClipboard can be used elsewhere)
 - Easier to test each concern independently
@@ -157,14 +171,17 @@ Large files violate the Single Responsibility Principle and are harder to mainta
 ---
 
 #### 1.4 storage.ts (745 lines)
+
 **File:** `src/lib/storage.ts`
 
 **Issues:**
+
 - Manages multiple storage concerns (settings, image state, batch operations)
 - Long file but well-structured with clear sections
 - Contains implementation for pub/sub, debouncing, and cross-tab sync
 
 **Refactoring Approach:**
+
 1. **Keep main abstraction but extract helpers:**
    - `src/lib/storage/pubsub.ts` - subscription management
    - `src/lib/storage/debounce.ts` - debounced write logic
@@ -177,6 +194,7 @@ Large files violate the Single Responsibility Principle and are harder to mainta
    - `src/lib/storage/batchStorage.ts`
 
 **Benefits:**
+
 - Each file focuses on a single storage concern
 - Easier to test individual components
 - Better code navigation
@@ -187,36 +205,49 @@ Large files violate the Single Responsibility Principle and are harder to mainta
 ## 2. Long Functions/Methods (>50 lines)
 
 ### Overview
+
 Long functions are difficult to test, understand, and maintain. Functions over 50 lines should be broken into smaller, focused functions.
 
-| File | Line | Length | Function Context | Priority |
-|------|------|--------|------------------|----------|
-| `PromptCreatorTab.tsx` | 275 | 185 lines | `renderFieldControl` | 🔴 High |
-| `ImageToPromptTab.tsx` | 346 | 152 lines | `generatePrompt` | 🔴 High |
-| `PromptCreatorTab.tsx` | 518 | 81 lines | Field form rendering | 🟡 Medium |
-| `useResponsive.ts` | 68 | 98 lines | Responsive logic | 🟡 Medium |
-| `SettingsTab.tsx` | 544 | 65 lines | Model validation | 🟡 Medium |
-| `batchQueue.ts` | 63 | 61 lines | Batch processing | 🟡 Medium |
+| File                   | Line | Length    | Function Context     | Priority  |
+| ---------------------- | ---- | --------- | -------------------- | --------- |
+| `PromptCreatorTab.tsx` | 275  | 185 lines | `renderFieldControl` | 🔴 High   |
+| `ImageToPromptTab.tsx` | 346  | 152 lines | `generatePrompt`     | 🔴 High   |
+| `PromptCreatorTab.tsx` | 518  | 81 lines  | Field form rendering | 🟡 Medium |
+| `useResponsive.ts`     | 68   | 98 lines  | Responsive logic     | 🟡 Medium |
+| `SettingsTab.tsx`      | 544  | 65 lines  | Model validation     | 🟡 Medium |
+| `batchQueue.ts`        | 63   | 61 lines  | Batch processing     | 🟡 Medium |
 
 ### Detailed Findings
 
 #### 2.1 renderFieldControl in PromptCreatorTab.tsx (185 lines)
+
 **Location:** `src/components/PromptCreatorTab.tsx:275-460`
 
 **Issue:**
 This function handles rendering for all field types (dropdown, multiselect, text, number, slider) in a single massive function with deep conditional logic.
 
 **Current Structure:**
+
 ```typescript
 const renderFieldControl = (field: PromptCreatorField) => {
   // 185 lines of conditional rendering for different field types
-  if (field.type === "dropdown") { /* 20 lines */ }
-  if (field.type === "multiselect") { /* 40 lines */ }
-  if (field.type === "text") { /* 30 lines */ }
-  if (field.type === "number") { /* 25 lines */ }
-  if (field.type === "slider") { /* 35 lines */ }
+  if (field.type === "dropdown") {
+    /* 20 lines */
+  }
+  if (field.type === "multiselect") {
+    /* 40 lines */
+  }
+  if (field.type === "text") {
+    /* 30 lines */
+  }
+  if (field.type === "number") {
+    /* 25 lines */
+  }
+  if (field.type === "slider") {
+    /* 35 lines */
+  }
   // etc...
-}
+};
 ```
 
 **Refactoring Approach:**
@@ -244,6 +275,7 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({ field, value, onCh
 ```
 
 **Benefits:**
+
 - Each field type is self-contained and testable
 - Easier to add new field types
 - Better code reusability
@@ -252,12 +284,14 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({ field, value, onCh
 ---
 
 #### 2.2 generatePrompt in ImageToPromptTab.tsx (152 lines)
+
 **Location:** `src/components/ImageToPromptTab.tsx:346-498`
 
 **Issue:**
 This function handles image validation, base64 conversion, API calls to multiple models, error handling, cost calculation, and state updates all in one massive function.
 
 **Current Structure:**
+
 ```typescript
 const generatePrompt = useCallback(async () => {
   // Image validation (10 lines)
@@ -276,45 +310,53 @@ const generatePrompt = useCallback(async () => {
 **Refactoring Approach:**
 
 1. **Extract image processing:**
+
 ```typescript
 // src/utils/imageProcessing.ts
-export const validateImage = (file: File): void => { /* validation logic */ };
-export const fileToBase64 = (file: File): Promise<string> => { /* conversion */ };
+export const validateImage = (file: File): void => {
+  /* validation logic */
+};
+export const fileToBase64 = (file: File): Promise<string> => {
+  /* conversion */
+};
 ```
 
 2. **Extract API call logic:**
+
 ```typescript
 // src/domain/generation/modelGeneration.ts
 export const generatePromptForModel = async (
   model: VisionModel,
   imageBase64: string,
-  apiKey: string
+  apiKey: string,
 ): Promise<ModelGenerationResult> => {
   // Single model API call, error handling, cost calculation
 };
 ```
 
 3. **Use the hook pattern:**
+
 ```typescript
 // src/hooks/usePromptGeneration.ts
 export const usePromptGeneration = (settings: AppSettings) => {
   const generatePrompts = async (imageFile: File) => {
     const base64 = await fileToBase64(imageFile);
-    
+
     const results = await Promise.allSettled(
-      settings.selectedVisionModels.map(modelId => 
-        generatePromptForModel(model, base64, settings.apiKey)
-      )
+      settings.selectedVisionModels.map((modelId) =>
+        generatePromptForModel(model, base64, settings.apiKey),
+      ),
     );
-    
+
     return processResults(results);
   };
-  
+
   return { generatePrompts, isGenerating };
 };
 ```
 
 **Benefits:**
+
 - Each function has a single, clear responsibility
 - Easier to test (can mock image processing separately from API calls)
 - Better error handling (can catch errors at the right level)
@@ -325,6 +367,7 @@ export const usePromptGeneration = (settings: AppSettings) => {
 ## 3. Duplicate Code Patterns
 
 ### Overview
+
 Duplicate code increases maintenance burden and can lead to inconsistencies. Common patterns should be abstracted into reusable utilities.
 
 ### 3.1 ID Generation (Duplicate Implementation)
@@ -332,6 +375,7 @@ Duplicate code increases maintenance burden and can lead to inconsistencies. Com
 **Occurrences:** 6 different implementations across the codebase
 
 **Locations:**
+
 1. `src/components/SettingsTab.tsx:76-81`
 2. `src/components/PromptCreatorTab.tsx:35-40`
 3. `src/components/ErrorBoundary.tsx:*`
@@ -339,6 +383,7 @@ Duplicate code increases maintenance burden and can lead to inconsistencies. Com
 5. `src/contexts/ErrorContext.tsx:*` (2 times)
 
 **Current Implementations:**
+
 ```typescript
 // Implementation 1 (SettingsTab.tsx)
 const createPromptCreatorId = (): string => {
@@ -357,13 +402,13 @@ const createId = (): string => {
 };
 
 // Implementation 3 (ErrorBoundary.tsx)
-errorId: `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+errorId: `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
 // Implementation 4 (bestPracticesStorage.ts)
-id: `bp-${now}-${Math.random().toString(36).substring(2, 9)}`
+id: `bp-${now}-${Math.random().toString(36).substring(2, 9)}`;
 
 // Implementation 5 (ErrorContext.tsx)
-errorId: `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+errorId: `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 ```
 
 **Refactoring Approach:**
@@ -375,7 +420,7 @@ Create a centralized ID generation utility:
 /**
  * Generates a random UUID using crypto.randomUUID() if available,
  * falling back to Math.random() for older browsers.
- * 
+ *
  * @returns A unique identifier string
  */
 export const generateId = (): string => {
@@ -388,7 +433,7 @@ export const generateId = (): string => {
 /**
  * Generates a prefixed ID with timestamp for error tracking.
  * Format: prefix_timestamp_randomId
- * 
+ *
  * @param prefix - The prefix to use (e.g., "error", "bp")
  * @returns A prefixed unique identifier
  */
@@ -408,6 +453,7 @@ export const generateErrorId = (): string => {
 ```
 
 **Usage:**
+
 ```typescript
 // Replace all instances with:
 import { generateId, generateErrorId } from "@/utils/idGenerator";
@@ -423,6 +469,7 @@ const id = generatePrefixedId("bp");
 ```
 
 **Benefits:**
+
 - Single source of truth for ID generation
 - Consistent ID format across the application
 - Easier to update/improve the algorithm in one place
@@ -436,11 +483,13 @@ const id = generatePrefixedId("bp");
 **Occurrences:** Multiple localStorage operations throughout the codebase
 
 **Pattern Count:**
+
 - `localStorage.getItem`: 11 occurrences
-- `JSON.parse`: 16 occurrences  
+- `JSON.parse`: 16 occurrences
 - `JSON.stringify`: 19 occurrences
 
 **Current Pattern:**
+
 ```typescript
 // Pattern appears in multiple storage files
 const stored = localStorage.getItem(key);
@@ -459,6 +508,7 @@ return defaultValue;
 This pattern is already centralized in `src/lib/storage.ts` which serves as the single source of truth. The occurrences are likely in the specialized storage files (`promptCreatorStorage.ts`, `ratingStorage.ts`, etc.) which properly extend the base storage pattern.
 
 **Recommendation:**
+
 - ✅ Good: The main `storage.ts` already provides abstractions
 - ⚠️ Review: Ensure all storage operations use the centralized storage utilities
 - 📝 Document: Add JSDoc comments explaining when to use which storage abstraction
@@ -468,17 +518,20 @@ This pattern is already centralized in `src/lib/storage.ts` which serves as the 
 ### 3.3 useState and useEffect Patterns
 
 **Occurrences:**
+
 - `useState<`: 46 instances
 - `useEffect(`: 27 instances
 
 **Note:**
 These are React patterns and expected in a React application. However, some complex state management could benefit from:
+
 1. Custom hooks to encapsulate related state
 2. Use of `useReducer` for complex state transitions
 3. Context providers for shared state
 
 **Recommendation:**
 Review components with 5+ useState hooks as candidates for:
+
 - Creating custom hooks
 - Using useReducer for related state
 - Extracting to separate components
@@ -488,9 +541,11 @@ Review components with 5+ useState hooks as candidates for:
 ## 4. Deep Nesting (>8 indent levels)
 
 ### Overview
+
 Deep nesting makes code harder to read and understand. The codebase has 50+ instances of code nested 9+ levels deep.
 
 ### Affected Files
+
 - `src/components/SettingsTab.tsx` - Multiple locations
 - `src/components/PromptCreatorTab.tsx` - Multiple locations
 - `src/components/ImageToPromptTab.tsx` - Multiple locations
@@ -499,6 +554,7 @@ Deep nesting makes code harder to read and understand. The codebase has 50+ inst
 - Various other component files
 
 ### Example Problem
+
 ```typescript
 // Deeply nested code (simplified example from SettingsTab.tsx)
 if (condition1) {
@@ -525,6 +581,7 @@ if (condition1) {
 ### Refactoring Strategies
 
 #### Strategy 1: Early Returns
+
 ```typescript
 // Instead of:
 if (condition) {
@@ -537,6 +594,7 @@ if (!condition) return;
 ```
 
 #### Strategy 2: Extract to Functions
+
 ```typescript
 // Instead of deeply nested map
 array.map(item => {
@@ -559,6 +617,7 @@ array.map(renderComplexItem);
 ```
 
 #### Strategy 3: Extract to Components
+
 ```typescript
 // Instead of nested JSX in render
 return (
@@ -596,6 +655,7 @@ return (
 ```
 
 **Benefits:**
+
 - Improved readability
 - Easier to test individual components
 - Better code reusability
@@ -606,12 +666,15 @@ return (
 ## 5. Magic Numbers
 
 ### Overview
+
 Magic numbers are numeric literals without clear meaning. They should be replaced with named constants.
 
 ### Examples Found
 
 #### 5.1 Retry Configuration
+
 **Locations:**
+
 - `src/types/errors.ts:191-193`
 - `src/types/validation.ts:80`
 - `src/utils/retry.ts:50-52`
@@ -639,6 +702,7 @@ maxDelay: RETRY_CONFIG.MAX_DELAY_MS,
 ```
 
 #### 5.2 String Truncation
+
 **Location:** `src/utils/truncation.ts`
 
 ```typescript
@@ -656,12 +720,13 @@ if (maxLen < MIN_ELLIPSIS_LENGTH) {
 ```
 
 #### 5.3 Port and URL Configuration
+
 **Location:** `src/setupTests.ts`
 
 ```typescript
 // Current:
-href: "http://localhost:3000",
-process.env.NEXT_PUBLIC_APP_URL = "http://localhost:3000";
+href: ("http://localhost:3000",
+  (process.env.NEXT_PUBLIC_APP_URL = "http://localhost:3000"));
 
 // Refactored:
 // src/constants/environment.ts
@@ -670,15 +735,14 @@ export const DEV_CONFIG = {
   HOST: "localhost",
 } as const;
 
-export const getDevUrl = () => 
-  `http://${DEV_CONFIG.HOST}:${DEV_CONFIG.PORT}`;
+export const getDevUrl = () => `http://${DEV_CONFIG.HOST}:${DEV_CONFIG.PORT}`;
 
 // Usage:
-href: getDevUrl(),
-process.env.NEXT_PUBLIC_APP_URL = getDevUrl();
+href: (getDevUrl(), (process.env.NEXT_PUBLIC_APP_URL = getDevUrl()));
 ```
 
 **Benefits:**
+
 - Self-documenting code
 - Easier to update values across the codebase
 - Type safety with const assertions
@@ -689,9 +753,11 @@ process.env.NEXT_PUBLIC_APP_URL = getDevUrl();
 ## 6. Dead Code and Unused Imports
 
 ### Overview
+
 The codebase uses `eslint-plugin-unused-imports` which automatically detects unused imports. The linter is passing with zero warnings, indicating good hygiene.
 
 ### Findings
+
 ✅ **Good:** No unused imports detected by linter  
 ✅ **Good:** `lint-staged` removes unused imports on commit
 
@@ -699,16 +765,17 @@ The codebase uses `eslint-plugin-unused-imports` which automatically detects unu
 
 The following lint suppressions exist in the codebase:
 
-| File | Rule | Reason | Action Needed |
-|------|------|--------|---------------|
-| `PromptCreatorTab.tsx` | `custom/max-file-size` | File is 877 lines | 🔴 Refactor file |
-| `SettingsTab.tsx` | `react-hooks/exhaustive-deps` | Complex dependencies | ⚠️ Review |
-| `RatingWidget.tsx` | `react-hooks/set-state-in-effect` | State sync pattern | ✅ Justified |
-| `ImageToPromptTab.tsx` | `react-hooks/set-state-in-effect` | State sync pattern | ✅ Justified |
-| `BestPracticeModal.tsx` | `@next/next/no-img-element` | Asset pipeline | ✅ Justified |
-| `BestPracticeCard.tsx` | `@next/next/no-img-element` | Asset pipeline | ✅ Justified |
+| File                    | Rule                              | Reason               | Action Needed    |
+| ----------------------- | --------------------------------- | -------------------- | ---------------- |
+| `PromptCreatorTab.tsx`  | `custom/max-file-size`            | File is 877 lines    | 🔴 Refactor file |
+| `SettingsTab.tsx`       | `react-hooks/exhaustive-deps`     | Complex dependencies | ⚠️ Review        |
+| `RatingWidget.tsx`      | `react-hooks/set-state-in-effect` | State sync pattern   | ✅ Justified     |
+| `ImageToPromptTab.tsx`  | `react-hooks/set-state-in-effect` | State sync pattern   | ✅ Justified     |
+| `BestPracticeModal.tsx` | `@next/next/no-img-element`       | Asset pipeline       | ✅ Justified     |
+| `BestPracticeCard.tsx`  | `@next/next/no-img-element`       | Asset pipeline       | ✅ Justified     |
 
 **Recommendations:**
+
 1. 🔴 **High Priority:** Remove `custom/max-file-size` suppressions by refactoring large files
 2. ⚠️ **Medium Priority:** Review `exhaustive-deps` suppressions - ensure dependencies are correct
 3. ✅ **Low Priority:** Documented suppressions with justifications are acceptable
@@ -718,10 +785,13 @@ The following lint suppressions exist in the codebase:
 ## 7. Console Logging
 
 ### Overview
+
 The codebase is clean with minimal console.log usage.
 
 ### Findings
+
 Only **1 occurrence** found in documentation comments:
+
 - `src/lib/storage.ts:69` - Example in JSDoc comment (not actual code)
 
 ✅ **Good:** No actual console.log statements in production code  
@@ -732,12 +802,15 @@ Only **1 occurrence** found in documentation comments:
 ## 8. Type Safety (any usage)
 
 ### Overview
+
 TypeScript's `any` type disables type checking. The codebase should minimize its use.
 
 ### Findings
+
 ✅ **Good:** Zero instances of `: any` or `<any>` found in production code (excluding test files and lint disables)
 
 The codebase demonstrates excellent type safety practices:
+
 - All functions are properly typed
 - No escape hatches with `any`
 - Proper use of generic types
@@ -751,17 +824,18 @@ The codebase demonstrates excellent type safety practices:
 
 Several components have high cyclomatic complexity:
 
-| Component | States | Effects | Handlers | Complexity Score |
-|-----------|--------|---------|----------|------------------|
-| `SettingsTab.tsx` | 15+ | 5+ | 20+ | Very High |
-| `PromptCreatorTab.tsx` | 8+ | 3+ | 10+ | High |
-| `ImageToPromptTab.tsx` | 8+ | 2+ | 8+ | High |
+| Component              | States | Effects | Handlers | Complexity Score |
+| ---------------------- | ------ | ------- | -------- | ---------------- |
+| `SettingsTab.tsx`      | 15+    | 5+      | 20+      | Very High        |
+| `PromptCreatorTab.tsx` | 8+     | 3+      | 10+      | High             |
+| `ImageToPromptTab.tsx` | 8+     | 2+      | 8+       | High             |
 
 **Recommendation:** Extract custom hooks to reduce component complexity.
 
 ### 9.2 Import Organization
 
 Some files have 20+ imports, indicating potential over-coupling:
+
 - `src/components/SettingsTab.tsx` - 25+ imports
 - `src/components/PromptCreatorTab.tsx` - 15+ imports
 
@@ -772,6 +846,7 @@ Some files have 20+ imports, indicating potential over-coupling:
 ## 10. Prioritized Refactoring Roadmap
 
 ### Phase 1: High-Impact, Low-Risk (Immediate)
+
 **Timeline:** 1-2 sprints
 
 1. **Extract ID Generator Utility** (4 hours)
@@ -789,6 +864,7 @@ Some files have 20+ imports, indicating potential over-coupling:
    - **Risk:** Low (simple refactor)
 
 ### Phase 2: Medium-Impact, Medium-Risk (Next Sprint)
+
 **Timeline:** 2-3 sprints
 
 3. **Refactor SettingsTab.tsx** (16 hours)
@@ -807,6 +883,7 @@ Some files have 20+ imports, indicating potential over-coupling:
    - **Risk:** Medium (complex rendering logic)
 
 ### Phase 3: High-Impact, Higher-Risk (Future)
+
 **Timeline:** 3-4 sprints
 
 5. **Refactor ImageToPromptTab.tsx** (12 hours)
@@ -843,6 +920,7 @@ Some files have 20+ imports, indicating potential over-coupling:
 When refactoring, ensure adequate test coverage:
 
 ### Current Test Coverage
+
 - 41 test suites passing
 - 292 tests total
 - Zero test failures
@@ -867,6 +945,7 @@ When refactoring, ensure adequate test coverage:
 ### Recommended Test Additions
 
 **For ID Generator:**
+
 ```typescript
 // src/utils/__tests__/idGenerator.test.ts
 describe("generateId", () => {
@@ -877,6 +956,7 @@ describe("generateId", () => {
 ```
 
 **For Extracted Components:**
+
 ```typescript
 // src/components/settings/__tests__/ApiKeysTab.test.tsx
 describe("ApiKeysTab", () => {
@@ -893,6 +973,7 @@ describe("ApiKeysTab", () => {
 ### Summary of Findings
 
 ✅ **Strengths:**
+
 - Good test coverage (292 tests passing)
 - Excellent type safety (no `any` usage)
 - Clean console logging practices
@@ -900,6 +981,7 @@ describe("ApiKeysTab", () => {
 - No unused imports
 
 ⚠️ **Areas for Improvement:**
+
 - Large files need decomposition (3 critical, 9 high)
 - Long functions should be refactored (6 functions >50 lines)
 - Duplicate code patterns should be abstracted
@@ -908,24 +990,24 @@ describe("ApiKeysTab", () => {
 
 ### Key Metrics
 
-| Metric | Current | Target | Status |
-|--------|---------|--------|--------|
-| Files >300 lines | 12 | 0 | 🔴 Needs work |
-| Functions >50 lines | 6 | 0 | 🔴 Needs work |
-| Duplicate patterns | Several | 0 | 🟡 Addressable |
-| Type safety | Excellent | Maintain | ✅ Good |
-| Test coverage | 292 tests | Maintain/Improve | ✅ Good |
-| Unused imports | 0 | 0 | ✅ Good |
+| Metric              | Current   | Target           | Status         |
+| ------------------- | --------- | ---------------- | -------------- |
+| Files >300 lines    | 12        | 0                | 🔴 Needs work  |
+| Functions >50 lines | 6         | 0                | 🔴 Needs work  |
+| Duplicate patterns  | Several   | 0                | 🟡 Addressable |
+| Type safety         | Excellent | Maintain         | ✅ Good        |
+| Test coverage       | 292 tests | Maintain/Improve | ✅ Good        |
+| Unused imports      | 0         | 0                | ✅ Good        |
 
 ### Estimated Effort
 
-| Phase | Hours | Complexity | Risk |
-|-------|-------|------------|------|
-| Phase 1 | 6 | Low | Low |
-| Phase 2 | 28 | Medium | Medium |
-| Phase 3 | 20 | Medium-High | Medium |
-| Phase 4 | Ongoing | Low | Low |
-| **Total** | **54+ hours** | - | - |
+| Phase     | Hours         | Complexity  | Risk   |
+| --------- | ------------- | ----------- | ------ |
+| Phase 1   | 6             | Low         | Low    |
+| Phase 2   | 28            | Medium      | Medium |
+| Phase 3   | 20            | Medium-High | Medium |
+| Phase 4   | Ongoing       | Low         | Low    |
+| **Total** | **54+ hours** | -           | -      |
 
 ### Next Steps
 
@@ -940,6 +1022,7 @@ describe("ApiKeysTab", () => {
 ## Appendix A: Code Quality Metrics
 
 ### File Size Distribution
+
 - 0-100 lines: 28 files (52%)
 - 101-200 lines: 14 files (26%)
 - 201-300 lines: 0 files (0%)
@@ -947,6 +1030,7 @@ describe("ApiKeysTab", () => {
 - 500+ lines: 3 files (6%)
 
 ### Component Types
+
 - Tab Components: 7 (tend to be large)
 - Widget Components: 5 (medium size)
 - Layout Components: 3 (small)
@@ -957,12 +1041,14 @@ describe("ApiKeysTab", () => {
 ## Appendix B: References
 
 ### Industry Standards
+
 - **File Size:** Max 250-300 lines per file ([Google Style Guide](https://google.github.io/styleguide/))
 - **Function Length:** Max 20-40 lines per function ([Clean Code](https://www.oreilly.com/library/view/clean-code-a/9780136083238/))
 - **Cyclomatic Complexity:** Max 10 per function ([SonarQube](https://www.sonarsource.com/))
 - **Nesting Depth:** Max 4 levels ([Airbnb Style Guide](https://github.com/airbnb/javascript))
 
 ### Tools Used
+
 - ESLint with custom rules
 - TypeScript strict mode
 - Jest for testing
@@ -972,4 +1058,4 @@ describe("ApiKeysTab", () => {
 
 **Report End**
 
-*This report was generated as part of a technical debt reduction initiative. All recommendations should be reviewed and prioritized by the development team based on current project needs and resources.*
+_This report was generated as part of a technical debt reduction initiative. All recommendations should be reviewed and prioritized by the development team based on current project needs and resources._
