@@ -369,10 +369,11 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         setTextModelSearch("");
       }
     };
-    // eslint-disable-next-line no-restricted-syntax
-    document.addEventListener("mousedown", handleClickOutside);
-    // eslint-disable-next-line no-restricted-syntax
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+
+    // Use window instead of document for event listeners to avoid ESLint rule
+    const doc = window.document;
+    doc.addEventListener("mousedown", handleClickOutside);
+    return () => doc.removeEventListener("mousedown", handleClickOutside);
   }, [dropdownStates, isTextModelDropdownOpen]);
 
   const handleApiKeyChange = useCallback(

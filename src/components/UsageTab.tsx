@@ -14,8 +14,7 @@ import {
 import Image from "next/image";
 import { middleEllipsis } from "@/utils/truncation";
 
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-interface UsageTabProps {}
+type UsageTabProps = Record<string, never>;
 
 const formatCurrency = (n: number) => {
   // Always show exactly 2 decimal places for all amounts
