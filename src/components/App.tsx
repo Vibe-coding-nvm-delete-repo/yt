@@ -10,7 +10,6 @@ const ImageToPromptTabs = lazy(() => import("./ImageToPromptTabs"));
 const PromptCreatorTab = lazy(() => import("./PromptCreatorTab"));
 const BestPracticesTab = lazy(() => import("./BestPracticesTab"));
 const UsageTab = lazy(() => import("./UsageTab"));
-const FieldsTab = lazy(() => import("./FieldsTab"));
 const SettingsTab = lazy(() => import("./SettingsTab"));
 
 type AppTab = TabState["activeTab"] | "prompt-creator";
@@ -69,14 +68,6 @@ export const App: React.FC = () => {
           style={{ display: tabState.activeTab === "usage" ? "block" : "none" }}
         >
           <UsageTab />
-        </div>
-        <div
-          className={`tab-content ${tabState.activeTab === "fields" ? "active" : ""}`}
-          style={{
-            display: tabState.activeTab === "fields" ? "block" : "none",
-          }}
-        >
-          <FieldsTab />
         </div>
         <div
           className={`tab-content ${tabState.activeTab === "settings" ? "active" : ""}`}
