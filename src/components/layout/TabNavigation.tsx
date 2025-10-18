@@ -1,7 +1,14 @@
 "use client";
 
 import React from "react";
-import { Image, Settings, BookOpen, List, Sparkles } from "lucide-react";
+import {
+  Image,
+  Settings,
+  BookOpen,
+  List,
+  Sparkles,
+  Layers,
+} from "lucide-react";
 import type { TabState } from "@/types";
 
 type NavigationTab = TabState["activeTab"] | "prompt-creator";
@@ -29,6 +36,13 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
       shortLabel: "Creator",
       icon: Sparkles,
       description: "Assemble structured prompt inputs and generate variations",
+    },
+    {
+      id: "fields" as const,
+      label: "Fields",
+      shortLabel: "Fields",
+      icon: Layers,
+      description: "View and manage your configured prompt fields",
     },
     {
       id: "best-practices" as const,

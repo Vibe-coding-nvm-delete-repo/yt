@@ -155,7 +155,7 @@ describe("runWithConcurrency", () => {
     await expect(
       runWithConcurrency(tasks, {
         concurrency: 1,
-        delayMs: 100,
+        retryDelay: 100,
         signal: abortController.signal,
       }),
     ).rejects.toThrow("Aborted");

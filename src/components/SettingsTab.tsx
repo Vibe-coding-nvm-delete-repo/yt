@@ -26,7 +26,6 @@ import {
   RefreshCw,
   Search,
   ChevronDown,
-  ChevronUp,
   Key,
   CheckCircle,
   Eye,
@@ -157,7 +156,6 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   const [selectedVisionModels, setSelectedVisionModels] = useState<string[]>(
     settings.selectedVisionModels || [],
   );
-  const [expandedModels, setExpandedModels] = useState<Set<number>>(new Set());
   const [showApiKey, setShowApiKey] = useState(false);
 
   const [validationState, setValidationState] = useState<ValidationState>({
@@ -172,15 +170,13 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     searchTerm: "",
   });
 
-  // Dropdown states for the 5 individual model selectors
+  // Dropdown states for the 3 individual model selectors
   const [dropdownStates, setDropdownStates] = useState<
     Record<number, { isOpen: boolean; search: string }>
   >({
     0: { isOpen: false, search: "" },
     1: { isOpen: false, search: "" },
     2: { isOpen: false, search: "" },
-    3: { isOpen: false, search: "" },
-    4: { isOpen: false, search: "" },
   });
   const dropdownRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
@@ -528,18 +524,6 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     [textModels],
   );
 
-  const toggleModelExpansion = useCallback((index: number) => {
-    setExpandedModels((prev: Set<number>) => {
-      const newSet = new Set(prev);
-      if (newSet.has(index)) {
-        newSet.delete(index);
-      } else {
-        newSet.add(index);
-      }
-      return newSet;
-    });
-  }, []);
-
   const resetFieldForm = useCallback(
     (config: PromptCreatorConfig = promptCreatorConfigState) => {
       setFieldForm(createEmptyFieldForm(config));
@@ -798,6 +782,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
 
   const renderPromptCreatorTab = () => (
     <div className="space-y-6">
+      {/* Full-Width Configuration Section */}
       <section className="space-y-4 rounded-xl bg-[#151A21] p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
         <header>
           <h3 className="text-lg font-semibold text-white">
@@ -1044,383 +1029,401 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         </div>
       </section>
 
-      <section className="space-y-6">
-        {/* Field Creation Form - Centered and Compact */}
-        <div className="mx-auto max-w-xl rounded-xl bg-gradient-to-br from-blue-900/20 to-purple-900/20 p-4 shadow-[0_8px_24px_rgba(0,0,0,0.35)] border-2 border-blue-500/30">
-          <header className="mb-4 text-center">
-            <h3 className="text-base font-semibold text-white mb-1">
-              Create New Field
-            </h3>
-            <p className="text-xs text-gray-300">
-              Quickly define custom fields for your prompt creator
-            </p>
-            {editingFieldId && (
-              <div className="mt-2">
-                <button
-                  type="button"
-                  onClick={() => resetFieldForm()}
-                  className="rounded-md border border-white/20 px-2 py-1 text-xs text-gray-200 hover:border-blue-400"
-                >
-                  Cancel edit
-                </button>
-              </div>
-            )}
-          </header>
-
-          <form onSubmit={handleFieldSubmit} className="space-y-3">
-            {/* Field Label */}
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-white block">
-                Field label
-              </label>
-              <input
-                value={fieldForm.label}
-                onChange={(event) =>
-                  handleFieldFormChange("label", event.target.value)
-                }
-                placeholder="e.g., Time of day, Art style"
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
-              />
-            </div>
-
-            {/* Control Type */}
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-white block">
-                Control type
-              </label>
-              <select
-                value={fieldForm.type}
-                onChange={(event) => {
-                  const nextType = event.target
-                    .value as PromptCreatorField["type"];
-                  if (editingFieldId) {
-                    const original = orderedPromptCreatorFields.find(
-                      (field) => field.id === editingFieldId,
-                    );
-                    if (original && original.type !== nextType) {
-                      const confirmed = window.confirm(
-                        "Changing control type may remove existing options. Continue?",
-                      );
-                      if (!confirmed) {
-                        return;
-                      }
-                    }
-                  }
-                  handleFieldFormChange("type", nextType);
-                }}
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white focus:border-blue-500 focus:outline-none"
-              >
-                <option value="dropdown" className="bg-[#1A212A] text-white">
-                  Dropdown - Single choice from list
-                </option>
-                <option value="multiselect" className="bg-[#1A212A] text-white">
-                  Multiselect - Multiple choices from list
-                </option>
-                <option value="slider" className="bg-[#1A212A] text-white">
-                  Slider - Numeric range selector
-                </option>
-                <option value="number" className="bg-[#1A212A] text-white">
-                  Number - Direct numeric input
-                </option>
-                <option value="text" className="bg-[#1A212A] text-white">
-                  Text - Free-form text input
-                </option>
-              </select>
-            </div>
-
-            {/* Tier */}
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-white block">
-                Tier
-              </label>
-              <select
-                value={fieldForm.tier}
-                onChange={(event) =>
-                  handleFieldFormChange(
-                    "tier",
-                    event.target.value as PromptCreatorField["tier"],
-                  )
-                }
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white focus:border-blue-500 focus:outline-none"
-              >
-                <option value="mandatory" className="bg-[#1A212A] text-white">
-                  Mandatory - Must be filled
-                </option>
-                <option value="optional" className="bg-[#1A212A] text-white">
-                  Optional - Can be skipped
-                </option>
-                <option value="free" className="bg-[#1A212A] text-white">
-                  Free - No restrictions
-                </option>
-              </select>
-            </div>
-
-            {/* Order and Helper Text - Side by side */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-white block">
-                  Order
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  value={fieldForm.order}
-                  onChange={(event) =>
-                    handleFieldFormChange("order", Number(event.target.value))
-                  }
-                  placeholder="1"
-                  className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-white block">
-                  Default value
-                </label>
-                <input
-                  value={fieldForm.defaultValue}
-                  onChange={(event) =>
-                    handleFieldFormChange("defaultValue", event.target.value)
-                  }
-                  placeholder="Optional"
-                  className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
-                />
-              </div>
-            </div>
-
-            {/* Helper Text */}
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-white block">
-                Helper text (optional)
-              </label>
-              <input
-                value={fieldForm.helperText}
-                onChange={(event) =>
-                  handleFieldFormChange("helperText", event.target.value)
-                }
-                placeholder="Tooltip guidance"
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
-              />
-            </div>
-
-            {/* Type-specific fields */}
-            {(fieldForm.type === "dropdown" ||
-              fieldForm.type === "multiselect") && (
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-white block">
-                  Options (one per line)
-                </label>
-                <textarea
-                  value={fieldForm.optionsText}
-                  onChange={(event) =>
-                    handleFieldFormChange("optionsText", event.target.value)
-                  }
-                  rows={3}
-                  placeholder="Morning&#10;Afternoon&#10;Evening"
-                  className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none font-mono"
-                />
-                {fieldForm.type === "multiselect" && (
-                  <div className="flex items-center gap-2 text-xs text-gray-300">
-                    <span>Max selections</span>
-                    <input
-                      type="number"
-                      min={1}
-                      value={fieldForm.maxSelections}
-                      onChange={(event) =>
-                        handleFieldFormChange(
-                          "maxSelections",
-                          Number(event.target.value),
-                        )
-                      }
-                      placeholder="3"
-                      className="w-16 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-            {(fieldForm.type === "slider" || fieldForm.type === "number") && (
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-white block">
-                  Numeric range
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="space-y-1">
-                    <label className="text-xs text-gray-300">Min</label>
-                    <input
-                      type="number"
-                      value={fieldForm.min}
-                      onChange={(event) =>
-                        handleFieldFormChange("min", Number(event.target.value))
-                      }
-                      placeholder="0"
-                      className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs text-gray-300">Max</label>
-                    <input
-                      type="number"
-                      value={fieldForm.max}
-                      onChange={(event) =>
-                        handleFieldFormChange("max", Number(event.target.value))
-                      }
-                      placeholder="100"
-                      className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs text-gray-300">Step</label>
-                    <input
-                      type="number"
-                      value={fieldForm.step}
-                      onChange={(event) =>
-                        handleFieldFormChange(
-                          "step",
-                          Number(event.target.value),
-                        )
-                      }
-                      placeholder="1"
-                      className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-            {fieldForm.type === "text" && (
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-white block">
-                  Max characters
-                </label>
-                <input
-                  type="number"
-                  value={fieldForm.maxLength}
-                  onChange={(event) =>
-                    handleFieldFormChange(
-                      "maxLength",
-                      Number(event.target.value),
-                    )
-                  }
-                  placeholder="60"
-                  className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
-                />
-              </div>
-            )}
-
-            {/* Submit Button */}
-            <div className="pt-2 flex justify-center">
-              <button
-                type="submit"
-                className="rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-2 text-sm font-semibold text-white hover:from-blue-500 hover:to-purple-500 shadow-lg transition-all"
-              >
-                {editingFieldId ? "Update Field" : "Create Field"}
-              </button>
-            </div>
-          </form>
-        </div>
-
-        {/* Existing Fields Section - Visually Distinct */}
-        <div className="rounded-xl bg-[#151A21] p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
-          <header className="mb-4">
-            <h3 className="text-lg font-semibold text-white mb-2">
-              Existing Fields
-            </h3>
-            <p className="text-sm text-gray-400">
-              Manage and organize the fields you&apos;ve created
-            </p>
-          </header>
-
-          <div className="space-y-3">
-            {orderedPromptCreatorFields.length === 0 ? (
-              <p className="text-sm text-gray-400 text-center py-8">
-                No fields yet. Create your first field above to get started.
+      {/* Two-Column Layout: Existing Fields (Left) + Create New Field Form (Right) */}
+      <div className="flex flex-col lg:flex-row gap-6 items-start">
+        {/* Left Column: Existing Fields */}
+        <div className="flex-1 min-w-0">
+          <div className="rounded-xl bg-[#151A21] p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
+            <header className="mb-4">
+              <h3 className="text-lg font-semibold text-white mb-2">
+                Existing Fields
+              </h3>
+              <p className="text-sm text-gray-400">
+                Manage and organize the fields you&apos;ve created
               </p>
-            ) : (
-              orderedPromptCreatorFields.map((field) => (
-                <div
-                  key={field.id}
-                  className="space-y-2 rounded-lg border border-white/10 bg-white/5 p-4"
-                >
-                  <header className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                    <div className="space-y-1">
-                      <h4 className="text-base font-semibold text-white">
-                        {field.label}
-                        {field.hidden && (
-                          <span className="ml-2 rounded-full bg-yellow-500/20 px-2 py-0.5 text-xs text-yellow-300">
-                            Hidden
-                          </span>
+            </header>
+
+            <div className="space-y-3">
+              {orderedPromptCreatorFields.length === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-8">
+                  No fields yet. Create your first field in the sidebar to get
+                  started.
+                </p>
+              ) : (
+                orderedPromptCreatorFields.map((field) => (
+                  <div
+                    key={field.id}
+                    className="space-y-2 rounded-lg border border-white/10 bg-white/5 p-4"
+                  >
+                    <header className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                      <div className="space-y-1">
+                        <h4 className="text-base font-semibold text-white">
+                          {field.label}
+                          {field.hidden && (
+                            <span className="ml-2 rounded-full bg-yellow-500/20 px-2 py-0.5 text-xs text-yellow-300">
+                              Hidden
+                            </span>
+                          )}
+                        </h4>
+                        <p className="text-xs text-gray-400">
+                          Tier: {field.tier} • Type: {field.type} • Order:{" "}
+                          {field.order}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleEditField(field)}
+                          className="rounded-md border border-white/20 px-3 py-1 text-xs text-gray-200 hover:border-blue-400"
+                        >
+                          Edit
+                        </button>
+                        {field.hidden ? (
+                          <button
+                            type="button"
+                            onClick={() => handleRestoreField(field)}
+                            className="rounded-md border border-white/20 px-3 py-1 text-xs text-gray-200 hover:border-green-400"
+                          >
+                            Restore
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteField(field, false)}
+                            className="rounded-md border border-white/20 px-3 py-1 text-xs text-gray-200 hover:border-yellow-400"
+                          >
+                            Hide
+                          </button>
                         )}
-                      </h4>
-                      <p className="text-xs text-gray-400">
-                        Tier: {field.tier} • Type: {field.type} • Order:{" "}
-                        {field.order}
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteField(field, true)}
+                          className="rounded-md border border-red-500/50 px-3 py-1 text-xs text-red-300 hover:bg-red-500/10"
+                        >
+                          Hard delete
+                        </button>
+                      </div>
+                    </header>
+                    {field.helperText && (
+                      <p className="text-sm text-gray-300">
+                        Helper: {field.helperText}
                       </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleEditField(field)}
-                        className="rounded-md border border-white/20 px-3 py-1 text-xs text-gray-200 hover:border-blue-400"
-                      >
-                        Edit
-                      </button>
-                      {field.hidden ? (
-                        <button
-                          type="button"
-                          onClick={() => handleRestoreField(field)}
-                          className="rounded-md border border-white/20 px-3 py-1 text-xs text-gray-200 hover:border-green-400"
-                        >
-                          Restore
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteField(field, false)}
-                          className="rounded-md border border-white/20 px-3 py-1 text-xs text-gray-200 hover:border-yellow-400"
-                        >
-                          Hide
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteField(field, true)}
-                        className="rounded-md border border-red-500/50 px-3 py-1 text-xs text-red-300 hover:bg-red-500/10"
-                      >
-                        Hard delete
-                      </button>
-                    </div>
-                  </header>
-                  {field.helperText && (
-                    <p className="text-sm text-gray-300">
-                      Helper: {field.helperText}
-                    </p>
-                  )}
-                  {field.options && field.options.length > 0 && (
-                    <div className="text-sm text-gray-300">
-                      Options: {field.options.join(", ")}
-                      {field.maxSelections && field.type === "multiselect" && (
-                        <span className="ml-2 text-gray-400">
-                          (max {field.maxSelections})
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  {(field.type === "slider" || field.type === "number") && (
-                    <p className="text-sm text-gray-300">
-                      Range: {field.min} – {field.max} (step {field.step})
-                    </p>
-                  )}
-                  {field.type === "text" && field.maxLength && (
-                    <p className="text-sm text-gray-300">
-                      Max length: {field.maxLength}
-                    </p>
-                  )}
-                </div>
-              ))
-            )}
+                    )}
+                    {field.options && field.options.length > 0 && (
+                      <div className="text-sm text-gray-300">
+                        Options: {field.options.join(", ")}
+                        {field.maxSelections &&
+                          field.type === "multiselect" && (
+                            <span className="ml-2 text-gray-400">
+                              (max {field.maxSelections})
+                            </span>
+                          )}
+                      </div>
+                    )}
+                    {(field.type === "slider" || field.type === "number") && (
+                      <p className="text-sm text-gray-300">
+                        Range: {field.min} – {field.max} (step {field.step})
+                      </p>
+                    )}
+                    {field.type === "text" && field.maxLength && (
+                      <p className="text-sm text-gray-300">
+                        Max length: {field.maxLength}
+                      </p>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
-      </section>
+
+        {/* Right Sidebar: Field Creation Form - Sticky */}
+        <aside className="w-full lg:w-80 flex-shrink-0">
+          <div className="lg:sticky lg:top-4 rounded-xl bg-gradient-to-br from-blue-900/20 to-purple-900/20 p-4 shadow-[0_8px_24px_rgba(0,0,0,0.35)] border-2 border-blue-500/30">
+            <header className="mb-4">
+              <h3 className="text-base font-semibold text-white mb-1">
+                {editingFieldId ? "Edit Field" : "Create New Field"}
+              </h3>
+              <p className="text-xs text-gray-300">
+                {editingFieldId
+                  ? "Update the field configuration"
+                  : "Quickly define custom fields"}
+              </p>
+              {editingFieldId && (
+                <div className="mt-2">
+                  <button
+                    type="button"
+                    onClick={() => resetFieldForm()}
+                    className="rounded-md border border-white/20 px-2 py-1 text-xs text-gray-200 hover:border-blue-400"
+                  >
+                    Cancel edit
+                  </button>
+                </div>
+              )}
+            </header>
+
+            <form onSubmit={handleFieldSubmit} className="space-y-3">
+              {/* Field Label */}
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-white block">
+                  Field label
+                </label>
+                <input
+                  value={fieldForm.label}
+                  onChange={(event) =>
+                    handleFieldFormChange("label", event.target.value)
+                  }
+                  placeholder="e.g., Time of day, Art style"
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
+                />
+              </div>
+
+              {/* Control Type */}
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-white block">
+                  Control type
+                </label>
+                <select
+                  value={fieldForm.type}
+                  onChange={(event) => {
+                    const nextType = event.target
+                      .value as PromptCreatorField["type"];
+                    if (editingFieldId) {
+                      const original = orderedPromptCreatorFields.find(
+                        (field) => field.id === editingFieldId,
+                      );
+                      if (original && original.type !== nextType) {
+                        const confirmed = window.confirm(
+                          "Changing control type may remove existing options. Continue?",
+                        );
+                        if (!confirmed) {
+                          return;
+                        }
+                      }
+                    }
+                    handleFieldFormChange("type", nextType);
+                  }}
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white focus:border-blue-500 focus:outline-none"
+                >
+                  <option value="dropdown" className="bg-[#1A212A] text-white">
+                    Dropdown - Single choice from list
+                  </option>
+                  <option
+                    value="multiselect"
+                    className="bg-[#1A212A] text-white"
+                  >
+                    Multiselect - Multiple choices from list
+                  </option>
+                  <option value="slider" className="bg-[#1A212A] text-white">
+                    Slider - Numeric range selector
+                  </option>
+                  <option value="number" className="bg-[#1A212A] text-white">
+                    Number - Direct numeric input
+                  </option>
+                  <option value="text" className="bg-[#1A212A] text-white">
+                    Text - Free-form text input
+                  </option>
+                </select>
+              </div>
+
+              {/* Tier */}
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-white block">
+                  Tier
+                </label>
+                <select
+                  value={fieldForm.tier}
+                  onChange={(event) =>
+                    handleFieldFormChange(
+                      "tier",
+                      event.target.value as PromptCreatorField["tier"],
+                    )
+                  }
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white focus:border-blue-500 focus:outline-none"
+                >
+                  <option value="mandatory" className="bg-[#1A212A] text-white">
+                    Mandatory - Must be filled
+                  </option>
+                  <option value="optional" className="bg-[#1A212A] text-white">
+                    Optional - Can be skipped
+                  </option>
+                  <option value="free" className="bg-[#1A212A] text-white">
+                    Free - No restrictions
+                  </option>
+                </select>
+              </div>
+
+              {/* Order and Helper Text - Side by side */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-white block">
+                    Order
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={fieldForm.order}
+                    onChange={(event) =>
+                      handleFieldFormChange("order", Number(event.target.value))
+                    }
+                    placeholder="1"
+                    className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-white block">
+                    Default value
+                  </label>
+                  <input
+                    value={fieldForm.defaultValue}
+                    onChange={(event) =>
+                      handleFieldFormChange("defaultValue", event.target.value)
+                    }
+                    placeholder="Optional"
+                    className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Helper Text */}
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-white block">
+                  Helper text (optional)
+                </label>
+                <input
+                  value={fieldForm.helperText}
+                  onChange={(event) =>
+                    handleFieldFormChange("helperText", event.target.value)
+                  }
+                  placeholder="Tooltip guidance"
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
+                />
+              </div>
+
+              {/* Type-specific fields */}
+              {(fieldForm.type === "dropdown" ||
+                fieldForm.type === "multiselect") && (
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-white block">
+                    Options (one per line)
+                  </label>
+                  <textarea
+                    value={fieldForm.optionsText}
+                    onChange={(event) =>
+                      handleFieldFormChange("optionsText", event.target.value)
+                    }
+                    rows={3}
+                    placeholder="Morning&#10;Afternoon&#10;Evening"
+                    className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none font-mono"
+                  />
+                  {fieldForm.type === "multiselect" && (
+                    <div className="flex items-center gap-2 text-xs text-gray-300">
+                      <span>Max selections</span>
+                      <input
+                        type="number"
+                        min={1}
+                        value={fieldForm.maxSelections}
+                        onChange={(event) =>
+                          handleFieldFormChange(
+                            "maxSelections",
+                            Number(event.target.value),
+                          )
+                        }
+                        placeholder="3"
+                        className="w-16 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+              {(fieldForm.type === "slider" || fieldForm.type === "number") && (
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-white block">
+                    Numeric range
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-xs text-gray-300">Min</label>
+                      <input
+                        type="number"
+                        value={fieldForm.min}
+                        onChange={(event) =>
+                          handleFieldFormChange(
+                            "min",
+                            Number(event.target.value),
+                          )
+                        }
+                        placeholder="0"
+                        className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-gray-300">Max</label>
+                      <input
+                        type="number"
+                        value={fieldForm.max}
+                        onChange={(event) =>
+                          handleFieldFormChange(
+                            "max",
+                            Number(event.target.value),
+                          )
+                        }
+                        placeholder="100"
+                        className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-gray-300">Step</label>
+                      <input
+                        type="number"
+                        value={fieldForm.step}
+                        onChange={(event) =>
+                          handleFieldFormChange(
+                            "step",
+                            Number(event.target.value),
+                          )
+                        }
+                        placeholder="1"
+                        className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+              {fieldForm.type === "text" && (
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-white block">
+                    Max characters
+                  </label>
+                  <input
+                    type="number"
+                    value={fieldForm.maxLength}
+                    onChange={(event) =>
+                      handleFieldFormChange(
+                        "maxLength",
+                        Number(event.target.value),
+                      )
+                    }
+                    placeholder="60"
+                    className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
+                  />
+                </div>
+              )}
+
+              {/* Submit Button */}
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  className="w-full rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-2 text-sm font-semibold text-white hover:from-blue-500 hover:to-purple-500 shadow-lg transition-all"
+                >
+                  {editingFieldId ? "Update Field" : "Create Field"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </aside>
+      </div>
     </div>
   );
 
@@ -1441,7 +1444,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-white flex items-center">
-            Vision Models (Select up to 5)
+            Vision Models (Select up to 3)
           </h3>
           <div className="flex items-center gap-3">
             <button
@@ -1479,118 +1482,212 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         {modelState.models.length > 0 && (
           <>
             <div className="text-sm text-gray-400">
-              Selected: {selectedVisionModels.length} / 5
+              Selected: {selectedVisionModels.length} / 3
             </div>
 
-            {/* Vision Model Selectors */}
-            <div className="space-y-3">
-              {[0, 1, 2, 3, 4].map((index) => {
+            {/* Vision Model Selectors - Vertical Layout (3 columns) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[0, 1, 2].map((index) => {
                 const selectedModelId = selectedVisionModels[index];
                 const selectedModelData = selectedModelId
                   ? modelState.models.find((m) => m.id === selectedModelId)
                   : null;
-                const isExpanded = expandedModels.has(index);
+                const isDropdownOpen = dropdownStates[index]?.isOpen || false;
+                const searchValue = dropdownStates[index]?.search || "";
+
+                // Filter models for this dropdown
+                const query = searchValue.toLowerCase();
+                const filteredModels = modelState.models.filter(
+                  (m) =>
+                    m.name.toLowerCase().includes(query) ||
+                    m.id.toLowerCase().includes(query),
+                );
+
+                // Separate pinned and unpinned models
+                const pinnedSet = new Set(settings.pinnedModels || []);
+                const pinnedModels = filteredModels.filter((m) =>
+                  pinnedSet.has(m.id),
+                );
+                const unpinnedModels = filteredModels.filter(
+                  (m) => !pinnedSet.has(m.id),
+                );
 
                 return (
                   <div
                     key={index}
-                    className="bg-[#151A21] rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.35)]"
+                    className="bg-[#151A21] rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.35)] p-6"
                   >
-                    <div className="p-6">
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-semibold text-white">
-                          Vision Model {index + 1}
-                        </h4>
-                        {selectedModelData && (
-                          <button
-                            onClick={() => toggleModelExpansion(index)}
-                            className="text-gray-400 hover:text-gray-300"
-                          >
-                            {isExpanded ? (
-                              <ChevronUp className="h-5 w-5" />
-                            ) : (
-                              <ChevronDown className="h-5 w-5" />
-                            )}
-                          </button>
-                        )}
-                      </div>
+                    <h4 className="font-semibold text-white mb-3">
+                      Vision Model {index + 1}
+                    </h4>
 
-                      {/* Enhanced Dropdown with Search, Pricing, Pinning, Grouping, and Sorting */}
-                      <div
-                        className="relative"
-                        ref={(el) => {
-                          if (el) dropdownRefs.current[index] = el;
+                    {/* Enhanced Dropdown with Search, Pricing, Pinning */}
+                    <div
+                      className="relative"
+                      ref={(el) => {
+                        if (el) dropdownRefs.current[index] = el;
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDropdownStates((prev) => ({
+                            ...prev,
+                            [index]: {
+                              isOpen: !isDropdownOpen,
+                              search: searchValue,
+                            },
+                          }));
                         }}
+                        className="w-full px-4 py-2 border-none rounded-lg focus:ring-2 focus:ring-blue-500/50 bg-white/5 hover:bg-white/10 text-left flex items-center justify-between transition-colors"
+                        aria-label={`Select Vision Model ${index + 1}`}
                       >
-                        <select
-                          value={selectedVisionModels[index] || ""}
-                          onChange={(e) => {
-                            const newModels = [...selectedVisionModels];
-                            newModels[index] = e.target.value;
-                            setSelectedVisionModels(newModels.filter(Boolean));
-                          }}
-                          className="w-full px-4 py-2 border-none rounded-lg focus:ring-2 focus:ring-blue-500/50 bg-white/5 focus:bg-white/10 text-white transition-colors [&>option]:bg-[#1A212A] [&>option]:text-white [&>option:disabled]:text-gray-500"
+                        <span
+                          className="text-white text-sm"
+                          title={
+                            selectedModelData
+                              ? selectedModelData.name
+                              : "Select a model…"
+                          }
                         >
-                          <option value="" className="bg-[#1A212A] text-white">
-                            -- Select a model --
-                          </option>
-                          {modelState.models.map((model) => (
-                            <option
-                              key={model.id}
-                              value={model.id}
-                              disabled={
-                                selectedVisionModels.includes(model.id) &&
-                                selectedVisionModels[index] !== model.id
-                              }
-                              title={model.name}
-                              className="bg-[#1A212A] text-white disabled:text-gray-500"
-                            >
-                              {middleEllipsis(model.name, 50)}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                          {selectedModelData
+                            ? middleEllipsis(selectedModelData.name, 25)
+                            : "Select a model…"}
+                        </span>
+                        <ChevronDown
+                          className={`h-4 w-4 text-gray-500 transition-transform flex-shrink-0 ${isDropdownOpen ? "transform rotate-180" : ""}`}
+                        />
+                      </button>
 
-                      {/* Collapsible Model Info */}
-                      {selectedModelData && isExpanded && (
-                        <div className="mt-3 p-4 bg-white/5 rounded-lg border border-white/10 text-sm">
-                          <div className="space-y-2">
-                            <div className="flex justify-between">
-                              <span className="font-medium text-gray-300">
-                                Model:
-                              </span>
-                              <span className="text-white">
-                                {selectedModelData.name}
-                              </span>
+                      {isDropdownOpen && (
+                        <div className="absolute z-10 w-full mt-1 bg-[#1A212A] border border-white/10 rounded-lg shadow-[0_24px_56px_rgba(0,0,0,0.55)] max-h-80 overflow-hidden flex flex-col">
+                          <div className="p-2 border-b border-white/6">
+                            <div className="relative">
+                              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                              <input
+                                type="text"
+                                placeholder="Search models..."
+                                value={searchValue}
+                                onChange={(e) => {
+                                  setDropdownStates((prev) => ({
+                                    ...prev,
+                                    [index]: {
+                                      isOpen: true,
+                                      search: e.target.value,
+                                    },
+                                  }));
+                                }}
+                                className="w-full pl-10 pr-4 py-2 border-none rounded-lg focus:ring-2 focus:ring-blue-500/50 bg-white/5 focus:bg-white/10 text-white placeholder:text-gray-500 text-sm transition-colors"
+                                onClick={(e) => e.stopPropagation()}
+                                autoFocus
+                              />
                             </div>
-                            <div className="flex justify-between">
-                              <span className="font-medium text-gray-300">
-                                Prompt Price:
-                              </span>
-                              <span className="text-white">
-                                {formatPrice(selectedModelData.pricing.prompt)}
-                              </span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="font-medium text-gray-300">
-                                Completion Price:
-                              </span>
-                              <span className="text-white">
-                                {formatPrice(
-                                  selectedModelData.pricing.completion,
-                                )}
-                              </span>
-                            </div>
-                            {selectedModelData.description && (
-                              <div>
-                                <span className="font-medium text-gray-300">
-                                  Description:
-                                </span>
-                                <p className="text-gray-400 mt-1">
-                                  {selectedModelData.description}
-                                </p>
-                              </div>
-                            )}
+                          </div>
+
+                          <div className="overflow-y-auto flex-1">
+                            {(() => {
+                              const renderRow = (
+                                model: (typeof modelState.models)[number],
+                              ) => {
+                                const isPinned = pinnedSet.has(model.id);
+                                const isSelected = selectedModelId === model.id;
+                                const isDisabled =
+                                  selectedVisionModels.includes(model.id) &&
+                                  !isSelected;
+
+                                return (
+                                  <button
+                                    key={model.id}
+                                    type="button"
+                                    onClick={() => {
+                                      if (!isDisabled) {
+                                        const newModels = [
+                                          ...selectedVisionModels,
+                                        ];
+                                        newModels[index] = model.id;
+                                        setSelectedVisionModels(
+                                          newModels.filter(Boolean),
+                                        );
+                                        setDropdownStates((prev) => ({
+                                          ...prev,
+                                          [index]: {
+                                            isOpen: false,
+                                            search: "",
+                                          },
+                                        }));
+                                      }
+                                    }}
+                                    disabled={isDisabled}
+                                    className={`w-full px-4 py-2 text-left hover:bg-white/5 transition-colors ${
+                                      isSelected
+                                        ? "bg-blue-900/30 text-blue-400"
+                                        : isDisabled
+                                          ? "text-gray-500 cursor-not-allowed"
+                                          : "text-white"
+                                    }`}
+                                    title={model.name}
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <div className="min-w-0 flex-1">
+                                        <div className="text-sm font-medium">
+                                          {middleEllipsis(model.name, 30)}
+                                        </div>
+                                        <div className="text-xs text-gray-400">
+                                          {formatPrice(
+                                            model.pricing.prompt +
+                                              model.pricing.completion,
+                                          )}
+                                          /token
+                                        </div>
+                                      </div>
+                                      <button
+                                        type="button"
+                                        aria-label={
+                                          isPinned ? "Unpin model" : "Pin model"
+                                        }
+                                        className="ml-3 text-gray-400 hover:text-gray-300 flex-shrink-0"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          hookTogglePinnedModel(model.id);
+                                          addToast(
+                                            isPinned
+                                              ? "Model unpinned"
+                                              : "Model pinned",
+                                            "success",
+                                          );
+                                        }}
+                                      >
+                                        {isPinned ? (
+                                          <Pin className="h-4 w-4 text-blue-600" />
+                                        ) : (
+                                          <PinOff className="h-4 w-4" />
+                                        )}
+                                      </button>
+                                    </div>
+                                  </button>
+                                );
+                              };
+
+                              return (
+                                <>
+                                  {pinnedModels.length > 0 && (
+                                    <>
+                                      <div className="px-4 py-1 text-xs uppercase tracking-wide text-gray-400">
+                                        Pinned
+                                      </div>
+                                      {pinnedModels.map((m) => renderRow(m))}
+                                      <div className="my-1 border-t border-white/6" />
+                                    </>
+                                  )}
+                                  {unpinnedModels.map((m) => renderRow(m))}
+                                  {filteredModels.length === 0 && (
+                                    <div className="px-4 py-3 text-sm text-gray-400 text-center">
+                                      No models found
+                                    </div>
+                                  )}
+                                </>
+                              );
+                            })()}
                           </div>
                         </div>
                       )}
@@ -1603,17 +1700,16 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         )}
       </div>
     ),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       modelState,
       validationState.isValid,
       selectedVisionModels,
-      expandedModels,
+      dropdownStates,
       settings.lastModelFetch,
       settings.pinnedModels,
       fetchModels,
-      toggleModelExpansion,
       hookTogglePinnedModel,
+      addToast,
     ],
   );
 
