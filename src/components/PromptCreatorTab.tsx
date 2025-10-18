@@ -318,12 +318,18 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
             onChange={(event) =>
               handleSelectionChange(field, event.target.value || null)
             }
-            className="w-full rounded-md border border-white/10 bg-gray-900/60 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none"
+            className="w-full rounded-md border border-white/10 bg-gray-900/60 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none [&>option]:bg-[#1A212A] [&>option]:text-white"
             aria-describedby={helperTextId}
           >
-            <option value="">Select…</option>
+            <option value="" className="bg-[#1A212A] text-white">
+              Select…
+            </option>
             {field.options.map((option) => (
-              <option key={option} value={option}>
+              <option
+                key={option}
+                value={option}
+                className="bg-[#1A212A] text-white"
+              >
                 {option}
               </option>
             ))}
@@ -827,10 +833,14 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
                   sortOrder: event.target.value as "date" | "score",
                 }))
               }
-              className="rounded-md border border-white/10 bg-gray-900/60 px-2 py-1 text-sm text-white"
+              className="rounded-md border border-white/10 bg-gray-900/60 px-2 py-1 text-sm text-white [&>option]:bg-[#1A212A] [&>option]:text-white"
             >
-              <option value="date">Newest</option>
-              <option value="score">Score</option>
+              <option value="date" className="bg-[#1A212A] text-white">
+                Newest
+              </option>
+              <option value="score" className="bg-[#1A212A] text-white">
+                Score
+              </option>
             </select>
           </label>
         </header>
