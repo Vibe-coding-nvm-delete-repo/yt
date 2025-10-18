@@ -174,4 +174,32 @@ describe("SettingsTab - Enhanced Model Dropdowns", () => {
     const text = container.textContent || "";
     expect(text).toContain("Selected: 0 / 3");
   });
+
+  it("applies overflow-visible to dropdown containers to prevent clipping", () => {
+    const settings = createMockSettings();
+
+    const { container } = render(
+      <ToastProvider>
+        <SettingsTab settings={settings} onSettingsUpdate={jest.fn()} />
+      </ToastProvider>,
+    );
+
+    // Switch to model selection tab
+    const modelTab = screen.getByText("Model Selection");
+    fireEvent.click(modelTab);
+
+    // Check that the grid container has overflow-visible
+    const gridContainer = container.querySelector(".grid.grid-cols-1");
+    expect(gridContainer).toBeInTheDocument();
+    expect(gridContainer?.className).toContain("overflow-visible");
+
+    // Check that individual dropdown card containers have overflow-visible
+    const dropdownCards = container.querySelectorAll(
+      ".bg-\\[\\#151A21\\].rounded-xl.p-6",
+    );
+    expect(dropdownCards.length).toBeGreaterThan(0);
+    dropdownCards.forEach((card) => {
+      expect(card.className).toContain("overflow-visible");
+    });
+  });
 });
