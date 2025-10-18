@@ -876,12 +876,15 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
           {uiState.generationSteps.length > 0 && (
             <details
               open={uiState.showBackendProcess}
-              onToggle={(e) =>
-                setUiState((prev) => ({
-                  ...prev,
-                  showBackendProcess: e.currentTarget.open,
-                }))
-              }
+              onToggle={(e) => {
+                const target = e.currentTarget;
+                if (target) {
+                  setUiState((prev) => ({
+                    ...prev,
+                    showBackendProcess: target.open,
+                  }));
+                }
+              }}
               className="rounded-md border border-green-500/20 bg-gray-900/40 p-3 text-sm"
             >
               <summary className="cursor-pointer text-green-100 font-medium">
