@@ -566,7 +566,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
                 No Models Selected
               </h2>
               <p className="text-sm text-blue-400 mt-1">
-                Please select up to 5 vision models in the Settings tab.
+                Please select up to 3 vision models in the Settings tab.
               </p>
             </div>
           </div>
@@ -694,7 +694,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
 
       {/* Model Results - Horizontal Layout (Columns) */}
       {modelResults.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 mb-16">
           {modelResults.map((result) => (
             <div
               key={result.modelId}
