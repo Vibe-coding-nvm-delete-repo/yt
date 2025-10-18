@@ -20,13 +20,14 @@ import type {
   ImageBatchEntry,
   ModelResult,
 } from "@/types";
+import { STORAGE_KEYS } from "@/lib/constants";
 
-const STORAGE_KEY = "image-to-prompt-settings";
-const IMAGE_STATE_KEY = "image-to-prompt-image-state";
+const STORAGE_KEY = STORAGE_KEYS.SETTINGS;
+const IMAGE_STATE_KEY = STORAGE_KEYS.IMAGE_STATE;
 
 export const STORAGE_EVENTS = {
-  SETTINGS_UPDATED: "image-to-prompt-settings-updated",
-  IMAGE_STATE_UPDATED: "image-to-prompt-image-state-updated",
+  SETTINGS_UPDATED: `${STORAGE_KEYS.SETTINGS}-updated`,
+  IMAGE_STATE_UPDATED: `${STORAGE_KEYS.IMAGE_STATE}-updated`,
 } as const;
 
 type SettingsKey = keyof AppSettings;

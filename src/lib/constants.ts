@@ -47,7 +47,8 @@ export const TIMING = {
  * Storage keys
  */
 export const STORAGE_KEYS = {
-  SETTINGS: "yt-settings",
+  SETTINGS: "image-to-prompt-settings", // Main settings key (legacy name)
+  IMAGE_STATE: "image-to-prompt-image-state",
   HISTORY: "yt-history",
   BEST_PRACTICES: "yt-best-practices",
   PROMPT_CREATOR_CONFIG: "yt-prompt-creator-config",
@@ -60,9 +61,15 @@ export const STORAGE_KEYS = {
  * UI constraints
  */
 export const UI_CONSTRAINTS = {
-  MAX_FILE_SIZE_MB: 20,
-  MAX_FILE_SIZE_BYTES: 20 * 1024 * 1024,
-  SUPPORTED_IMAGE_TYPES: ["image/jpeg", "image/png", "image/webp", "image/gif"],
+  MAX_FILE_SIZE_MB: 10,
+  MAX_FILE_SIZE_BYTES: 10 * 1024 * 1024,
+  SUPPORTED_IMAGE_TYPES: [
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/webp",
+    "image/gif",
+  ],
   MAX_PROMPT_LENGTH: 4000,
   MAX_FIELD_LABEL_LENGTH: 100,
   MAX_HELPER_TEXT_LENGTH: 200,

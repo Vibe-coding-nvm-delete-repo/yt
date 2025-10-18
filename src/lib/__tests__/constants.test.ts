@@ -70,7 +70,8 @@ describe("Application Constants", () => {
 
   describe("STORAGE_KEYS", () => {
     it("should define localStorage keys", () => {
-      expect(STORAGE_KEYS.SETTINGS).toBe("yt-settings");
+      expect(STORAGE_KEYS.SETTINGS).toBe("image-to-prompt-settings");
+      expect(STORAGE_KEYS.IMAGE_STATE).toBe("image-to-prompt-image-state");
       expect(STORAGE_KEYS.HISTORY).toBe("yt-history");
       expect(STORAGE_KEYS.BEST_PRACTICES).toBe("yt-best-practices");
     });
@@ -89,8 +90,8 @@ describe("Application Constants", () => {
     it("should have consistent naming convention", () => {
       const keys = Object.values(STORAGE_KEYS);
       keys.forEach((key) => {
-        if (!key.includes("Images")) {
-          // IndexedDB name exception
+        // Allow legacy names and IndexedDB names
+        if (!key.includes("Images") && !key.includes("image-to-prompt")) {
           expect(key).toMatch(/^yt-/);
         }
       });
@@ -99,8 +100,8 @@ describe("Application Constants", () => {
 
   describe("UI_CONSTRAINTS", () => {
     it("should define file size limits", () => {
-      expect(UI_CONSTRAINTS.MAX_FILE_SIZE_MB).toBe(20);
-      expect(UI_CONSTRAINTS.MAX_FILE_SIZE_BYTES).toBe(20 * 1024 * 1024);
+      expect(UI_CONSTRAINTS.MAX_FILE_SIZE_MB).toBe(10);
+      expect(UI_CONSTRAINTS.MAX_FILE_SIZE_BYTES).toBe(10 * 1024 * 1024);
     });
 
     it("should have consistent file size values", () => {
@@ -111,6 +112,7 @@ describe("Application Constants", () => {
 
     it("should define supported image types", () => {
       expect(UI_CONSTRAINTS.SUPPORTED_IMAGE_TYPES).toContain("image/jpeg");
+      expect(UI_CONSTRAINTS.SUPPORTED_IMAGE_TYPES).toContain("image/jpg");
       expect(UI_CONSTRAINTS.SUPPORTED_IMAGE_TYPES).toContain("image/png");
       expect(UI_CONSTRAINTS.SUPPORTED_IMAGE_TYPES).toContain("image/webp");
       expect(UI_CONSTRAINTS.SUPPORTED_IMAGE_TYPES).toContain("image/gif");

@@ -1,9 +1,10 @@
 import type { BestPractice, BestPracticeCategory } from "@/types";
+import { STORAGE_KEYS } from "@/lib/constants";
 
-const STORAGE_KEY = "yt-best-practices";
+const STORAGE_KEY = STORAGE_KEYS.BEST_PRACTICES;
 
 export const BEST_PRACTICES_EVENTS = {
-  PRACTICES_UPDATED: "yt-best-practices-updated",
+  PRACTICES_UPDATED: `${STORAGE_KEYS.BEST_PRACTICES}-updated`,
 } as const;
 
 type SubscriptionCallback = (practices: BestPractice[]) => void;

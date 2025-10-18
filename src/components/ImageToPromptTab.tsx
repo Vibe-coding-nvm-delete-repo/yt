@@ -21,6 +21,7 @@ import {
 import Image from "next/image";
 import { RatingWidget } from "@/components/RatingWidget";
 import { middleEllipsis } from "@/utils/truncation";
+import { UI_CONSTRAINTS } from "@/lib/constants";
 
 interface ImageToPromptTabProps {
   settings: AppSettings;
@@ -204,19 +205,15 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   }, []);
 
   const validateFile = useCallback((file: File): string | null => {
-    const allowedTypes = [
-      "image/jpeg",
-      "image/jpg",
-      "image/png",
-      "image/webp",
-      "image/gif",
-    ];
-    if (!allowedTypes.includes(file.type)) {
+    if (
+      !(UI_CONSTRAINTS.SUPPORTED_IMAGE_TYPES as readonly string[]).includes(
+        file.type,
+      )
+    ) {
       return "Invalid file type. Please upload a JPEG, PNG, WebP, or GIF image.";
     }
-    const maxSize = 10 * 1024 * 1024; // 10MB
-    if (file.size > maxSize) {
-      return "File size too large. Please upload an image smaller than 10MB.";
+    if (file.size > UI_CONSTRAINTS.MAX_FILE_SIZE_BYTES) {
+      return `File size too large. Please upload an image smaller than ${UI_CONSTRAINTS.MAX_FILE_SIZE_MB}MB.`;
     }
     return null;
   }, []);
