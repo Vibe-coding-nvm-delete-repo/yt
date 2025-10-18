@@ -131,6 +131,11 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
     isLockedPromptLocked: true,
     showBackendProcess: false,
     draggedFieldId: null as string | null,
+    generationSteps: [] as Array<{
+      label: string;
+      status: "pending" | "active" | "completed" | "error";
+      detail?: string;
+    }>,
   });
   const [currentOutput, setCurrentOutput] = useState<{
     content: string;
@@ -147,8 +152,15 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
     setConfig(promptCreatorConfigStorage.load());
   }, []);
 
+  // Refresh config on component mount, focus, and storage changes
   useEffect(() => {
+    // Initial load
     refreshConfig();
+
+    const handleFocus = () => {
+      // Refresh config when window regains focus to pick up any changes from Settings
+      refreshConfig();
+    };
 
     const handleStorage = (event: StorageEvent) => {
       if (!event.key) return;
@@ -160,8 +172,13 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
       }
     };
 
+    window.addEventListener("focus", handleFocus);
     window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("storage", handleStorage);
+    };
   }, [refreshConfig]);
 
   const visibleFields = useMemo(
@@ -485,6 +502,7 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
     async (
       systemPrompt: string,
       userContent: string,
+      modelId: string,
     ): Promise<{
       content: string;
       usage: ChatUsage;
@@ -502,7 +520,7 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
               "X-Title": "Prompt Creator",
             },
             body: JSON.stringify({
-              model: config.openRouterModelId,
+              model: modelId,
               messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: userContent },
@@ -534,60 +552,169 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
         );
       }
     },
-    [apiKey, config.openRouterModelId],
+    [apiKey],
   );
 
   const generatePrompts = async () => {
-    if (!config.openRouterModelId) {
-      setUiState((prev) => ({
-        ...prev,
-        error: "Set a model ID in Settings → Prompt Creator before generating.",
-      }));
-      return;
-    }
-    if (!apiKey) {
-      setUiState((prev) => ({
-        ...prev,
-        error:
-          "Add an OpenRouter API key in Settings before generating prompts.",
-      }));
-      return;
-    }
+    // Initialize generation steps
+    const steps = [
+      {
+        label: "Loading configuration",
+        status: "pending" as const,
+        detail: "",
+      },
+      {
+        label: "Building prompt from selections",
+        status: "pending" as const,
+        detail: "",
+      },
+      {
+        label: "Preparing API request",
+        status: "pending" as const,
+        detail: "",
+      },
+      {
+        label: "Sending request to OpenRouter",
+        status: "pending" as const,
+        detail: "",
+      },
+      { label: "Processing response", status: "pending" as const, detail: "" },
+    ];
 
-    const variablesText = buildVariablesText(visibleFields, draft.selections);
-    const lockedInPrompt = config.lockedInPrompt || "";
-    const fullPromptInput = lockedInPrompt
-      ? `${lockedInPrompt}\n\n${variablesText}`
-      : variablesText;
-
-    setUiState((prev) => ({ ...prev, isGenerating: true, error: null }));
+    setUiState((prev) => ({
+      ...prev,
+      isGenerating: true,
+      error: null,
+      showBackendProcess: true,
+      generationSteps: steps,
+    }));
     setCurrentOutput({ content: "", copied: false }); // Clear previous output
 
+    const updateStep = (
+      index: number,
+      status: "active" | "completed" | "error",
+      detail?: string,
+    ) => {
+      setUiState((prev) => ({
+        ...prev,
+        generationSteps: prev.generationSteps.map((step, i) =>
+          i === index
+            ? { ...step, status, ...(detail !== undefined ? { detail } : {}) }
+            : step,
+        ),
+      }));
+    };
+
     try {
-      const generation = await callChatCompletion(
-        config.promptGenInstructions,
-        fullPromptInput,
+      // Step 1: Load configuration
+      updateStep(0, "active");
+      const latestConfig = promptCreatorConfigStorage.load();
+      setConfig(latestConfig);
+
+      if (!latestConfig.openRouterModelId) {
+        updateStep(0, "error", "No model selected");
+        setUiState((prev) => ({
+          ...prev,
+          error:
+            "Set a model ID in Settings → Prompt Creator before generating.",
+          isGenerating: false,
+        }));
+        return;
+      }
+      if (!apiKey) {
+        updateStep(0, "error", "No API key found");
+        setUiState((prev) => ({
+          ...prev,
+          error:
+            "Add an OpenRouter API key in Settings before generating prompts.",
+          isGenerating: false,
+        }));
+        return;
+      }
+      updateStep(
+        0,
+        "completed",
+        `Model: ${latestConfig.openRouterModelId.split("/").pop()}`,
       );
 
-      // Set the current output immediately after generation with metadata
+      // Step 2: Build prompt from selections
+      updateStep(1, "active");
+      const variablesText = buildVariablesText(visibleFields, draft.selections);
+      const lockedInPrompt = latestConfig.lockedInPrompt || "";
+      const fullPromptInput = lockedInPrompt
+        ? `${lockedInPrompt}\n\n${variablesText}`
+        : variablesText;
+      updateStep(1, "completed", `${visibleFields.length} fields combined`);
+
+      // Step 3: Prepare API request
+      updateStep(2, "active");
+      updateStep(
+        2,
+        "completed",
+        `Request prepared for ${latestConfig.openRouterModelId.split("/").pop()}`,
+      );
+
+      // Step 4: Send request to OpenRouter
+      updateStep(3, "active");
+      const generation = await callChatCompletion(
+        latestConfig.promptGenInstructions,
+        fullPromptInput,
+        latestConfig.openRouterModelId,
+      );
+      updateStep(
+        3,
+        "completed",
+        `Received ${generation.usage.completion_tokens ?? 0} tokens`,
+      );
+
+      // Step 5: Process response
+      updateStep(4, "active");
       setCurrentOutput({
         content: generation.content,
         copied: false,
         metadata: {
-          model: config.openRouterModelId,
+          model: latestConfig.openRouterModelId,
           inputTokens: generation.usage.prompt_tokens ?? 0,
           outputTokens: generation.usage.completion_tokens ?? 0,
           totalCost: 0, // Calculate if pricing is available
         },
       });
+      updateStep(
+        4,
+        "completed",
+        `Generated ${generation.content.length} characters`,
+      );
     } catch (generationError) {
-      setUiState((prev) => ({
-        ...prev,
-        error:
-          generationError instanceof Error
-            ? generationError.message
-            : "Prompt generation failed.",
-      }));
+      // Find the first non-completed step and mark it as error
+      setUiState((prev) => {
+        const errorStepIndex = prev.generationSteps.findIndex(
+          (s) => s.status !== "completed",
+        );
+        const updatedSteps =
+          errorStepIndex >= 0
+            ? prev.generationSteps.map((step, i) =>
+                i === errorStepIndex
+                  ? {
+                      ...step,
+                      status: "error" as const,
+                      detail:
+                        generationError instanceof Error
+                          ? generationError.message
+                          : "Failed",
+                    }
+                  : step,
+              )
+            : prev.generationSteps;
+
+        return {
+          ...prev,
+          error:
+            generationError instanceof Error
+              ? generationError.message
+              : "Prompt generation failed.",
+          generationSteps: updatedSteps,
+        };
+      });
     } finally {
       setUiState((prev) => ({ ...prev, isGenerating: false }));
     }
@@ -745,46 +872,70 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
             )}
           </div>
 
-          {/* 4. Backend Process Section (Collapsed) */}
-          <details
-            open={uiState.showBackendProcess}
-            onToggle={(e) =>
-              setUiState((prev) => ({
-                ...prev,
-                showBackendProcess: e.currentTarget.open,
-              }))
-            }
-            className="rounded-md border border-green-500/20 bg-gray-900/40 p-3 text-sm"
-          >
-            <summary className="cursor-pointer text-green-100 font-medium">
-              Backend Process Steps
-            </summary>
-            <div className="mt-3 space-y-2 text-green-200">
-              <div className="flex items-start gap-2">
-                <span className="text-green-400">✓</span>
-                <span>Loaded locked prompt from configuration</span>
+          {/* Backend Process Section (Collapsed) */}
+          {uiState.generationSteps.length > 0 && (
+            <details
+              open={uiState.showBackendProcess}
+              onToggle={(e) =>
+                setUiState((prev) => ({
+                  ...prev,
+                  showBackendProcess: e.currentTarget.open,
+                }))
+              }
+              className="rounded-md border border-green-500/20 bg-gray-900/40 p-3 text-sm"
+            >
+              <summary className="cursor-pointer text-green-100 font-medium">
+                Backend Process Steps{" "}
+                {uiState.isGenerating && (
+                  <span className="ml-2 text-xs text-blue-300">
+                    (In Progress...)
+                  </span>
+                )}
+              </summary>
+              <div className="mt-3 space-y-2 text-green-200">
+                {uiState.generationSteps.map((step, index) => (
+                  <div key={index} className="flex items-start gap-2">
+                    <span
+                      className={`flex-shrink-0 ${
+                        step.status === "completed"
+                          ? "text-green-400"
+                          : step.status === "active"
+                            ? "text-blue-400"
+                            : step.status === "error"
+                              ? "text-red-400"
+                              : "text-gray-500"
+                      }`}
+                    >
+                      {step.status === "completed" && "✓"}
+                      {step.status === "active" && "⋯"}
+                      {step.status === "error" && "✗"}
+                      {step.status === "pending" && "○"}
+                    </span>
+                    <div className="flex-1">
+                      <span
+                        className={
+                          step.status === "active"
+                            ? "text-blue-300 font-medium"
+                            : step.status === "error"
+                              ? "text-red-300"
+                              : step.status === "completed"
+                                ? "text-green-200"
+                                : "text-gray-400"
+                        }
+                      >
+                        {step.label}
+                      </span>
+                      {step.detail && (
+                        <span className="ml-2 text-xs text-gray-400">
+                          — {step.detail}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="flex items-start gap-2">
-                <span className="text-green-400">✓</span>
-                <span>Combined locked prompt with field selections</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-green-400">✓</span>
-                <span>
-                  Sent request to OpenRouter API with model:{" "}
-                  {config.openRouterModelId}
-                </span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-green-400">✓</span>
-                <span>Received generated prompt from API</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-green-400">✓</span>
-                <span>Validated output and character count</span>
-              </div>
-            </div>
-          </details>
+            </details>
+          )}
         </section>
       )}
 
