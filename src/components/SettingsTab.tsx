@@ -792,7 +792,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   const renderPromptCreatorTab = () => (
     <div className="space-y-6">
       {/* Full-Width Configuration Section */}
-      <section className="space-y-4 rounded-xl bg-[#151A21] p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
+      <section className="space-y-4 rounded-xl bg-[#151A21] p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)] overflow-visible">
         <header>
           <h3 className="text-lg font-semibold text-white">
             Prompt Creator Configuration
@@ -897,7 +897,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                   />
                 </button>
                 {isTextModelDropdownOpen && (
-                  <div className="absolute z-10 w-full mt-1 bg-[#1A212A] border border-white/10 rounded-lg shadow-[0_24px_56px_rgba(0,0,0,0.55)] max-h-80 overflow-hidden flex flex-col">
+                  <div className="absolute z-50 w-full mt-1 bg-[#1A212A] border border-white/10 rounded-lg shadow-[0_24px_56px_rgba(0,0,0,0.55)] max-h-80 overflow-hidden flex flex-col">
                     <div className="p-2 border-b border-white/6">
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -1502,7 +1502,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             </div>
 
             {/* Vision Model Selectors - Vertical Layout (3 columns) */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 overflow-visible">
               {[0, 1, 2].map((index) => {
                 const selectedModelId = selectedVisionModels[index];
                 const selectedModelData = selectedModelId
@@ -1531,7 +1531,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                 return (
                   <div
                     key={index}
-                    className="bg-[#151A21] rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.35)] p-6"
+                    className="bg-[#151A21] rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.35)] p-6 overflow-visible"
                   >
                     <h4 className="font-semibold text-white mb-3">
                       Vision Model {index + 1}
@@ -1576,7 +1576,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                       </button>
 
                       {isDropdownOpen && (
-                        <div className="absolute z-10 w-full mt-1 bg-[#1A212A] border border-white/10 rounded-lg shadow-[0_24px_56px_rgba(0,0,0,0.55)] max-h-80 overflow-hidden flex flex-col">
+                        <div className="absolute z-50 w-full mt-1 bg-[#1A212A] border border-white/10 rounded-lg shadow-[0_24px_56px_rgba(0,0,0,0.55)] max-h-80 overflow-hidden flex flex-col">
                           <div className="p-2 border-b border-white/6">
                             <div className="relative">
                               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
