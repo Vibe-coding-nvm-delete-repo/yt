@@ -822,641 +822,649 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   );
 
   const renderPromptCreatorTab = () => (
-    <div className="flex flex-col lg:flex-row gap-6 items-start">
-      {/* Left Column: Configuration and Existing Fields */}
-      <div className="flex-1 space-y-6 min-w-0">
-        <section className="space-y-4 rounded-xl bg-[#151A21] p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
-          <header>
-            <h3 className="text-lg font-semibold text-white">
-              Prompt Creator Configuration
-            </h3>
-            <p className="text-sm text-gray-400">
-              Define how the builder assembles prompts and how results are
-              rated. Each generation will produce 3 prompt variations.
-            </p>
-          </header>
+    <div className="space-y-6">
+      {/* Full-Width Configuration Section */}
+      <section className="space-y-4 rounded-xl bg-[#151A21] p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
+        <header>
+          <h3 className="text-lg font-semibold text-white">
+            Prompt Creator Configuration
+          </h3>
+          <p className="text-sm text-gray-400">
+            Define how the builder assembles prompts and how results are rated.
+            Each generation will produce 3 prompt variations.
+          </p>
+        </header>
 
-          <div className="space-y-4">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-white">
+              Locked-in prompt
+            </label>
+            <p className="text-xs text-gray-400">
+              This prompt will always be prepended to generated prompts,
+              regardless of field selections. It remains constant unless changed
+              here.
+            </p>
+            <textarea
+              value={lockedInPrompt}
+              onChange={(event) => setLockedInPrompt(event.target.value)}
+              rows={8}
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none font-mono"
+              placeholder="Enter locked-in prompt..."
+            />
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <label className="text-sm font-semibold text-white">
-                Locked-in prompt
+                Prompt generation instructions
               </label>
-              <p className="text-xs text-gray-400">
-                This prompt will always be prepended to generated prompts,
-                regardless of field selections. It remains constant unless
-                changed here.
-              </p>
               <textarea
-                value={lockedInPrompt}
-                onChange={(event) => setLockedInPrompt(event.target.value)}
-                rows={8}
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none font-mono"
-                placeholder="Enter locked-in prompt..."
+                value={promptInstructions}
+                onChange={(event) => setPromptInstructions(event.target.value)}
+                rows={6}
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
+                placeholder="Take the below variables and create a prompt..."
               />
             </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-white">
-                  Prompt generation instructions
-                </label>
-                <textarea
-                  value={promptInstructions}
-                  onChange={(event) =>
-                    setPromptInstructions(event.target.value)
-                  }
-                  rows={6}
-                  className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
-                  placeholder="Take the below variables and create a prompt..."
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-white">
-                  Rating rubric
-                </label>
-                <textarea
-                  value={ratingRubric}
-                  onChange={(event) => setRatingRubric(event.target.value)}
-                  rows={6}
-                  className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
-                  placeholder="Explain how the rater should score prompts and return JSON"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div className="flex-1 space-y-3">
+            <div className="space-y-2">
               <label className="text-sm font-semibold text-white">
-                OpenRouter text generation model
+                Rating rubric
               </label>
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
-                <button
-                  type="button"
-                  onClick={fetchTextModels}
-                  disabled={isFetchingTextModels || !validationState.isValid}
-                  className="inline-flex items-center justify-center rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50 whitespace-nowrap"
-                >
-                  <RefreshCw
-                    className={`mr-2 h-4 w-4 ${
-                      isFetchingTextModels ? "animate-spin" : ""
-                    }`}
-                  />
-                  {isFetchingTextModels ? "Fetching…" : "Fetch"}
-                </button>
-                <div className="relative flex-1" ref={textModelDropdownRef}>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setIsTextModelDropdownOpen(!isTextModelDropdownOpen)
-                    }
-                    className="w-full px-4 py-2 border-none rounded-lg focus:ring-2 focus:ring-blue-500/50 bg-white/5 hover:bg-white/10 text-left flex items-center justify-between transition-colors"
-                    aria-label="Select OpenRouter text model"
-                  >
-                    <span
-                      className="text-white text-sm"
-                      title={
-                        selectedTextModel
-                          ? selectedTextModel.name
-                          : pcModelId || "Select a text model…"
-                      }
-                    >
-                      {selectedTextModel
-                        ? middleEllipsis(selectedTextModel.name, 40)
-                        : pcModelId
-                          ? middleEllipsis(pcModelId, 40)
-                          : "Select a text model…"}
-                    </span>
-                    <ChevronDown
-                      className={`h-4 w-4 text-gray-500 transition-transform flex-shrink-0 ${isTextModelDropdownOpen ? "transform rotate-180" : ""}`}
-                    />
-                  </button>
-                  {isTextModelDropdownOpen && (
-                    <div className="absolute z-10 w-full mt-1 bg-[#1A212A] border border-white/10 rounded-lg shadow-[0_24px_56px_rgba(0,0,0,0.55)] max-h-80 overflow-hidden flex flex-col">
-                      <div className="p-2 border-b border-white/6">
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                          <input
-                            ref={textModelSearchInputRef}
-                            type="text"
-                            placeholder="Search text models..."
-                            value={textModelSearch}
-                            onChange={(e) => setTextModelSearch(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border-none rounded-lg focus:ring-2 focus:ring-blue-500/50 bg-white/5 focus:bg-white/10 text-white placeholder:text-gray-500 text-sm transition-colors"
-                            onClick={(e) => e.stopPropagation()}
-                            autoFocus
-                          />
-                        </div>
-                      </div>
-
-                      <div className="overflow-y-auto flex-1">
-                        {(() => {
-                          const pinnedSet = new Set(
-                            settings.pinnedModels || [],
-                          );
-
-                          const renderRow = (model: TextModel) => (
-                            <button
-                              key={model.id}
-                              type="button"
-                              onClick={() => {
-                                handleTextModelSelect(model.id);
-                                setIsTextModelDropdownOpen(false);
-                                setTextModelSearch("");
-                              }}
-                              className={`w-full px-4 py-2 text-left hover:bg-white/5 transition-colors ${
-                                pcModelId === model.id
-                                  ? "bg-blue-900/30 text-blue-400"
-                                  : "text-white"
-                              }`}
-                              title={model.name}
-                            >
-                              <div className="flex items-center justify-between">
-                                <div className="min-w-0 flex-1">
-                                  <div className="text-sm font-medium">
-                                    {middleEllipsis(model.name, 40)}
-                                  </div>
-                                  <div className="text-xs text-gray-400">
-                                    {formatPrice(
-                                      model.pricing.prompt +
-                                        model.pricing.completion,
-                                    )}
-                                    /token
-                                  </div>
-                                </div>
-                                <button
-                                  type="button"
-                                  aria-label={
-                                    pinnedSet.has(model.id)
-                                      ? "Unpin model"
-                                      : "Pin model"
-                                  }
-                                  className="ml-3 text-gray-400 hover:text-gray-300 flex-shrink-0"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    hookTogglePinnedModel(model.id);
-                                    addToast(
-                                      pinnedSet.has(model.id)
-                                        ? "Model unpinned"
-                                        : "Model pinned",
-                                      "success",
-                                    );
-                                  }}
-                                >
-                                  {pinnedSet.has(model.id) ? (
-                                    <Pin className="h-4 w-4 text-blue-600" />
-                                  ) : (
-                                    <PinOff className="h-4 w-4" />
-                                  )}
-                                </button>
-                              </div>
-                            </button>
-                          );
-
-                          return (
-                            <>
-                              {pinnedTextModels.length > 0 && (
-                                <>
-                                  <div className="px-4 py-1 text-xs uppercase tracking-wide text-gray-400">
-                                    Pinned
-                                  </div>
-                                  {pinnedTextModels.map((m) => renderRow(m))}
-                                  <div className="my-1 border-t border-white/6" />
-                                </>
-                              )}
-                              {unpinnedTextModels.map((m) => renderRow(m))}
-                              {filteredTextModels.length === 0 && (
-                                <div className="px-4 py-3 text-sm text-gray-400 text-center">
-                                  No text models found
-                                </div>
-                              )}
-                            </>
-                          );
-                        })()}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-              {textModelError && (
-                <p className="text-xs text-red-400">{textModelError}</p>
-              )}
-              {pcModelId && !selectedTextModel && (
-                <p className="text-xs text-gray-400">
-                  Using stored model ID: {pcModelId}
-                </p>
-              )}
-              {selectedTextModel && (
-                <p className="text-xs text-gray-400">
-                  {selectedTextModel.description
-                    ? `${selectedTextModel.description} · `
-                    : ""}
-                  Prompt {formatPrice(selectedTextModel.pricing.prompt)} ·
-                  Completion {formatPrice(selectedTextModel.pricing.completion)}
-                  {selectedTextModel.context_length
-                    ? ` · Context ${selectedTextModel.context_length.toLocaleString()} tokens`
-                    : ""}
-                </p>
-              )}
+              <textarea
+                value={ratingRubric}
+                onChange={(event) => setRatingRubric(event.target.value)}
+                rows={6}
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
+                placeholder="Explain how the rater should score prompts and return JSON"
+              />
             </div>
-            {validationState.isValid && (
-              <div className="flex items-center text-green-400">
-                <CheckCircle className="mr-1 h-4 w-4" />
-                <span className="text-sm">
-                  Connection verified
-                  {settings.lastApiKeyValidation && (
-                    <span className="text-gray-400 ml-1">
-                      (verified {formatTimestamp(settings.lastApiKeyValidation)}
-                      )
-                    </span>
-                  )}
-                </span>
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Existing Fields Section - Visually Distinct */}
-        <div className="rounded-xl bg-[#151A21] p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
-          <header className="mb-4">
-            <h3 className="text-lg font-semibold text-white mb-2">
-              Existing Fields
-            </h3>
-            <p className="text-sm text-gray-400">
-              Manage and organize the fields you&apos;ve created
-            </p>
-          </header>
-
-          <div className="space-y-3">
-            {orderedPromptCreatorFields.length === 0 ? (
-              <p className="text-sm text-gray-400 text-center py-8">
-                No fields yet. Create your first field in the sidebar to get
-                started.
-              </p>
-            ) : (
-              orderedPromptCreatorFields.map((field) => (
-                <div
-                  key={field.id}
-                  className="space-y-2 rounded-lg border border-white/10 bg-white/5 p-4"
-                >
-                  <header className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                    <div className="space-y-1">
-                      <h4 className="text-base font-semibold text-white">
-                        {field.label}
-                        {field.hidden && (
-                          <span className="ml-2 rounded-full bg-yellow-500/20 px-2 py-0.5 text-xs text-yellow-300">
-                            Hidden
-                          </span>
-                        )}
-                      </h4>
-                      <p className="text-xs text-gray-400">
-                        Tier: {field.tier} • Type: {field.type} • Order:{" "}
-                        {field.order}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleEditField(field)}
-                        className="rounded-md border border-white/20 px-3 py-1 text-xs text-gray-200 hover:border-blue-400"
-                      >
-                        Edit
-                      </button>
-                      {field.hidden ? (
-                        <button
-                          type="button"
-                          onClick={() => handleRestoreField(field)}
-                          className="rounded-md border border-white/20 px-3 py-1 text-xs text-gray-200 hover:border-green-400"
-                        >
-                          Restore
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteField(field, false)}
-                          className="rounded-md border border-white/20 px-3 py-1 text-xs text-gray-200 hover:border-yellow-400"
-                        >
-                          Hide
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteField(field, true)}
-                        className="rounded-md border border-red-500/50 px-3 py-1 text-xs text-red-300 hover:bg-red-500/10"
-                      >
-                        Hard delete
-                      </button>
-                    </div>
-                  </header>
-                  {field.helperText && (
-                    <p className="text-sm text-gray-300">
-                      Helper: {field.helperText}
-                    </p>
-                  )}
-                  {field.options && field.options.length > 0 && (
-                    <div className="text-sm text-gray-300">
-                      Options: {field.options.join(", ")}
-                      {field.maxSelections && field.type === "multiselect" && (
-                        <span className="ml-2 text-gray-400">
-                          (max {field.maxSelections})
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  {(field.type === "slider" || field.type === "number") && (
-                    <p className="text-sm text-gray-300">
-                      Range: {field.min} – {field.max} (step {field.step})
-                    </p>
-                  )}
-                  {field.type === "text" && field.maxLength && (
-                    <p className="text-sm text-gray-300">
-                      Max length: {field.maxLength}
-                    </p>
-                  )}
-                </div>
-              ))
-            )}
           </div>
         </div>
-      </div>
 
-      {/* Right Sidebar: Field Creation Form - Sticky */}
-      <aside className="w-full lg:w-80 flex-shrink-0">
-        <div className="lg:sticky lg:top-4 rounded-xl bg-gradient-to-br from-blue-900/20 to-purple-900/20 p-4 shadow-[0_8px_24px_rgba(0,0,0,0.35)] border-2 border-blue-500/30">
-          <header className="mb-4">
-            <h3 className="text-base font-semibold text-white mb-1">
-              {editingFieldId ? "Edit Field" : "Create New Field"}
-            </h3>
-            <p className="text-xs text-gray-300">
-              {editingFieldId
-                ? "Update the field configuration"
-                : "Quickly define custom fields"}
-            </p>
-            {editingFieldId && (
-              <div className="mt-2">
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div className="flex-1 space-y-3">
+            <label className="text-sm font-semibold text-white">
+              OpenRouter text generation model
+            </label>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+              <button
+                type="button"
+                onClick={fetchTextModels}
+                disabled={isFetchingTextModels || !validationState.isValid}
+                className="inline-flex items-center justify-center rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50 whitespace-nowrap"
+              >
+                <RefreshCw
+                  className={`mr-2 h-4 w-4 ${
+                    isFetchingTextModels ? "animate-spin" : ""
+                  }`}
+                />
+                {isFetchingTextModels ? "Fetching…" : "Fetch"}
+              </button>
+              <div className="relative flex-1" ref={textModelDropdownRef}>
                 <button
                   type="button"
-                  onClick={() => resetFieldForm()}
-                  className="rounded-md border border-white/20 px-2 py-1 text-xs text-gray-200 hover:border-blue-400"
+                  onClick={() =>
+                    setIsTextModelDropdownOpen(!isTextModelDropdownOpen)
+                  }
+                  className="w-full px-4 py-2 border-none rounded-lg focus:ring-2 focus:ring-blue-500/50 bg-white/5 hover:bg-white/10 text-left flex items-center justify-between transition-colors"
+                  aria-label="Select OpenRouter text model"
                 >
-                  Cancel edit
-                </button>
-              </div>
-            )}
-          </header>
-
-          <form onSubmit={handleFieldSubmit} className="space-y-3">
-            {/* Field Label */}
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-white block">
-                Field label
-              </label>
-              <input
-                value={fieldForm.label}
-                onChange={(event) =>
-                  handleFieldFormChange("label", event.target.value)
-                }
-                placeholder="e.g., Time of day, Art style"
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
-              />
-            </div>
-
-            {/* Control Type */}
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-white block">
-                Control type
-              </label>
-              <select
-                value={fieldForm.type}
-                onChange={(event) => {
-                  const nextType = event.target
-                    .value as PromptCreatorField["type"];
-                  if (editingFieldId) {
-                    const original = orderedPromptCreatorFields.find(
-                      (field) => field.id === editingFieldId,
-                    );
-                    if (original && original.type !== nextType) {
-                      const confirmed = window.confirm(
-                        "Changing control type may remove existing options. Continue?",
-                      );
-                      if (!confirmed) {
-                        return;
-                      }
+                  <span
+                    className="text-white text-sm"
+                    title={
+                      selectedTextModel
+                        ? selectedTextModel.name
+                        : pcModelId || "Select a text model…"
                     }
-                  }
-                  handleFieldFormChange("type", nextType);
-                }}
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white focus:border-blue-500 focus:outline-none"
-              >
-                <option value="dropdown" className="bg-[#1A212A] text-white">
-                  Dropdown - Single choice from list
-                </option>
-                <option value="multiselect" className="bg-[#1A212A] text-white">
-                  Multiselect - Multiple choices from list
-                </option>
-                <option value="slider" className="bg-[#1A212A] text-white">
-                  Slider - Numeric range selector
-                </option>
-                <option value="number" className="bg-[#1A212A] text-white">
-                  Number - Direct numeric input
-                </option>
-                <option value="text" className="bg-[#1A212A] text-white">
-                  Text - Free-form text input
-                </option>
-              </select>
-            </div>
+                  >
+                    {selectedTextModel
+                      ? middleEllipsis(selectedTextModel.name, 40)
+                      : pcModelId
+                        ? middleEllipsis(pcModelId, 40)
+                        : "Select a text model…"}
+                  </span>
+                  <ChevronDown
+                    className={`h-4 w-4 text-gray-500 transition-transform flex-shrink-0 ${isTextModelDropdownOpen ? "transform rotate-180" : ""}`}
+                  />
+                </button>
+                {isTextModelDropdownOpen && (
+                  <div className="absolute z-10 w-full mt-1 bg-[#1A212A] border border-white/10 rounded-lg shadow-[0_24px_56px_rgba(0,0,0,0.55)] max-h-80 overflow-hidden flex flex-col">
+                    <div className="p-2 border-b border-white/6">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <input
+                          ref={textModelSearchInputRef}
+                          type="text"
+                          placeholder="Search text models..."
+                          value={textModelSearch}
+                          onChange={(e) => setTextModelSearch(e.target.value)}
+                          className="w-full pl-10 pr-4 py-2 border-none rounded-lg focus:ring-2 focus:ring-blue-500/50 bg-white/5 focus:bg-white/10 text-white placeholder:text-gray-500 text-sm transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                          autoFocus
+                        />
+                      </div>
+                    </div>
 
-            {/* Tier */}
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-white block">
-                Tier
-              </label>
-              <select
-                value={fieldForm.tier}
-                onChange={(event) =>
-                  handleFieldFormChange(
-                    "tier",
-                    event.target.value as PromptCreatorField["tier"],
-                  )
-                }
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white focus:border-blue-500 focus:outline-none"
-              >
-                <option value="mandatory" className="bg-[#1A212A] text-white">
-                  Mandatory - Must be filled
-                </option>
-                <option value="optional" className="bg-[#1A212A] text-white">
-                  Optional - Can be skipped
-                </option>
-                <option value="free" className="bg-[#1A212A] text-white">
-                  Free - No restrictions
-                </option>
-              </select>
-            </div>
+                    <div className="overflow-y-auto flex-1">
+                      {(() => {
+                        const pinnedSet = new Set(settings.pinnedModels || []);
 
-            {/* Order and Helper Text - Side by side */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-white block">
-                  Order
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  value={fieldForm.order}
-                  onChange={(event) =>
-                    handleFieldFormChange("order", Number(event.target.value))
-                  }
-                  placeholder="1"
-                  className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
-                />
-              </div>
+                        const renderRow = (model: TextModel) => (
+                          <button
+                            key={model.id}
+                            type="button"
+                            onClick={() => {
+                              handleTextModelSelect(model.id);
+                              setIsTextModelDropdownOpen(false);
+                              setTextModelSearch("");
+                            }}
+                            className={`w-full px-4 py-2 text-left hover:bg-white/5 transition-colors ${
+                              pcModelId === model.id
+                                ? "bg-blue-900/30 text-blue-400"
+                                : "text-white"
+                            }`}
+                            title={model.name}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="min-w-0 flex-1">
+                                <div className="text-sm font-medium">
+                                  {middleEllipsis(model.name, 40)}
+                                </div>
+                                <div className="text-xs text-gray-400">
+                                  {formatPrice(
+                                    model.pricing.prompt +
+                                      model.pricing.completion,
+                                  )}
+                                  /token
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                aria-label={
+                                  pinnedSet.has(model.id)
+                                    ? "Unpin model"
+                                    : "Pin model"
+                                }
+                                className="ml-3 text-gray-400 hover:text-gray-300 flex-shrink-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  hookTogglePinnedModel(model.id);
+                                  addToast(
+                                    pinnedSet.has(model.id)
+                                      ? "Model unpinned"
+                                      : "Model pinned",
+                                    "success",
+                                  );
+                                }}
+                              >
+                                {pinnedSet.has(model.id) ? (
+                                  <Pin className="h-4 w-4 text-blue-600" />
+                                ) : (
+                                  <PinOff className="h-4 w-4" />
+                                )}
+                              </button>
+                            </div>
+                          </button>
+                        );
 
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-white block">
-                  Default value
-                </label>
-                <input
-                  value={fieldForm.defaultValue}
-                  onChange={(event) =>
-                    handleFieldFormChange("defaultValue", event.target.value)
-                  }
-                  placeholder="Optional"
-                  className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
-                />
-              </div>
-            </div>
-
-            {/* Helper Text */}
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-white block">
-                Helper text (optional)
-              </label>
-              <input
-                value={fieldForm.helperText}
-                onChange={(event) =>
-                  handleFieldFormChange("helperText", event.target.value)
-                }
-                placeholder="Tooltip guidance"
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
-              />
-            </div>
-
-            {/* Type-specific fields */}
-            {(fieldForm.type === "dropdown" ||
-              fieldForm.type === "multiselect") && (
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-white block">
-                  Options (one per line)
-                </label>
-                <textarea
-                  value={fieldForm.optionsText}
-                  onChange={(event) =>
-                    handleFieldFormChange("optionsText", event.target.value)
-                  }
-                  rows={3}
-                  placeholder="Morning&#10;Afternoon&#10;Evening"
-                  className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none font-mono"
-                />
-                {fieldForm.type === "multiselect" && (
-                  <div className="flex items-center gap-2 text-xs text-gray-300">
-                    <span>Max selections</span>
-                    <input
-                      type="number"
-                      min={1}
-                      value={fieldForm.maxSelections}
-                      onChange={(event) =>
-                        handleFieldFormChange(
-                          "maxSelections",
-                          Number(event.target.value),
-                        )
-                      }
-                      placeholder="3"
-                      className="w-16 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
-                    />
+                        return (
+                          <>
+                            {pinnedTextModels.length > 0 && (
+                              <>
+                                <div className="px-4 py-1 text-xs uppercase tracking-wide text-gray-400">
+                                  Pinned
+                                </div>
+                                {pinnedTextModels.map((m) => renderRow(m))}
+                                <div className="my-1 border-t border-white/6" />
+                              </>
+                            )}
+                            {unpinnedTextModels.map((m) => renderRow(m))}
+                            {filteredTextModels.length === 0 && (
+                              <div className="px-4 py-3 text-sm text-gray-400 text-center">
+                                No text models found
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </div>
                   </div>
                 )}
               </div>
+            </div>
+            {textModelError && (
+              <p className="text-xs text-red-400">{textModelError}</p>
             )}
-            {(fieldForm.type === "slider" || fieldForm.type === "number") && (
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-white block">
-                  Numeric range
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="space-y-1">
-                    <label className="text-xs text-gray-300">Min</label>
-                    <input
-                      type="number"
-                      value={fieldForm.min}
-                      onChange={(event) =>
-                        handleFieldFormChange("min", Number(event.target.value))
-                      }
-                      placeholder="0"
-                      className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
-                    />
+            {pcModelId && !selectedTextModel && (
+              <p className="text-xs text-gray-400">
+                Using stored model ID: {pcModelId}
+              </p>
+            )}
+            {selectedTextModel && (
+              <p className="text-xs text-gray-400">
+                {selectedTextModel.description
+                  ? `${selectedTextModel.description} · `
+                  : ""}
+                Prompt {formatPrice(selectedTextModel.pricing.prompt)} ·
+                Completion {formatPrice(selectedTextModel.pricing.completion)}
+                {selectedTextModel.context_length
+                  ? ` · Context ${selectedTextModel.context_length.toLocaleString()} tokens`
+                  : ""}
+              </p>
+            )}
+          </div>
+          {validationState.isValid && (
+            <div className="flex items-center text-green-400">
+              <CheckCircle className="mr-1 h-4 w-4" />
+              <span className="text-sm">
+                Connection verified
+                {settings.lastApiKeyValidation && (
+                  <span className="text-gray-400 ml-1">
+                    (verified {formatTimestamp(settings.lastApiKeyValidation)})
+                  </span>
+                )}
+              </span>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Two-Column Layout: Existing Fields (Left) + Create New Field Form (Right) */}
+      <div className="flex flex-col lg:flex-row gap-6 items-start">
+        {/* Left Column: Existing Fields */}
+        <div className="flex-1 min-w-0">
+          <div className="rounded-xl bg-[#151A21] p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
+            <header className="mb-4">
+              <h3 className="text-lg font-semibold text-white mb-2">
+                Existing Fields
+              </h3>
+              <p className="text-sm text-gray-400">
+                Manage and organize the fields you&apos;ve created
+              </p>
+            </header>
+
+            <div className="space-y-3">
+              {orderedPromptCreatorFields.length === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-8">
+                  No fields yet. Create your first field in the sidebar to get
+                  started.
+                </p>
+              ) : (
+                orderedPromptCreatorFields.map((field) => (
+                  <div
+                    key={field.id}
+                    className="space-y-2 rounded-lg border border-white/10 bg-white/5 p-4"
+                  >
+                    <header className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                      <div className="space-y-1">
+                        <h4 className="text-base font-semibold text-white">
+                          {field.label}
+                          {field.hidden && (
+                            <span className="ml-2 rounded-full bg-yellow-500/20 px-2 py-0.5 text-xs text-yellow-300">
+                              Hidden
+                            </span>
+                          )}
+                        </h4>
+                        <p className="text-xs text-gray-400">
+                          Tier: {field.tier} • Type: {field.type} • Order:{" "}
+                          {field.order}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleEditField(field)}
+                          className="rounded-md border border-white/20 px-3 py-1 text-xs text-gray-200 hover:border-blue-400"
+                        >
+                          Edit
+                        </button>
+                        {field.hidden ? (
+                          <button
+                            type="button"
+                            onClick={() => handleRestoreField(field)}
+                            className="rounded-md border border-white/20 px-3 py-1 text-xs text-gray-200 hover:border-green-400"
+                          >
+                            Restore
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteField(field, false)}
+                            className="rounded-md border border-white/20 px-3 py-1 text-xs text-gray-200 hover:border-yellow-400"
+                          >
+                            Hide
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteField(field, true)}
+                          className="rounded-md border border-red-500/50 px-3 py-1 text-xs text-red-300 hover:bg-red-500/10"
+                        >
+                          Hard delete
+                        </button>
+                      </div>
+                    </header>
+                    {field.helperText && (
+                      <p className="text-sm text-gray-300">
+                        Helper: {field.helperText}
+                      </p>
+                    )}
+                    {field.options && field.options.length > 0 && (
+                      <div className="text-sm text-gray-300">
+                        Options: {field.options.join(", ")}
+                        {field.maxSelections &&
+                          field.type === "multiselect" && (
+                            <span className="ml-2 text-gray-400">
+                              (max {field.maxSelections})
+                            </span>
+                          )}
+                      </div>
+                    )}
+                    {(field.type === "slider" || field.type === "number") && (
+                      <p className="text-sm text-gray-300">
+                        Range: {field.min} – {field.max} (step {field.step})
+                      </p>
+                    )}
+                    {field.type === "text" && field.maxLength && (
+                      <p className="text-sm text-gray-300">
+                        Max length: {field.maxLength}
+                      </p>
+                    )}
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-xs text-gray-300">Max</label>
-                    <input
-                      type="number"
-                      value={fieldForm.max}
-                      onChange={(event) =>
-                        handleFieldFormChange("max", Number(event.target.value))
-                      }
-                      placeholder="100"
-                      className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs text-gray-300">Step</label>
-                    <input
-                      type="number"
-                      value={fieldForm.step}
-                      onChange={(event) =>
-                        handleFieldFormChange(
-                          "step",
-                          Number(event.target.value),
-                        )
-                      }
-                      placeholder="1"
-                      className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
-                    />
-                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Right Sidebar: Field Creation Form - Sticky */}
+        <aside className="w-full lg:w-80 flex-shrink-0">
+          <div className="lg:sticky lg:top-4 rounded-xl bg-gradient-to-br from-blue-900/20 to-purple-900/20 p-4 shadow-[0_8px_24px_rgba(0,0,0,0.35)] border-2 border-blue-500/30">
+            <header className="mb-4">
+              <h3 className="text-base font-semibold text-white mb-1">
+                {editingFieldId ? "Edit Field" : "Create New Field"}
+              </h3>
+              <p className="text-xs text-gray-300">
+                {editingFieldId
+                  ? "Update the field configuration"
+                  : "Quickly define custom fields"}
+              </p>
+              {editingFieldId && (
+                <div className="mt-2">
+                  <button
+                    type="button"
+                    onClick={() => resetFieldForm()}
+                    className="rounded-md border border-white/20 px-2 py-1 text-xs text-gray-200 hover:border-blue-400"
+                  >
+                    Cancel edit
+                  </button>
                 </div>
-              </div>
-            )}
-            {fieldForm.type === "text" && (
+              )}
+            </header>
+
+            <form onSubmit={handleFieldSubmit} className="space-y-3">
+              {/* Field Label */}
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-white block">
-                  Max characters
+                  Field label
                 </label>
                 <input
-                  type="number"
-                  value={fieldForm.maxLength}
+                  value={fieldForm.label}
                   onChange={(event) =>
-                    handleFieldFormChange(
-                      "maxLength",
-                      Number(event.target.value),
-                    )
+                    handleFieldFormChange("label", event.target.value)
                   }
-                  placeholder="60"
+                  placeholder="e.g., Time of day, Art style"
                   className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
                 />
               </div>
-            )}
 
-            {/* Submit Button */}
-            <div className="pt-2">
-              <button
-                type="submit"
-                className="w-full rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-2 text-sm font-semibold text-white hover:from-blue-500 hover:to-purple-500 shadow-lg transition-all"
-              >
-                {editingFieldId ? "Update Field" : "Create Field"}
-              </button>
-            </div>
-          </form>
-        </div>
-      </aside>
+              {/* Control Type */}
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-white block">
+                  Control type
+                </label>
+                <select
+                  value={fieldForm.type}
+                  onChange={(event) => {
+                    const nextType = event.target
+                      .value as PromptCreatorField["type"];
+                    if (editingFieldId) {
+                      const original = orderedPromptCreatorFields.find(
+                        (field) => field.id === editingFieldId,
+                      );
+                      if (original && original.type !== nextType) {
+                        const confirmed = window.confirm(
+                          "Changing control type may remove existing options. Continue?",
+                        );
+                        if (!confirmed) {
+                          return;
+                        }
+                      }
+                    }
+                    handleFieldFormChange("type", nextType);
+                  }}
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white focus:border-blue-500 focus:outline-none"
+                >
+                  <option value="dropdown" className="bg-[#1A212A] text-white">
+                    Dropdown - Single choice from list
+                  </option>
+                  <option
+                    value="multiselect"
+                    className="bg-[#1A212A] text-white"
+                  >
+                    Multiselect - Multiple choices from list
+                  </option>
+                  <option value="slider" className="bg-[#1A212A] text-white">
+                    Slider - Numeric range selector
+                  </option>
+                  <option value="number" className="bg-[#1A212A] text-white">
+                    Number - Direct numeric input
+                  </option>
+                  <option value="text" className="bg-[#1A212A] text-white">
+                    Text - Free-form text input
+                  </option>
+                </select>
+              </div>
+
+              {/* Tier */}
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-white block">
+                  Tier
+                </label>
+                <select
+                  value={fieldForm.tier}
+                  onChange={(event) =>
+                    handleFieldFormChange(
+                      "tier",
+                      event.target.value as PromptCreatorField["tier"],
+                    )
+                  }
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white focus:border-blue-500 focus:outline-none"
+                >
+                  <option value="mandatory" className="bg-[#1A212A] text-white">
+                    Mandatory - Must be filled
+                  </option>
+                  <option value="optional" className="bg-[#1A212A] text-white">
+                    Optional - Can be skipped
+                  </option>
+                  <option value="free" className="bg-[#1A212A] text-white">
+                    Free - No restrictions
+                  </option>
+                </select>
+              </div>
+
+              {/* Order and Helper Text - Side by side */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-white block">
+                    Order
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={fieldForm.order}
+                    onChange={(event) =>
+                      handleFieldFormChange("order", Number(event.target.value))
+                    }
+                    placeholder="1"
+                    className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-white block">
+                    Default value
+                  </label>
+                  <input
+                    value={fieldForm.defaultValue}
+                    onChange={(event) =>
+                      handleFieldFormChange("defaultValue", event.target.value)
+                    }
+                    placeholder="Optional"
+                    className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Helper Text */}
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-white block">
+                  Helper text (optional)
+                </label>
+                <input
+                  value={fieldForm.helperText}
+                  onChange={(event) =>
+                    handleFieldFormChange("helperText", event.target.value)
+                  }
+                  placeholder="Tooltip guidance"
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
+                />
+              </div>
+
+              {/* Type-specific fields */}
+              {(fieldForm.type === "dropdown" ||
+                fieldForm.type === "multiselect") && (
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-white block">
+                    Options (one per line)
+                  </label>
+                  <textarea
+                    value={fieldForm.optionsText}
+                    onChange={(event) =>
+                      handleFieldFormChange("optionsText", event.target.value)
+                    }
+                    rows={3}
+                    placeholder="Morning&#10;Afternoon&#10;Evening"
+                    className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none font-mono"
+                  />
+                  {fieldForm.type === "multiselect" && (
+                    <div className="flex items-center gap-2 text-xs text-gray-300">
+                      <span>Max selections</span>
+                      <input
+                        type="number"
+                        min={1}
+                        value={fieldForm.maxSelections}
+                        onChange={(event) =>
+                          handleFieldFormChange(
+                            "maxSelections",
+                            Number(event.target.value),
+                          )
+                        }
+                        placeholder="3"
+                        className="w-16 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+              {(fieldForm.type === "slider" || fieldForm.type === "number") && (
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-white block">
+                    Numeric range
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-xs text-gray-300">Min</label>
+                      <input
+                        type="number"
+                        value={fieldForm.min}
+                        onChange={(event) =>
+                          handleFieldFormChange(
+                            "min",
+                            Number(event.target.value),
+                          )
+                        }
+                        placeholder="0"
+                        className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-gray-300">Max</label>
+                      <input
+                        type="number"
+                        value={fieldForm.max}
+                        onChange={(event) =>
+                          handleFieldFormChange(
+                            "max",
+                            Number(event.target.value),
+                          )
+                        }
+                        placeholder="100"
+                        className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-gray-300">Step</label>
+                      <input
+                        type="number"
+                        value={fieldForm.step}
+                        onChange={(event) =>
+                          handleFieldFormChange(
+                            "step",
+                            Number(event.target.value),
+                          )
+                        }
+                        placeholder="1"
+                        className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+              {fieldForm.type === "text" && (
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-white block">
+                    Max characters
+                  </label>
+                  <input
+                    type="number"
+                    value={fieldForm.maxLength}
+                    onChange={(event) =>
+                      handleFieldFormChange(
+                        "maxLength",
+                        Number(event.target.value),
+                      )
+                    }
+                    placeholder="60"
+                    className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
+                  />
+                </div>
+              )}
+
+              {/* Submit Button */}
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  className="w-full rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-2 text-sm font-semibold text-white hover:from-blue-500 hover:to-purple-500 shadow-lg transition-all"
+                >
+                  {editingFieldId ? "Update Field" : "Create Field"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </aside>
+      </div>
     </div>
   );
 
