@@ -1,5 +1,6 @@
 import type { VisionModel } from "@/types";
 import { ApiError } from "@/types";
+import { API_CONFIG } from "@/lib/constants";
 
 export interface TextModel {
   id: string;
@@ -447,5 +448,8 @@ export const createOpenRouterClient = (apiKey: string): OpenRouterClient => {
 
 export const isValidApiKeyFormat = (apiKey: string): boolean => {
   const trimmedKey = apiKey.trim();
-  return trimmedKey.length >= 20 && trimmedKey.startsWith("sk-or-v1-");
+  return (
+    trimmedKey.length >= 20 &&
+    trimmedKey.startsWith(API_CONFIG.OPENROUTER_KEY_PREFIX)
+  );
 };

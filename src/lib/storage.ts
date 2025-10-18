@@ -20,13 +20,15 @@ import type {
   ImageBatchEntry,
   ModelResult,
 } from "@/types";
+import { STORAGE_KEYS } from "@/lib/constants";
+import { now, isExpired } from "@/utils/timeHelpers";
 
-const STORAGE_KEY = "image-to-prompt-settings";
-const IMAGE_STATE_KEY = "image-to-prompt-image-state";
+const STORAGE_KEY = STORAGE_KEYS.SETTINGS;
+const IMAGE_STATE_KEY = STORAGE_KEYS.IMAGE_STATE;
 
 export const STORAGE_EVENTS = {
-  SETTINGS_UPDATED: "image-to-prompt-settings-updated",
-  IMAGE_STATE_UPDATED: "image-to-prompt-image-state-updated",
+  SETTINGS_UPDATED: `${STORAGE_KEYS.SETTINGS}-updated`,
+  IMAGE_STATE_UPDATED: `${STORAGE_KEYS.IMAGE_STATE}-updated`,
 } as const;
 
 type SettingsKey = keyof AppSettings;
@@ -367,7 +369,7 @@ export class SettingsStorage {
   validateApiKey(isValid: boolean): void {
     this.batchUpdate({
       isValidApiKey: isValid,
-      lastApiKeyValidation: isValid ? Date.now() : null,
+      lastApiKeyValidation: isValid ? now() : null,
     });
   }
 
@@ -386,7 +388,7 @@ export class SettingsStorage {
   updateModels(models: VisionModel[]): void {
     this.batchUpdate({
       availableModels: models,
-      lastModelFetch: Date.now(),
+      lastModelFetch: now(),
     });
   }
 
@@ -416,7 +418,7 @@ export class SettingsStorage {
     }
 
     const oneDayInMs = 24 * 60 * 60 * 1000;
-    return Date.now() - this.settings.lastModelFetch > oneDayInMs;
+    return isExpired(this.settings.lastModelFetch, oneDayInMs);
   }
 
   getModelById(modelId: string): VisionModel | null {

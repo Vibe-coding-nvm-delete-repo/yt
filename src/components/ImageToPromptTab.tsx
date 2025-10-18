@@ -21,6 +21,8 @@ import {
 import Image from "next/image";
 import { RatingWidget } from "@/components/RatingWidget";
 import { middleEllipsis } from "@/utils/truncation";
+import { UI_CONSTRAINTS } from "@/lib/constants";
+import { now } from "@/utils/timeHelpers";
 
 interface ImageToPromptTabProps {
   settings: AppSettings;
@@ -50,7 +52,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   const [modelResults, setModelResults] = useState<ModelResult[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [sessionId] = useState<string>(() => `session-${Date.now()}`); // Stable session ID for ratings
+  const [sessionId] = useState<string>(() => `session-${now()}`); // Stable session ID for ratings
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const dropZoneRef = useRef<HTMLDivElement | null>(null);
   const [copiedMap, setCopiedMap] = useState<Record<string, boolean>>({});
@@ -204,19 +206,15 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   }, []);
 
   const validateFile = useCallback((file: File): string | null => {
-    const allowedTypes = [
-      "image/jpeg",
-      "image/jpg",
-      "image/png",
-      "image/webp",
-      "image/gif",
-    ];
-    if (!allowedTypes.includes(file.type)) {
+    if (
+      !(UI_CONSTRAINTS.SUPPORTED_IMAGE_TYPES as readonly string[]).includes(
+        file.type,
+      )
+    ) {
       return "Invalid file type. Please upload a JPEG, PNG, WebP, or GIF image.";
     }
-    const maxSize = 10 * 1024 * 1024; // 10MB
-    if (file.size > maxSize) {
-      return "File size too large. Please upload an image smaller than 10MB.";
+    if (file.size > UI_CONSTRAINTS.MAX_FILE_SIZE_BYTES) {
+      return `File size too large. Please upload an image smaller than ${UI_CONSTRAINTS.MAX_FILE_SIZE_MB}MB.`;
     }
     return null;
   }, []);
@@ -380,7 +378,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
     });
 
     // Process all models in parallel using Promise.all
-    const timestamp = Date.now();
+    const timestamp = now();
     const promises = modelResults.map(async (result, i) => {
       try {
         const client = createOpenRouterClient(settings.openRouterApiKey);

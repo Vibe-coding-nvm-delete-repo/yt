@@ -1,4 +1,5 @@
 import type { Rating, RatingFilter, RatingStats } from "@/types";
+import { now } from "@/utils/timeHelpers";
 
 const RATING_KEY = "image-to-prompt-ratings";
 
@@ -94,7 +95,7 @@ export class RatingStorage {
       savedRating = {
         ...existingRating,
         ...rating,
-        updatedAt: Date.now(),
+        updatedAt: now(),
       };
       this.state.ratings = this.state.ratings.map((r) =>
         r.id === existingRating.id ? savedRating : r,
@@ -103,9 +104,9 @@ export class RatingStorage {
       // Create new rating
       savedRating = {
         ...rating,
-        id: `rating-${rating.historyEntryId}-${Date.now()}`,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        id: `rating-${rating.historyEntryId}-${now()}`,
+        createdAt: now(),
+        updatedAt: now(),
       };
       this.state.ratings = [savedRating, ...this.state.ratings];
     }

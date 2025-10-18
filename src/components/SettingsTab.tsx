@@ -39,6 +39,13 @@ import { useSettings as useSettingsHook } from "@/hooks/useSettings";
 import { useToast } from "@/contexts/ToastContext";
 import { middleEllipsis } from "@/utils/truncation";
 import { useDebounce } from "@/hooks/useDebounce";
+import { formatTimestamp, formatPrice, generateId } from "@/utils/formatting";
+import { parseOptionList } from "@/utils/parsing";
+import {
+  buildModelDrivenInstructions,
+  buildModelDrivenRubric,
+} from "@/utils/promptCreatorHelpers";
+import { now } from "@/utils/timeHelpers";
 
 interface SettingsTabProps {
   settings: AppSettings;
@@ -51,34 +58,6 @@ type SettingsSubTab =
   | "custom-prompts"
   | "prompt-creator"
   | "categories";
-
-const formatTimestamp = (timestamp: number | null): string => {
-  if (!timestamp) return "";
-  const date = new Date(timestamp);
-  return date.toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
-};
-
-const formatPrice = (price: number | string | null | undefined) => {
-  const numPrice = typeof price === "string" ? parseFloat(price) : price;
-  if (typeof numPrice !== "number" || isNaN(numPrice) || !isFinite(numPrice)) {
-    return "$0.00";
-  }
-  return `$${numPrice.toFixed(2)}`;
-};
-
-const createPromptCreatorId = (): string => {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-  return Math.random().toString(36).slice(2);
-};
 
 type PromptCreatorFieldForm = {
   label: string;
@@ -111,29 +90,6 @@ const createEmptyFieldForm = (
   step: 1,
   maxLength: 60,
 });
-
-const parseOptionList = (text: string): string[] =>
-  text
-    .split(/\r?\n|,/)
-    .map((item) => item.trim())
-    .filter((item) => item.length > 0);
-
-const buildModelDrivenInstructions = (model: TextModel): string =>
-  [
-    `You are ${model.name}, an advanced text generation model that specializes in high quality prompt construction.`,
-    model.description ? `Model context: ${model.description.trim()}` : null,
-    "Use the provided variables to synthesize a complete creative brief. The prompt must be production ready, richly descriptive, and stay faithful to every variable.",
-    "Respond with a single prompt that can be executed directly without further editing.",
-  ]
-    .filter(Boolean)
-    .join("\n");
-
-const buildModelDrivenRubric = (model: TextModel): string =>
-  [
-    `Evaluate how well the generated prompt would perform when executed by ${model.name}.`,
-    "Score from 1-10 based on clarity, alignment with the supplied variables, actionable detail, and readiness for immediate use.",
-    "Call out missing variables, vague language, or risky phrasing. Provide specific improvement guidance when the score is below 8.",
-  ].join("\n");
 
 export const SettingsTab: React.FC<SettingsTabProps> = ({
   settings,
@@ -579,7 +535,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       return;
     }
 
-    const fieldId = editingFieldId ?? createPromptCreatorId();
+    const fieldId = editingFieldId ?? generateId();
     const baseField: PromptCreatorField = {
       id: fieldId,
       label: fieldForm.label.trim(),
@@ -656,7 +612,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       const draft = promptCreatorDraftStorage.load();
       if (field.id in draft.selections) {
         delete draft.selections[field.id];
-        promptCreatorDraftStorage.save({ ...draft, lastModified: Date.now() });
+        promptCreatorDraftStorage.save({ ...draft, lastModified: now() });
       }
     }
 
