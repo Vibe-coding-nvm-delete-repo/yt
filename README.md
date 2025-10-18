@@ -10,6 +10,7 @@ A Next.js 15 application that provides AI-powered tools for YouTube content crea
 ## ✨ Features
 
 ### 🖼️ Image to Prompt
+
 - Upload images and generate descriptive prompts using AI vision models
 - Multi-model comparison: test up to 5 vision models simultaneously
 - Real-time cost tracking for each generation
@@ -17,6 +18,7 @@ A Next.js 15 application that provides AI-powered tools for YouTube content crea
 - Batch processing support for multiple images
 
 ### 📝 Prompt Creator
+
 - Build structured prompts with customizable fields
 - Generate and score prompts in batches (1, 3, 5, or 10 at a time)
 - Automatic rating and ranking based on configurable rubrics
@@ -24,17 +26,20 @@ A Next.js 15 application that provides AI-powered tools for YouTube content crea
 - Draft auto-save to localStorage
 
 ### 📊 Usage & Cost Tracking
+
 - Comprehensive usage history with filtering
 - Per-model and per-session cost breakdown
 - Export capabilities for analysis
 - Date range filtering
 
 ### 📚 Best Practices Library
+
 - Curated collection of prompt engineering patterns
 - Categorized by use case (photography, YouTube thumbnails, engagement)
 - Custom best practices with importance ratings
 
 ### ⚙️ Settings Management
+
 - Secure API key storage (OpenRouter)
 - Model selection and pinning
 - Custom prompt templates
@@ -51,17 +56,20 @@ A Next.js 15 application that provides AI-powered tools for YouTube content crea
 ### Installation
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/Vibe-coding-nvm-delete-repo/yt.git
 cd yt
 ```
 
 2. Install dependencies:
+
 ```bash
 npm install
 ```
 
 3. Run the development server:
+
 ```bash
 npm run dev
 ```
@@ -78,12 +86,23 @@ npm run dev
 
 ## 📖 Documentation
 
+### User Documentation
+
 - **[Quick Start Guide](docs/QUICK_START.md)** - Get started in 5 minutes
 - **[Features Guide](docs/FEATURES_GUIDE.md)** - Detailed feature documentation
 - **[API Reference](docs/API_REFERENCE.md)** - Technical API documentation
+
+### Developer Documentation
+
 - **[Contributing Guide](CONTRIBUTING.md)** - How to contribute
 - **[Engineering Standards](docs/ENGINEERING_STANDARDS.md)** - Development standards
 - **[Design System](docs/DESIGN_SYSTEM.md)** - UI/UX guidelines
+
+### Project Management
+
+- **[Issue Review Summary](ISSUE_REVIEW_SUMMARY.md)** - Current issue priorities and roadmap
+- **[Issue Triage Analysis](ISSUE_TRIAGE_ANALYSIS.md)** - Detailed issue classification and planning
+- **[Documentation Index](docs/README.md)** - Complete documentation catalog
 
 ## 🛠️ Development Commands
 
@@ -159,10 +178,10 @@ Current test coverage: **≥60%** across all modules
 - **Testing**: Jest, React Testing Library
 - **Code Quality**: ESLint, Prettier, Husky pre-commit hooks
 
-
 ## 🤝 Contributing
 
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details on:
+
 - Development setup
 - Code style and standards
 - Testing requirements
@@ -181,6 +200,7 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 ## 📞 Support
 
 For issues and questions:
+
 - **GitHub Issues**: [Report a bug or request a feature](https://github.com/Vibe-coding-nvm-delete-repo/yt/issues)
 - **Discussions**: [Join the conversation](https://github.com/Vibe-coding-nvm-delete-repo/yt/discussions)
 

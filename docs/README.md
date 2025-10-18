@@ -5,15 +5,18 @@ Complete index of all documentation in the YouTube Tools project.
 ## 📚 User Documentation
 
 ### Getting Started
+
 - **[README](../README.md)** - Project overview, features, and quick start
 - **[Quick Start Guide](./QUICK_START.md)** - Get started in 5 minutes
 - **[Features Guide](./FEATURES_GUIDE.md)** - Detailed feature documentation
 
 ### Technical Documentation
+
 - **[API Reference](./API_REFERENCE.md)** - Technical API documentation
 - **[Contributing Guide](../CONTRIBUTING.md)** - How to contribute to the project
 
 ### Standards & Guidelines
+
 - **[Engineering Standards](./ENGINEERING_STANDARDS.md)** - Development standards and best practices
 - **[Design System](./DESIGN_SYSTEM.md)** - UI/UX guidelines and component patterns
 - **[Code of Conduct](../CODE_OF_CONDUCT.md)** - Community guidelines
@@ -21,29 +24,39 @@ Complete index of all documentation in the YouTube Tools project.
 ## 🔧 Developer Documentation
 
 ### Setup & Configuration
+
 - **[P0 Quick Start](./P0_QUICK_START.md)** - Quick reference for P0 system
 - **[P0 Enforcement System](./P0_ENFORCEMENT_SYSTEM.md)** - Architecture guards and CI checks
 - **[Deployment Setup Guide](../DEPLOYMENT_SETUP_GUIDE.md)** - Deployment configuration
 
 ### Development Process
+
 - **[Merge Conflict Prevention](./MERGE_CONFLICT_PREVENTION.md)** - Git workflow and branch protection
 - **[GitHub Branch Protection Setup](./GITHUB_BRANCH_PROTECTION_SETUP.md)** - Branch protection configuration
 - **[Autonomous Agent Policy](./AUTONOMOUS_AGENT_POLICY.md)** - AI agent guidelines
+- **[PQA Policy](./PQA_POLICY.md)** - Proactive Quality Assurance policy
 
 ### Testing & Quality
+
 - **[P0 Test Coverage Status](./P0_TEST_COVERAGE_STATUS.md)** - Test coverage tracking
 - **[P0 Known Issues](./P0_KNOWN_ISSUES.md)** - Known limitations and issues
+- **[Issue Triage Analysis](../ISSUE_TRIAGE_ANALYSIS.md)** - Comprehensive issue analysis and classification
+- **[Issue Execution Order](../ISSUE_EXECUTION_ORDER.md)** - Prioritized roadmap for issue resolution
+- **[Issue Review Summary](../ISSUE_REVIEW_SUMMARY.md)** - Executive summary of issue review
 
 ### Performance
+
 - **[Performance Optimization Examples](./PERFORMANCE_OPTIMIZATION_EXAMPLES.md)** - Performance patterns
 - **[Cost Calculation Spec](./COST_CALCULATION_SPEC.md)** - Cost calculation details
 
 ## 📊 Project Status
 
 ### Changelog & Updates
+
 - **[Changelog Notes](./CHANGELOG_NOTES.md)** - Potential changelog entries for review
 
 ### Reference
+
 - **[Prompt Metrics Followup](./PROMPT_METRICS_FOLLOWUP.md)** - Prompt metrics documentation
 
 ## 🔐 Security
@@ -55,6 +68,7 @@ Complete index of all documentation in the YouTube Tools project.
 ### Documentation Coverage
 
 ✅ **Complete Documentation:**
+
 - User onboarding (README, Quick Start)
 - Feature guides (Features Guide)
 - Technical reference (API Reference)
@@ -63,6 +77,7 @@ Complete index of all documentation in the YouTube Tools project.
 - Design system
 
 ✅ **Updated Documentation:**
+
 - README.md - Comprehensive project overview
 - CONTRIBUTING.md - Development workflow
 - Quick Start Guide - Rapid onboarding
@@ -80,6 +95,7 @@ Complete index of all documentation in the YouTube Tools project.
 ### Documentation Links Status
 
 All primary documentation links are verified and working:
+
 - ✅ Cross-references between docs
 - ✅ External links (OpenRouter, Next.js, etc.)
 - ✅ Internal navigation
@@ -90,6 +106,7 @@ All primary documentation links are verified and working:
 The following files in the root directory are legacy documentation from previous development cycles. They may contain historical context but are not part of the current documentation set:
 
 - AGENTS.md (kept for AI agent instructions)
+- ISSUE_LABELING_SCRIPT.md (operational tool, not legacy - contains GitHub CLI commands for issue labeling)
 - CODEBASE_HEALTH_ISSUES.md
 - COMPLETION_REPORT.md
 - COST_VERIFICATION_COMPLETE.md
@@ -118,39 +135,60 @@ The following files in the root directory are legacy documentation from previous
 ## 📝 Documentation Maintenance
 
 ### Update Frequency
+
 - **Major Updates**: With each significant feature release
 - **Minor Updates**: As needed for bug fixes or clarifications
 - **Review Cycle**: Quarterly comprehensive review
 
 ### Contributing to Documentation
+
 See [CONTRIBUTING.md](../CONTRIBUTING.md) for guidelines on:
+
 - Documentation style and format
 - How to propose changes
 - Documentation review process
 
 ### Reporting Documentation Issues
+
 - For errors or outdated information: [Open an issue](https://github.com/Vibe-coding-nvm-delete-repo/yt/issues)
 - For clarifications: [Start a discussion](https://github.com/Vibe-coding-nvm-delete-repo/yt/discussions)
 
 ## 🎯 Quick Links by Role
 
 ### New Users
+
 1. [README](../README.md) - Start here
 2. [Quick Start](./QUICK_START.md) - Set up in 5 minutes
 3. [Features Guide](./FEATURES_GUIDE.md) - Learn what you can do
 
 ### New Contributors
+
 1. [CONTRIBUTING.md](../CONTRIBUTING.md) - Contribution guidelines
 2. [Engineering Standards](./ENGINEERING_STANDARDS.md) - Code standards
 3. [API Reference](./API_REFERENCE.md) - Technical details
 
 ### Maintainers
+
 1. [P0 Enforcement System](./P0_ENFORCEMENT_SYSTEM.md) - CI/CD setup
 2. [Merge Conflict Prevention](./MERGE_CONFLICT_PREVENTION.md) - Git workflow
-3. [Changelog Notes](./CHANGELOG_NOTES.md) - Release notes
+3. [Issue Review Summary](../ISSUE_REVIEW_SUMMARY.md) - Current issue priorities and roadmap
+4. [Changelog Notes](./CHANGELOG_NOTES.md) - Release notes
 
 ---
 
-**Last Updated**: 2025-10-17  
-**Documentation Version**: 1.0  
+## 🎯 Issue Management
+
+The project maintains comprehensive issue management documentation:
+
+- **[Issue Review Summary](../ISSUE_REVIEW_SUMMARY.md)** - Executive summary of all open issues, priorities, and execution plan
+- **[Issue Triage Analysis](../ISSUE_TRIAGE_ANALYSIS.md)** - Detailed analysis, impact assessment, and effort estimates
+- **[Issue Execution Order](../ISSUE_EXECUTION_ORDER.md)** - Phase-by-phase implementation roadmap with dependencies
+- **[Issue Labeling Script](../ISSUE_LABELING_SCRIPT.md)** - GitHub CLI commands for applying labels
+
+**Current Status**: 18 open issues analyzed, 3 critical blockers identified, 0 redundancies found.
+
+---
+
+**Last Updated**: 2025-10-18  
+**Documentation Version**: 1.1  
 **Maintained By**: YouTube Tools Team
