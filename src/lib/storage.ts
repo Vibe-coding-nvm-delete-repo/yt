@@ -21,6 +21,7 @@ import type {
   ModelResult,
 } from "@/types";
 import { STORAGE_KEYS } from "@/lib/constants";
+import { now, isExpired } from "@/utils/timeHelpers";
 
 const STORAGE_KEY = STORAGE_KEYS.SETTINGS;
 const IMAGE_STATE_KEY = STORAGE_KEYS.IMAGE_STATE;
@@ -368,7 +369,7 @@ export class SettingsStorage {
   validateApiKey(isValid: boolean): void {
     this.batchUpdate({
       isValidApiKey: isValid,
-      lastApiKeyValidation: isValid ? Date.now() : null,
+      lastApiKeyValidation: isValid ? now() : null,
     });
   }
 
@@ -387,7 +388,7 @@ export class SettingsStorage {
   updateModels(models: VisionModel[]): void {
     this.batchUpdate({
       availableModels: models,
-      lastModelFetch: Date.now(),
+      lastModelFetch: now(),
     });
   }
 
@@ -417,7 +418,7 @@ export class SettingsStorage {
     }
 
     const oneDayInMs = 24 * 60 * 60 * 1000;
-    return Date.now() - this.settings.lastModelFetch > oneDayInMs;
+    return isExpired(this.settings.lastModelFetch, oneDayInMs);
   }
 
   getModelById(modelId: string): VisionModel | null {

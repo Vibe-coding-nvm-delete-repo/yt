@@ -1,5 +1,6 @@
 import type { BestPractice, BestPracticeCategory } from "@/types";
 import { STORAGE_KEYS } from "@/lib/constants";
+import { now as getCurrentTime } from "@/utils/timeHelpers";
 
 const STORAGE_KEY = STORAGE_KEYS.BEST_PRACTICES;
 
@@ -124,12 +125,12 @@ export class BestPracticesStorage {
   createPractice(
     practice: Omit<BestPractice, "id" | "createdAt" | "updatedAt">,
   ): BestPractice {
-    const now = Date.now();
+    const timestamp = getCurrentTime();
     const newPractice: BestPractice = {
       ...practice,
-      id: `bp-${now}-${Math.random().toString(36).substring(2, 9)}`,
-      createdAt: now,
-      updatedAt: now,
+      id: `bp-${timestamp}-${Math.random().toString(36).substring(2, 9)}`,
+      createdAt: timestamp,
+      updatedAt: timestamp,
     };
 
     this.practices.push(newPractice);
@@ -157,7 +158,7 @@ export class BestPracticesStorage {
       ...updates,
       id: currentPractice.id, // Ensure ID doesn't change
       createdAt: currentPractice.createdAt, // Ensure createdAt doesn't change
-      updatedAt: Date.now(),
+      updatedAt: getCurrentTime(),
     };
 
     this.practices[index] = updatedPractice;

@@ -58,18 +58,23 @@ export const deepClone = <T>(obj: T): T => {
 /**
  * Check if two objects are deeply equal
  */
-export const isEqual = (obj1: any, obj2: any): boolean => {
+export const isEqual = (obj1: unknown, obj2: unknown): boolean => {
   if (obj1 === obj2) return true;
   if (obj1 == null || obj2 == null) return false;
   if (typeof obj1 !== "object" || typeof obj2 !== "object") return false;
 
-  const keys1 = Object.keys(obj1);
-  const keys2 = Object.keys(obj2);
+  const keys1 = Object.keys(obj1 as Record<string, unknown>);
+  const keys2 = Object.keys(obj2 as Record<string, unknown>);
 
   if (keys1.length !== keys2.length) return false;
 
   return keys1.every(
-    (key) => keys2.includes(key) && isEqual(obj1[key], obj2[key]),
+    (key) =>
+      keys2.includes(key) &&
+      isEqual(
+        (obj1 as Record<string, unknown>)[key],
+        (obj2 as Record<string, unknown>)[key],
+      ),
   );
 };
 
@@ -86,22 +91,22 @@ export const merge = <T extends object, U extends object>(
 /**
  * Get a nested property safely
  */
-export const getNestedProperty = <T = any>(
-  obj: any,
+export const getNestedProperty = <T = unknown>(
+  obj: unknown,
   path: string,
   defaultValue?: T,
 ): T | undefined => {
   const keys = path.split(".");
-  let result = obj;
+  let result: unknown = obj;
 
   for (const key of keys) {
     if (result == null || typeof result !== "object") {
       return defaultValue;
     }
-    result = result[key];
+    result = (result as Record<string, unknown>)[key];
   }
 
-  return result !== undefined ? result : defaultValue;
+  return result !== undefined ? (result as T) : defaultValue;
 };
 
 /**
