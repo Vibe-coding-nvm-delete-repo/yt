@@ -193,6 +193,75 @@ font-family:
 - **Note**: Global CSS in `globals.css` automatically styles `<option>` elements to match dark theme
 - Options use `--color-elevated` background with blue hover states
 
+### Enhanced Custom Dropdowns
+
+For complex selection UIs with search, pricing, and pinning capabilities (e.g., model selection), use custom dropdown components instead of native `<select>`:
+
+```tsx
+{
+  /* Trigger Button */
+}
+<button
+  type="button"
+  onClick={() => setIsOpen(!isOpen)}
+  className="w-full px-4 py-2 border-none rounded-lg focus:ring-2 focus:ring-blue-500/50 bg-white/5 hover:bg-white/10 text-left flex items-center justify-between transition-colors"
+>
+  <span className="text-white text-sm">{selectedItem || "Select..."}</span>
+  <ChevronDown className="h-4 w-4 text-gray-500 transition-transform" />
+</button>;
+
+{
+  /* Dropdown Panel */
+}
+{
+  isOpen && (
+    <div className="absolute z-10 w-full mt-1 bg-[#1A212A] border border-white/10 rounded-lg shadow-[0_24px_56px_rgba(0,0,0,0.55)] max-h-80 overflow-hidden flex flex-col">
+      {/* Search Bar */}
+      <div className="p-2 border-b border-white/6">
+        <input
+          type="text"
+          placeholder="Search..."
+          className="w-full pl-10 pr-4 py-2 border-none rounded-lg focus:ring-2 focus:ring-blue-500/50 bg-white/5 focus:bg-white/10 text-white placeholder:text-gray-500 text-sm"
+        />
+      </div>
+
+      {/* Scrollable Options */}
+      <div className="overflow-y-auto flex-1">
+        {/* Option Row */}
+        <button className="w-full px-4 py-2 text-left hover:bg-white/5 transition-colors">
+          <div className="flex items-center justify-between">
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-medium text-white">Option Name</div>
+              <div className="text-xs text-gray-400">$0.00/token</div>
+            </div>
+            {/* Pin Button */}
+            <button className="ml-3 text-gray-400 hover:text-gray-300">
+              <Pin className="h-4 w-4" />
+            </button>
+          </div>
+        </button>
+      </div>
+    </div>
+  );
+}
+```
+
+**Key Features:**
+
+- **Search**: Real-time filtering with debounced input
+- **Pricing**: Display cost information inline with each option
+- **Pinning**: Allow users to pin frequently used options to the top
+- **Sections**: Separate pinned from unpinned options with dividers
+- **Accessibility**: Full keyboard navigation support
+- **Consistent Styling**: Match all other inputs and dropdowns
+
+**Use Cases:**
+
+- Model selection (vision/text models)
+- Any selection UI with >20 options
+- Scenarios requiring metadata display (pricing, descriptions)
+- User preference management (favorites/pinning)
+
 ### Pills/Status Badges
 
 ```tsx
@@ -339,6 +408,47 @@ Even if an icon is 16px, wrap it in padding to reach 24px minimum.
 </div>
 ```
 
+### Settings - Vision Model Grid (3 Columns)
+
+For complex settings with multiple similar fields (e.g., model selection), use a responsive grid layout:
+
+```tsx
+<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+  {[0, 1, 2].map((index) => (
+    <div
+      key={index}
+      className="bg-[#151A21] rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.35)] p-6"
+    >
+      <h4 className="font-semibold text-white mb-3">
+        Vision Model {index + 1}
+      </h4>
+
+      {/* Enhanced dropdown component here */}
+      <CustomDropdown
+        options={models}
+        value={selectedModels[index]}
+        onChange={(value) => handleModelChange(index, value)}
+      />
+    </div>
+  ))}
+</div>
+```
+
+**Layout Guidelines:**
+
+- **Mobile (< md)**: Stack vertically (1 column)
+- **Desktop (≥ md)**: Display side-by-side (3 columns)
+- **Gap**: Use `gap-4` (16px) between cards
+- **Card Padding**: Use `p-6` (24px) for consistent internal spacing
+- **Responsive**: Always test both mobile and desktop layouts
+
+**Use Cases:**
+
+- Multiple model selectors
+- Comparison views
+- Grouped configuration options
+- Any scenario with 2-4 similar input fields
+
 ---
 
 ## Implementation Notes
@@ -383,5 +493,6 @@ See `globals.css` for implementation of design tokens.
 
 ## Changelog
 
+- **2025-10-18**: Added enhanced custom dropdown pattern with search, pricing, and pinning functionality. Added 3-column grid layout pattern for settings fields. Updated vision model selection to use 3 models with enhanced dropdowns in responsive grid layout.
 - **2025-10-17**: Added global dropdown (`select option`) styling to match dark theme. All dropdown options now use `--color-elevated` background and `--color-text-high` text color with blue hover states
 - **2025-10-15**: Initial design system documentation created
