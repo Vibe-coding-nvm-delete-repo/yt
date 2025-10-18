@@ -89,15 +89,13 @@ describe("SettingsTab - Enhanced Model Dropdowns", () => {
     const modelTab = screen.getByText("Model Selection");
     fireEvent.click(modelTab);
 
-    // Wait for content to render and check that we have 5 "Vision Model" headings
+    // Wait for content to render and check that we have 3 "Vision Model" headings
     const allText = container.textContent || "";
 
-    // Should have all 5 vision model slots
+    // Should have all 3 vision model slots
     expect(allText).toContain("Vision Model 1");
     expect(allText).toContain("Vision Model 2");
     expect(allText).toContain("Vision Model 3");
-    expect(allText).toContain("Vision Model 4");
-    expect(allText).toContain("Vision Model 5");
   });
 
   it("displays model names in dropdowns", () => {
@@ -112,9 +110,9 @@ describe("SettingsTab - Enhanced Model Dropdowns", () => {
     const modelTab = screen.getByText("Model Selection");
     fireEvent.click(modelTab);
 
-    // All dropdowns should show "Select a model..." initially
+    // All dropdowns should show "Select a model…" initially
     const allText = container.textContent || "";
-    expect(allText).toContain("Select a model...");
+    expect(allText).toContain("Select a model…");
   });
 
   it("shows pinned models when available", () => {
@@ -172,8 +170,8 @@ describe("SettingsTab - Enhanced Model Dropdowns", () => {
     const modelTab = screen.getByText("Model Selection");
     fireEvent.click(modelTab);
 
-    // Should show the count of selected models out of 5
+    // Should show the count of selected models out of 3
     const text = container.textContent || "";
-    expect(text).toContain("Selected: 0 / 5");
+    expect(text).toContain("Selected: 0 / 3");
   });
 });

@@ -1,6 +1,24 @@
 import { BestPracticesStorage } from "../bestPracticesStorage";
 import type { BestPractice, BestPracticeCategory } from "@/types";
 
+// Helper function to create valid test BestPractice objects
+const createTestPractice = (
+  overrides: Partial<BestPractice> = {},
+): BestPractice => ({
+  id: `bp-${Date.now()}`,
+  name: "Test Practice",
+  description: "Test description",
+  leonardoAiLanguage: "test language",
+  images: [],
+  importance: 5,
+  type: "optional",
+  typeExplanation: "test explanation",
+  category: "words-phrases",
+  createdAt: Date.now(),
+  updatedAt: Date.now(),
+  ...overrides,
+});
+
 describe("BestPracticesStorage", () => {
   beforeEach(() => {
     localStorage.clear();
@@ -28,17 +46,10 @@ describe("BestPracticesStorage", () => {
 
     it("should load practices from localStorage", () => {
       const mockPractices: BestPractice[] = [
-        {
+        createTestPractice({
           id: "bp-1",
-          title: "Test Practice",
-          description: "Test description",
-          category: "prompt-engineering",
-          tags: ["test"],
-          examples: [],
-          resources: [],
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        },
+          name: "Test Practice",
+        }),
       ];
 
       localStorage.setItem("yt-best-practices", JSON.stringify(mockPractices));
@@ -47,7 +58,7 @@ describe("BestPracticesStorage", () => {
       const practices = storage.getPractices();
 
       expect(practices).toHaveLength(1);
-      expect(practices[0]?.title).toBe("Test Practice");
+      expect(practices[0]?.name).toBe("Test Practice");
     });
 
     it("should handle invalid JSON in localStorage", () => {
@@ -77,16 +88,18 @@ describe("BestPracticesStorage", () => {
       const storage = BestPracticesStorage.getInstance();
 
       const practice = storage.createPractice({
-        title: "New Practice",
+        name: "New Practice",
         description: "New description",
-        category: "model-selection",
-        tags: ["new"],
-        examples: [],
-        resources: [],
+        leonardoAiLanguage: "new language",
+        images: [],
+        importance: 7,
+        type: "mandatory",
+        typeExplanation: "explanation",
+        category: "photography",
       });
 
       expect(practice.id).toBeDefined();
-      expect(practice.title).toBe("New Practice");
+      expect(practice.name).toBe("New Practice");
       expect(practice.createdAt).toBeDefined();
       expect(practice.updatedAt).toBeDefined();
     });
@@ -95,12 +108,14 @@ describe("BestPracticesStorage", () => {
       const storage = BestPracticesStorage.getInstance();
 
       storage.createPractice({
-        title: "Saved Practice",
+        name: "Saved Practice",
         description: "Description",
-        category: "cost-optimization",
-        tags: [],
-        examples: [],
-        resources: [],
+        leonardoAiLanguage: "saved language",
+        images: [],
+        importance: 5,
+        type: "optional",
+        typeExplanation: "explanation",
+        category: "youtube-engagement",
       });
 
       const stored = localStorage.getItem("yt-best-practices");
@@ -108,7 +123,7 @@ describe("BestPracticesStorage", () => {
 
       const parsed = JSON.parse(stored!);
       expect(Array.isArray(parsed)).toBe(true);
-      expect(parsed[0]?.title).toBe("Saved Practice");
+      expect(parsed[0]?.name).toBe("Saved Practice");
     });
   });
 
@@ -117,12 +132,14 @@ describe("BestPracticesStorage", () => {
       const storage = BestPracticesStorage.getInstance();
 
       storage.createPractice({
-        title: "Practice 1",
+        name: "Practice 1",
         description: "Description",
-        category: "prompt-engineering",
-        tags: [],
-        examples: [],
-        resources: [],
+        leonardoAiLanguage: "language",
+        images: [],
+        importance: 5,
+        type: "optional",
+        typeExplanation: "explanation",
+        category: "words-phrases",
       });
 
       const practices1 = storage.getPractices();
@@ -138,37 +155,40 @@ describe("BestPracticesStorage", () => {
       const storage = BestPracticesStorage.getInstance();
 
       storage.createPractice({
-        title: "Prompt Practice",
+        name: "Prompt Practice",
         description: "Description",
-        category: "prompt-engineering",
-        tags: [],
-        examples: [],
-        resources: [],
+        leonardoAiLanguage: "language",
+        images: [],
+        importance: 5,
+        type: "optional",
+        typeExplanation: "explanation",
+        category: "words-phrases",
       });
 
       storage.createPractice({
-        title: "Model Practice",
+        name: "Model Practice",
         description: "Description",
-        category: "model-selection",
-        tags: [],
-        examples: [],
-        resources: [],
+        leonardoAiLanguage: "language",
+        images: [],
+        importance: 5,
+        type: "optional",
+        typeExplanation: "explanation",
+        category: "photography",
       });
 
-      const promptPractices =
-        storage.getPracticesByCategory("prompt-engineering");
+      const promptPractices = storage.getPracticesByCategory("words-phrases");
       expect(promptPractices).toHaveLength(1);
-      expect(promptPractices[0]?.title).toBe("Prompt Practice");
+      expect(promptPractices[0]?.name).toBe("Prompt Practice");
 
-      const modelPractices = storage.getPracticesByCategory("model-selection");
+      const modelPractices = storage.getPracticesByCategory("photography");
       expect(modelPractices).toHaveLength(1);
-      expect(modelPractices[0]?.title).toBe("Model Practice");
+      expect(modelPractices[0]?.name).toBe("Model Practice");
     });
 
     it("should return empty array for category with no practices", () => {
       const storage = BestPracticesStorage.getInstance();
 
-      const practices = storage.getPracticesByCategory("cost-optimization");
+      const practices = storage.getPracticesByCategory("youtube-engagement");
       expect(practices).toEqual([]);
     });
   });
@@ -178,18 +198,20 @@ describe("BestPracticesStorage", () => {
       const storage = BestPracticesStorage.getInstance();
 
       const created = storage.createPractice({
-        title: "Test Practice",
+        name: "Test Practice",
         description: "Description",
-        category: "prompt-engineering",
-        tags: [],
-        examples: [],
-        resources: [],
+        leonardoAiLanguage: "language",
+        images: [],
+        importance: 5,
+        type: "optional",
+        typeExplanation: "explanation",
+        category: "words-phrases",
       });
 
       const found = storage.getPracticeById(created.id);
       expect(found).toBeDefined();
       expect(found?.id).toBe(created.id);
-      expect(found?.title).toBe("Test Practice");
+      expect(found?.name).toBe("Test Practice");
     });
 
     it("should return null for non-existent ID", () => {
@@ -205,24 +227,26 @@ describe("BestPracticesStorage", () => {
       const storage = BestPracticesStorage.getInstance();
 
       const created = storage.createPractice({
-        title: "Original Title",
+        name: "Original Title",
         description: "Original description",
-        category: "prompt-engineering",
-        tags: [],
-        examples: [],
-        resources: [],
+        leonardoAiLanguage: "language",
+        images: [],
+        importance: 5,
+        type: "optional",
+        typeExplanation: "explanation",
+        category: "words-phrases",
       });
 
       // Wait a bit to ensure updatedAt is different
       jest.advanceTimersByTime(10);
 
       const updated = storage.updatePractice(created.id, {
-        title: "Updated Title",
+        name: "Updated Title",
         description: "Updated description",
       });
 
       expect(updated).toBeDefined();
-      expect(updated?.title).toBe("Updated Title");
+      expect(updated?.name).toBe("Updated Title");
       expect(updated?.description).toBe("Updated description");
       expect(updated?.id).toBe(created.id); // ID unchanged
       expect(updated?.createdAt).toBe(created.createdAt); // createdAt unchanged
@@ -233,7 +257,7 @@ describe("BestPracticesStorage", () => {
       const storage = BestPracticesStorage.getInstance();
 
       const updated = storage.updatePractice("non-existent", {
-        title: "New Title",
+        name: "New Title",
       });
       expect(updated).toBeNull();
     });
@@ -242,12 +266,14 @@ describe("BestPracticesStorage", () => {
       const storage = BestPracticesStorage.getInstance();
 
       const created = storage.createPractice({
-        title: "Test",
+        name: "Test",
         description: "Description",
-        category: "prompt-engineering",
-        tags: [],
-        examples: [],
-        resources: [],
+        leonardoAiLanguage: "language",
+        images: [],
+        importance: 5,
+        type: "optional",
+        typeExplanation: "explanation",
+        category: "words-phrases",
       });
 
       const originalId = created.id;
@@ -255,14 +281,14 @@ describe("BestPracticesStorage", () => {
 
       // Try to update immutable fields (they should be ignored)
       const updated = storage.updatePractice(created.id, {
-        title: "Updated",
-        id: "should-be-ignored" as any,
-        createdAt: 99999 as any,
-      });
+        name: "Updated",
+        id: "should-be-ignored",
+        createdAt: 99999,
+      } as any);
 
       expect(updated?.id).toBe(originalId);
       expect(updated?.createdAt).toBe(originalCreatedAt);
-      expect(updated?.title).toBe("Updated");
+      expect(updated?.name).toBe("Updated");
     });
   });
 
@@ -271,12 +297,14 @@ describe("BestPracticesStorage", () => {
       const storage = BestPracticesStorage.getInstance();
 
       const created = storage.createPractice({
-        title: "To Delete",
+        name: "To Delete",
         description: "Description",
-        category: "prompt-engineering",
-        tags: [],
-        examples: [],
-        resources: [],
+        leonardoAiLanguage: "language",
+        images: [],
+        importance: 5,
+        type: "optional",
+        typeExplanation: "explanation",
+        category: "words-phrases",
       });
 
       const deleted = storage.deletePractice(created.id);
@@ -297,12 +325,14 @@ describe("BestPracticesStorage", () => {
       const storage = BestPracticesStorage.getInstance();
 
       const created = storage.createPractice({
-        title: "To Delete",
+        name: "To Delete",
         description: "Description",
-        category: "prompt-engineering",
-        tags: [],
-        examples: [],
-        resources: [],
+        leonardoAiLanguage: "language",
+        images: [],
+        importance: 5,
+        type: "optional",
+        typeExplanation: "explanation",
+        category: "words-phrases",
       });
 
       storage.deletePractice(created.id);
@@ -318,21 +348,25 @@ describe("BestPracticesStorage", () => {
       const storage = BestPracticesStorage.getInstance();
 
       storage.createPractice({
-        title: "Practice 1",
+        name: "Practice 1",
         description: "Description",
-        category: "prompt-engineering",
-        tags: [],
-        examples: [],
-        resources: [],
+        leonardoAiLanguage: "language",
+        images: [],
+        importance: 5,
+        type: "optional",
+        typeExplanation: "explanation",
+        category: "words-phrases",
       });
 
       storage.createPractice({
-        title: "Practice 2",
+        name: "Practice 2",
         description: "Description",
-        category: "model-selection",
-        tags: [],
-        examples: [],
-        resources: [],
+        leonardoAiLanguage: "language",
+        images: [],
+        importance: 5,
+        type: "optional",
+        typeExplanation: "explanation",
+        category: "photography",
       });
 
       expect(storage.getPractices()).toHaveLength(2);
@@ -346,12 +380,14 @@ describe("BestPracticesStorage", () => {
       const storage = BestPracticesStorage.getInstance();
 
       storage.createPractice({
-        title: "Practice",
+        name: "Practice",
         description: "Description",
-        category: "prompt-engineering",
-        tags: [],
-        examples: [],
-        resources: [],
+        leonardoAiLanguage: "language",
+        images: [],
+        importance: 5,
+        type: "optional",
+        typeExplanation: "explanation",
+        category: "words-phrases",
       });
 
       storage.clearAllPractices();
@@ -381,12 +417,14 @@ describe("BestPracticesStorage", () => {
       callback.mockClear();
 
       storage.createPractice({
-        title: "New Practice",
+        name: "New Practice",
         description: "Description",
-        category: "prompt-engineering",
-        tags: [],
-        examples: [],
-        resources: [],
+        leonardoAiLanguage: "language",
+        images: [],
+        importance: 5,
+        type: "optional",
+        typeExplanation: "explanation",
+        category: "words-phrases",
       });
 
       expect(callback).toHaveBeenCalledTimes(1);
@@ -399,18 +437,20 @@ describe("BestPracticesStorage", () => {
       const callback = jest.fn();
 
       const created = storage.createPractice({
-        title: "Practice",
+        name: "Practice",
         description: "Description",
-        category: "prompt-engineering",
-        tags: [],
-        examples: [],
-        resources: [],
+        leonardoAiLanguage: "language",
+        images: [],
+        importance: 5,
+        type: "optional",
+        typeExplanation: "explanation",
+        category: "words-phrases",
       });
 
       storage.subscribe(callback);
       callback.mockClear();
 
-      storage.updatePractice(created.id, { title: "Updated" });
+      storage.updatePractice(created.id, { name: "Updated" });
 
       expect(callback).toHaveBeenCalledTimes(1);
     });
@@ -420,12 +460,14 @@ describe("BestPracticesStorage", () => {
       const callback = jest.fn();
 
       const created = storage.createPractice({
-        title: "Practice",
+        name: "Practice",
         description: "Description",
-        category: "prompt-engineering",
-        tags: [],
-        examples: [],
-        resources: [],
+        leonardoAiLanguage: "language",
+        images: [],
+        importance: 5,
+        type: "optional",
+        typeExplanation: "explanation",
+        category: "words-phrases",
       });
 
       storage.subscribe(callback);
@@ -460,12 +502,14 @@ describe("BestPracticesStorage", () => {
       // Should not throw even with bad callback
       expect(() => {
         storage.createPractice({
-          title: "Test",
+          name: "Test",
           description: "Description",
-          category: "prompt-engineering",
-          tags: [],
-          examples: [],
-          resources: [],
+          leonardoAiLanguage: "language",
+          images: [],
+          importance: 5,
+          type: "optional",
+          typeExplanation: "explanation",
+          category: "words-phrases",
         });
       }).not.toThrow();
 
@@ -485,12 +529,14 @@ describe("BestPracticesStorage", () => {
 
       // Create practice - callback should not be called
       storage.createPractice({
-        title: "Test",
+        name: "Test",
         description: "Description",
-        category: "prompt-engineering",
-        tags: [],
-        examples: [],
-        resources: [],
+        leonardoAiLanguage: "language",
+        images: [],
+        importance: 5,
+        type: "optional",
+        typeExplanation: "explanation",
+        category: "words-phrases",
       });
 
       expect(callback).not.toHaveBeenCalled();
@@ -510,12 +556,14 @@ describe("BestPracticesStorage", () => {
       // Should not throw
       expect(() => {
         storage.createPractice({
-          title: "Test",
+          name: "Test",
           description: "Description",
-          category: "prompt-engineering",
-          tags: [],
-          examples: [],
-          resources: [],
+          leonardoAiLanguage: "language",
+          images: [],
+          importance: 5,
+          type: "optional",
+          typeExplanation: "explanation",
+          category: "words-phrases",
         });
       }).not.toThrow();
 
