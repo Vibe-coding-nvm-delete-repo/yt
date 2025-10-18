@@ -134,10 +134,10 @@ describe("PromptCreatorTab", () => {
       screen.getByText(/Fill in the mandatory fields/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/Click.*Generate.*to create 3 prompts/i),
+      screen.getByText(/Click.*Generate.*to create a single prompt/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/View generated prompts with their quality scores/i),
+      screen.getByText(/The generated prompt appears in a scrollable field/i),
     ).toBeInTheDocument();
   });
 });

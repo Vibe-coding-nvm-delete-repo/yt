@@ -1135,15 +1135,21 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                 }}
                 className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white focus:border-blue-500 focus:outline-none"
               >
-                <option value="dropdown">
+                <option value="dropdown" className="bg-[#1A212A] text-white">
                   Dropdown - Single choice from list
                 </option>
-                <option value="multiselect">
+                <option value="multiselect" className="bg-[#1A212A] text-white">
                   Multiselect - Multiple choices from list
                 </option>
-                <option value="slider">Slider - Numeric range selector</option>
-                <option value="number">Number - Direct numeric input</option>
-                <option value="text">Text - Free-form text input</option>
+                <option value="slider" className="bg-[#1A212A] text-white">
+                  Slider - Numeric range selector
+                </option>
+                <option value="number" className="bg-[#1A212A] text-white">
+                  Number - Direct numeric input
+                </option>
+                <option value="text" className="bg-[#1A212A] text-white">
+                  Text - Free-form text input
+                </option>
               </select>
             </div>
 
@@ -1162,9 +1168,15 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                 }
                 className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white focus:border-blue-500 focus:outline-none"
               >
-                <option value="mandatory">Mandatory - Must be filled</option>
-                <option value="optional">Optional - Can be skipped</option>
-                <option value="free">Free - No restrictions</option>
+                <option value="mandatory" className="bg-[#1A212A] text-white">
+                  Mandatory - Must be filled
+                </option>
+                <option value="optional" className="bg-[#1A212A] text-white">
+                  Optional - Can be skipped
+                </option>
+                <option value="free" className="bg-[#1A212A] text-white">
+                  Free - No restrictions
+                </option>
               </select>
             </div>
 
@@ -1670,9 +1682,11 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                             newModels[index] = e.target.value;
                             setSelectedVisionModels(newModels.filter(Boolean));
                           }}
-                          className="w-full px-4 py-2 border-none rounded-lg focus:ring-2 focus:ring-blue-500/50 bg-white/5 focus:bg-white/10 text-white transition-colors"
+                          className="w-full px-4 py-2 border-none rounded-lg focus:ring-2 focus:ring-blue-500/50 bg-white/5 focus:bg-white/10 text-white transition-colors [&>option]:bg-[#1A212A] [&>option]:text-white [&>option:disabled]:text-gray-500"
                         >
-                          <option value="">-- Select a model --</option>
+                          <option value="" className="bg-[#1A212A] text-white">
+                            -- Select a model --
+                          </option>
                           {modelState.models.map((model) => (
                             <option
                               key={model.id}
@@ -1682,6 +1696,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
                                 selectedVisionModels[index] !== model.id
                               }
                               title={model.name}
+                              className="bg-[#1A212A] text-white disabled:text-gray-500"
                             >
                               {middleEllipsis(model.name, 50)}
                             </option>
