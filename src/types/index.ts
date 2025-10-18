@@ -144,7 +144,12 @@ export interface PersistedImageState {
 }
 
 export interface TabState {
-  activeTab: "image-to-prompt" | "settings" | "best-practices" | "usage";
+  activeTab:
+    | "image-to-prompt"
+    | "settings"
+    | "best-practices"
+    | "usage"
+    | "fields";
 }
 
 /**

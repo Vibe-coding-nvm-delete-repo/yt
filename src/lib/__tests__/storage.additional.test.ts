@@ -517,15 +517,25 @@ describe("ImageStateStorage - Additional Coverage", () => {
           modelId: "model-1",
           modelName: "Model 1",
           prompt: "Initial prompt",
-          isLoading: false,
+          isProcessing: false,
           cost: null,
+          inputTokens: null,
+          outputTokens: null,
+          inputCost: null,
+          outputCost: null,
+          error: null,
         },
         {
           modelId: "model-2",
           modelName: "Model 2",
           prompt: "Initial prompt 2",
-          isLoading: false,
+          isProcessing: false,
           cost: null,
+          inputTokens: null,
+          outputTokens: null,
+          inputCost: null,
+          outputCost: null,
+          error: null,
         },
       ];
 
@@ -534,12 +544,12 @@ describe("ImageStateStorage - Additional Coverage", () => {
       // Update first result
       storage.updateSingleModelResult(0, {
         prompt: "Updated prompt",
-        isLoading: true,
+        isProcessing: true,
       });
 
       const state = storage.getImageState();
       expect(state.modelResults?.[0]?.prompt).toBe("Updated prompt");
-      expect(state.modelResults?.[0]?.isLoading).toBe(true);
+      expect(state.modelResults?.[0]?.isProcessing).toBe(true);
       // Other fields should remain
       expect(state.modelResults?.[0]?.modelId).toBe("model-1");
       // Second result should be unchanged
@@ -553,8 +563,13 @@ describe("ImageStateStorage - Additional Coverage", () => {
           modelId: "model-1",
           modelName: "Model 1",
           prompt: "Test",
-          isLoading: false,
+          isProcessing: false,
           cost: null,
+          inputTokens: null,
+          outputTokens: null,
+          inputCost: null,
+          outputCost: null,
+          error: null,
         },
       ];
 
@@ -577,8 +592,13 @@ describe("ImageStateStorage - Additional Coverage", () => {
           modelId: "model-1",
           modelName: "Model 1",
           prompt: "Test",
-          isLoading: false,
+          isProcessing: false,
           cost: null,
+          inputTokens: null,
+          outputTokens: null,
+          inputCost: null,
+          outputCost: null,
+          error: null,
         },
       ];
 
