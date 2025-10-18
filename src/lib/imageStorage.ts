@@ -3,6 +3,8 @@
  * Replaces direct localStorage usage for images with proper blob storage.
  */
 
+import { now } from "@/utils/timeHelpers";
+
 interface StoredImage {
   id: string;
   blob: Blob;
@@ -25,7 +27,7 @@ class ImageStorage {
 
     try {
       this.dbPromise = new Promise((resolve, reject) => {
-        const request = indexedDB.open('ImageToPromptImages', 1);
+        const request = indexedDB.open("ImageToPromptImages", 1);
 
         request.onerror = () => reject(request.error);
         request.onsuccess = () => {
@@ -35,10 +37,12 @@ class ImageStorage {
 
         request.onupgradeneeded = (event) => {
           const db = (event.target as IDBOpenDBRequest).result;
-          if (!db.objectStoreNames.contains('images')) {
-            const store = db.createObjectStore('images', { keyPath: 'id' });
-            store.createIndex('uploadedAt', 'meta.uploadedAt', { unique: false });
-            store.createIndex('size', 'meta.size', { unique: false });
+          if (!db.objectStoreNames.contains("images")) {
+            const store = db.createObjectStore("images", { keyPath: "id" });
+            store.createIndex("uploadedAt", "meta.uploadedAt", {
+              unique: false,
+            });
+            store.createIndex("size", "meta.size", { unique: false });
           }
         };
       });
@@ -46,7 +50,7 @@ class ImageStorage {
       this.db = await this.dbPromise;
       return this.db;
     } catch (error) {
-      console.error('Failed to initialize IndexedDB:', error);
+      console.error("Failed to initialize IndexedDB:", error);
       throw error;
     }
   }
@@ -56,8 +60,8 @@ class ImageStorage {
       const db = await this.initDB();
 
       return new Promise((resolve, reject) => {
-        const transaction = db.transaction(['images'], 'readwrite');
-        const store = transaction.objectStore('images');
+        const transaction = db.transaction(["images"], "readwrite");
+        const store = transaction.objectStore("images");
 
         const url = URL.createObjectURL(file);
 
@@ -69,7 +73,7 @@ class ImageStorage {
             originalName: file.name,
             size: file.size,
             type: file.type,
-            uploadedAt: Date.now(),
+            uploadedAt: now(),
           },
         };
 
@@ -79,7 +83,7 @@ class ImageStorage {
         request.onerror = () => reject(request.error);
       });
     } catch (error) {
-      console.error('Failed to store image:', error);
+      console.error("Failed to store image:", error);
       throw error;
     }
   }
@@ -89,15 +93,15 @@ class ImageStorage {
       const db = await this.initDB();
 
       return new Promise((resolve) => {
-        const transaction = db.transaction(['images'], 'readonly');
-        const store = transaction.objectStore('images');
+        const transaction = db.transaction(["images"], "readonly");
+        const store = transaction.objectStore("images");
         const request = store.get(id);
 
         request.onsuccess = () => resolve(request.result || null);
         request.onerror = () => resolve(null);
       });
     } catch (error) {
-      console.error('Failed to get image:', error);
+      console.error("Failed to get image:", error);
       return null;
     }
   }
@@ -107,7 +111,7 @@ class ImageStorage {
       const stored = await this.getImage(id);
       return stored?.url || null;
     } catch (error) {
-      console.error('Failed to get image URL:', error);
+      console.error("Failed to get image URL:", error);
       return null;
     }
   }
@@ -118,8 +122,8 @@ class ImageStorage {
 
       return new Promise((resolve, reject) => {
         // First get the stored image to revoke blob URL
-        const getTransaction = db.transaction(['images'], 'readonly');
-        const getStore = getTransaction.objectStore('images');
+        const getTransaction = db.transaction(["images"], "readonly");
+        const getStore = getTransaction.objectStore("images");
 
         const getRequest = getStore.get(id);
         getRequest.onsuccess = () => {
@@ -129,8 +133,8 @@ class ImageStorage {
           }
 
           // Then remove from IndexedDB
-          const deleteTransaction = db.transaction(['images'], 'readwrite');
-          const deleteStore = deleteTransaction.objectStore('images');
+          const deleteTransaction = db.transaction(["images"], "readwrite");
+          const deleteStore = deleteTransaction.objectStore("images");
           const deleteRequest = deleteStore.delete(id);
 
           deleteRequest.onsuccess = () => resolve();
@@ -139,7 +143,7 @@ class ImageStorage {
         getRequest.onerror = () => reject(getRequest.error);
       });
     } catch (error) {
-      console.error('Failed to remove image:', error);
+      console.error("Failed to remove image:", error);
       throw error;
     }
   }
@@ -149,10 +153,10 @@ class ImageStorage {
       const db = await this.initDB();
 
       return new Promise((resolve, reject) => {
-        const transaction = db.transaction(['images'], 'readonly');
-        const store = transaction.objectStore('images');
-        const index = store.index('uploadedAt');
-        const request = index.openCursor(null, 'prev'); // Most recent first
+        const transaction = db.transaction(["images"], "readonly");
+        const store = transaction.objectStore("images");
+        const index = store.index("uploadedAt");
+        const request = index.openCursor(null, "prev"); // Most recent first
 
         const results: StoredImage[] = [];
 
@@ -169,7 +173,7 @@ class ImageStorage {
         request.onerror = () => reject(request.error);
       });
     } catch (error) {
-      console.error('Failed to list images:', error);
+      console.error("Failed to list images:", error);
       return [];
     }
   }
@@ -179,7 +183,7 @@ class ImageStorage {
       const images = await this.listImages();
       return images.reduce((total, img) => total + img.meta.size, 0);
     } catch (error) {
-      console.error('Failed to get total size:', error);
+      console.error("Failed to get total size:", error);
       return 0;
     }
   }
@@ -194,21 +198,24 @@ class ImageStorage {
 
       // Remove oldest images until under limit
       for (const img of images.slice().reverse()) {
-        if (await this.getTotalSize() <= maxSize) break;
+        if ((await this.getTotalSize()) <= maxSize) break;
         await this.removeImage(img.id);
       }
     } catch (error) {
-      console.error('Failed to cleanup images:', error);
+      console.error("Failed to cleanup images:", error);
       // Don't throw - cleanup failures shouldn't block the app
     }
   }
 
   // Fallback for base64 data URLs (migration helper)
-  static migrateBase64ToBlob(base64Data: string, filename: string): Promise<File> {
+  static migrateBase64ToBlob(
+    base64Data: string,
+    filename: string,
+  ): Promise<File> {
     return new Promise((resolve, reject) => {
       fetch(base64Data)
-        .then(res => res.blob())
-        .then(blob => {
+        .then((res) => res.blob())
+        .then((blob) => {
           const file = new File([blob], filename, { type: blob.type });
           resolve(file);
         })
@@ -218,14 +225,16 @@ class ImageStorage {
 
   // Memory monitoring
   getEstimatedMemoryUsage(): Promise<{ indexedDB: number; blobUrls: number }> {
-    return Promise.all([this.getTotalSize(), this.listImages()]).then(([dbSize, images]) => {
-      // Estimate Blob URL memory (rough heuristic: ~2x blob size for V8 overhead)
-      const blobUrlMemory = images.length * 1000; // Estimate 1KB per blob URL
-      return {
-        indexedDB: dbSize,
-        blobUrls: blobUrlMemory,
-      };
-    });
+    return Promise.all([this.getTotalSize(), this.listImages()]).then(
+      ([dbSize, images]) => {
+        // Estimate Blob URL memory (rough heuristic: ~2x blob size for V8 overhead)
+        const blobUrlMemory = images.length * 1000; // Estimate 1KB per blob URL
+        return {
+          indexedDB: dbSize,
+          blobUrls: blobUrlMemory,
+        };
+      },
+    );
   }
 }
 

@@ -12,6 +12,9 @@ import type {
   PromptCreatorField,
   PromptCreatorValue,
 } from "@/types/promptCreator";
+import { isNotEmpty } from "@/utils/stringValidation";
+import { isNotEmpty as arrayNotEmpty } from "@/utils/arrayHelpers";
+import { now } from "@/utils/timeHelpers";
 
 export interface PromptCreatorTabProps {
   apiKey: string;
@@ -33,8 +36,8 @@ interface ChatResponse {
 
 const isValueProvided = (value: unknown): boolean => {
   if (value === null || value === undefined) return false;
-  if (typeof value === "string") return value.trim().length > 0;
-  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === "string") return isNotEmpty(value);
+  if (Array.isArray(value)) return arrayNotEmpty(value);
   return true;
 };
 
@@ -60,7 +63,7 @@ const parseDefaultValue = (
   if (raw === undefined || raw === null) {
     return undefined;
   }
-  if (typeof raw === "string" && raw.trim().length === 0) {
+  if (typeof raw === "string" && !isNotEmpty(raw)) {
     return undefined;
   }
 
@@ -207,7 +210,7 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
 
       const nextDraft: PromptCreatorDraft = {
         selections: nextSelections,
-        lastModified: Date.now(),
+        lastModified: now(),
         schemaVersion: 1 as const,
       };
       promptCreatorDraftStorage.save(nextDraft);
@@ -232,7 +235,7 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
         ...draft.selections,
         [field.id]: value,
       },
-      lastModified: Date.now(),
+      lastModified: now(),
       schemaVersion: 1 as const,
     };
     setDraft(nextDraft);
