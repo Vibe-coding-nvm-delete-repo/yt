@@ -159,13 +159,6 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   );
   const [expandedModels, setExpandedModels] = useState<Set<number>>(new Set());
   const [showApiKey, setShowApiKey] = useState(false);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<string | null>(null);
-  const [dropdownSearch, setDropdownSearch] = useState("");
-  // Debounce dropdown search for better performance (reduces filter operations by 80%+)
-  const debouncedDropdownSearch = useDebounce(dropdownSearch, 200);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const [validationState, setValidationState] = useState<ValidationState>({
     isValidating: false,
@@ -234,25 +227,6 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     () => textModels.find((model) => model.id === pcModelId) || null,
     [pcModelId, textModels],
   );
-
-  // Memoize dropdown filtering for performance with debounced search
-  // This reduces filter operations by 80%+ during typing
-  const filteredDropdownModels = useMemo(() => {
-    const query = debouncedDropdownSearch.toLowerCase();
-    return modelState.models.filter(
-      (m) =>
-        m.name.toLowerCase().includes(query) ||
-        m.id.toLowerCase().includes(query),
-    );
-  }, [modelState.models, debouncedDropdownSearch]);
-
-  // Memoize pinned/unpinned separation for dropdown
-  const { pinnedDropdownModels, unpinnedDropdownModels } = useMemo(() => {
-    const pinnedSet = new Set(settings.pinnedModels || []);
-    const pinned = filteredDropdownModels.filter((m) => pinnedSet.has(m.id));
-    const unpinned = filteredDropdownModels.filter((m) => !pinnedSet.has(m.id));
-    return { pinnedDropdownModels: pinned, unpinnedDropdownModels: unpinned };
-  }, [filteredDropdownModels, settings.pinnedModels]);
 
   // Memoize text model filtering
   const filteredTextModels = useMemo(() => {
@@ -1501,134 +1475,6 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
           </div>
         )}
 
-        <div className="relative" ref={dropdownRef}>
-          <button
-            type="button"
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="w-full px-4 py-2 border-none rounded-lg focus:ring-2 focus:ring-blue-500/50 bg-white/5 hover:bg-white/10 text-left flex items-center justify-between transition-colors"
-            aria-label="Select model"
-          >
-            <span
-              className="text-white"
-              title={
-                selectedModel
-                  ? modelState.models.find((m) => m.id === selectedModel)
-                      ?.name || "Select a model..."
-                  : "Select a model..."
-              }
-            >
-              {selectedModel
-                ? middleEllipsis(
-                    modelState.models.find((m) => m.id === selectedModel)
-                      ?.name || "Select a model...",
-                    40,
-                  )
-                : "Select a model..."}
-            </span>
-            <ChevronDown
-              className={`h-4 w-4 text-gray-500 transition-transform ${isDropdownOpen ? "transform rotate-180" : ""}`}
-            />
-          </button>
-          {isDropdownOpen && (
-            <div className="absolute z-10 w-full mt-1 bg-[#1A212A] border border-white/10 rounded-lg shadow-[0_24px_56px_rgba(0,0,0,0.55)] max-h-80 overflow-hidden flex flex-col">
-              <div className="p-2 border-b border-white/6">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <input
-                    ref={searchInputRef}
-                    type="text"
-                    placeholder="Search models..."
-                    value={dropdownSearch}
-                    onChange={(e) => setDropdownSearch(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border-none rounded-lg focus:ring-2 focus:ring-blue-500/50 bg-white/5 focus:bg-white/10 text-white placeholder:text-gray-500 text-sm transition-colors"
-                    onClick={(e) => e.stopPropagation()}
-                    autoFocus
-                  />
-                </div>
-              </div>
-
-              <div className="overflow-y-auto flex-1">
-                {(() => {
-                  const pinnedSet = new Set(settings.pinnedModels || []);
-
-                  const renderRow = (
-                    model: (typeof filteredDropdownModels)[number],
-                  ) => (
-                    <button
-                      key={model.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedModel(model.id);
-                        setIsDropdownOpen(false);
-                        setDropdownSearch("");
-                      }}
-                      className={`w-full px-4 py-2 text-left hover:bg-white/5 transition-colors ${
-                        selectedModel === model.id
-                          ? "bg-blue-900/30 text-blue-400"
-                          : "text-white"
-                      }`}
-                      title={model.name}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="text-sm font-medium">
-                            {middleEllipsis(model.name, 40)}
-                          </div>
-                          <div className="text-xs text-gray-400">
-                            {formatPrice(
-                              model.pricing.prompt + model.pricing.completion,
-                            )}
-                            /token
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          aria-label={
-                            pinnedSet.has(model.id)
-                              ? "Unpin model"
-                              : "Pin model"
-                          }
-                          className="ml-3 text-gray-400 hover:text-gray-300"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            hookTogglePinnedModel(model.id);
-                            addToast(
-                              pinnedSet.has(model.id)
-                                ? "Model unpinned"
-                                : "Model pinned",
-                              "success",
-                            );
-                          }}
-                        >
-                          {pinnedSet.has(model.id) ? (
-                            <Pin className="h-4 w-4 text-blue-600" />
-                          ) : (
-                            <PinOff className="h-4 w-4" />
-                          )}
-                        </button>
-                      </div>
-                    </button>
-                  );
-
-                  return (
-                    <>
-                      {pinnedDropdownModels.length > 0 && (
-                        <>
-                          <div className="px-4 py-1 text-xs uppercase tracking-wide text-gray-400">
-                            Pinned
-                          </div>
-                          {pinnedDropdownModels.map((m) => renderRow(m))}
-                          <div className="my-1 border-t border-white/6" />
-                        </>
-                      )}
-                      {unpinnedDropdownModels.map((m) => renderRow(m))}
-                    </>
-                  );
-                })()}
-              </div>
-            </div>
-          )}
-        </div>
         {modelState.models.length > 0 && (
           <>
             <div className="text-sm text-gray-400">
