@@ -365,9 +365,6 @@ describe("UsageStorage", () => {
     expect(entries[0]?.id).toBe("test-1004");
   });
 
-    consoleErrorSpy.mockRestore();
-  });
-
   test("should handle corrupted localStorage data", () => {
     const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();
     localStorage.setItem("image-to-prompt-usage-history", "invalid json");
@@ -378,7 +375,7 @@ describe("UsageStorage", () => {
 
     expect(consoleWarnSpy).toHaveBeenCalledWith(
       "Failed to load usage history:",
-      expect.any(Error)
+      expect.any(Error),
     );
     expect(storage.list()).toHaveLength(0);
 
@@ -388,7 +385,7 @@ describe("UsageStorage", () => {
   test("should handle non-array entries in localStorage", () => {
     localStorage.setItem(
       "image-to-prompt-usage-history",
-      JSON.stringify({ schemaVersion: 1, entries: "not-an-array" })
+      JSON.stringify({ schemaVersion: 1, entries: "not-an-array" }),
     );
 
     // Reset singleton to trigger load
