@@ -174,4 +174,28 @@ describe("SettingsTab - Enhanced Model Dropdowns", () => {
     const text = container.textContent || "";
     expect(text).toContain("Selected: 0 / 3");
   });
+
+  it("applies overflow-visible to dropdown containers to prevent clipping", () => {
+    const settings = createMockSettings();
+
+    const { container } = render(
+      <ToastProvider>
+        <SettingsTab settings={settings} onSettingsUpdate={jest.fn()} />
+      </ToastProvider>,
+    );
+
+    // Switch to model selection tab
+    const modelTab = screen.getByText("Model Selection");
+    fireEvent.click(modelTab);
+
+    // Verify the component renders with overflow-visible classes in the HTML
+    // This ensures dropdowns won't be clipped by parent containers
+    const html = container.innerHTML;
+    expect(html).toContain("overflow-visible");
+
+    // Verify we have the expected structure with the dropdowns
+    expect(screen.getByText("Vision Model 1")).toBeInTheDocument();
+    expect(screen.getByText("Vision Model 2")).toBeInTheDocument();
+    expect(screen.getByText("Vision Model 3")).toBeInTheDocument();
+  });
 });
