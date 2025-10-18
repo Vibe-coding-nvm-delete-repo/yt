@@ -58,9 +58,7 @@ describe("PromptCreatorTab", () => {
     await screen.findByLabelText(/Time of Day$/);
 
     expect(
-      await screen.findByText(
-        /Select all mandatory fields before generating prompts/i,
-      ),
+      await screen.findByText(/Fill all mandatory fields before generating/i),
     ).toBeInTheDocument();
 
     const generateButton = screen.getByRole("button", {
@@ -73,9 +71,7 @@ describe("PromptCreatorTab", () => {
 
     await waitFor(() => {
       expect(
-        screen.queryByText(
-          /Select all mandatory fields before generating prompts/i,
-        ),
+        screen.queryByText(/Fill all mandatory fields before generating/i),
       ).not.toBeInTheDocument();
     });
 
@@ -116,28 +112,19 @@ describe("PromptCreatorTab", () => {
     expect(draft.selections.style).toBe("Warm");
   });
 
-  it("displays explanatory text about how the Prompt Creator works", async () => {
+  it("displays new UI with locked prompt field", async () => {
     render(<PromptCreatorTab apiKey="sk-test" />);
 
     await screen.findByLabelText(/Time of Day$/);
 
     expect(
-      screen.getByText("How the Prompt Creator works:"),
+      screen.getByText(/Locked Prompt \(combined with field selections\)/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/Set up your prompt fields in Settings/i),
+      screen.getByRole("button", { name: /Unlock to Edit/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/A base prompt.*is always prepended/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/Fill in the mandatory fields/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/Click.*Generate.*to create a single prompt/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/The generated prompt appears in a scrollable field/i),
+      screen.getByRole("button", { name: /Generate/i }),
     ).toBeInTheDocument();
   });
 });
