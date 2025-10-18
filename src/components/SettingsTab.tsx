@@ -822,9 +822,9 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   );
 
   const renderPromptCreatorTab = () => (
-    <div className="flex gap-6 items-start">
+    <div className="flex flex-col lg:flex-row gap-6 items-start">
       {/* Left Column: Configuration and Existing Fields */}
-      <div className="flex-1 space-y-6">
+      <div className="flex-1 space-y-6 min-w-0">
         <section className="space-y-4 rounded-xl bg-[#151A21] p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
           <header>
             <h3 className="text-lg font-semibold text-white">
@@ -1181,8 +1181,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       </div>
 
       {/* Right Sidebar: Field Creation Form - Sticky */}
-      <aside className="w-80 flex-shrink-0">
-        <div className="sticky top-4 rounded-xl bg-gradient-to-br from-blue-900/20 to-purple-900/20 p-4 shadow-[0_8px_24px_rgba(0,0,0,0.35)] border-2 border-blue-500/30">
+      <aside className="w-full lg:w-80 flex-shrink-0">
+        <div className="lg:sticky lg:top-4 rounded-xl bg-gradient-to-br from-blue-900/20 to-purple-900/20 p-4 shadow-[0_8px_24px_rgba(0,0,0,0.35)] border-2 border-blue-500/30">
           <header className="mb-4">
             <h3 className="text-base font-semibold text-white mb-1">
               {editingFieldId ? "Edit Field" : "Create New Field"}
