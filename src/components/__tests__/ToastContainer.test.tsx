@@ -26,6 +26,7 @@ describe("ToastContainer", () => {
       </TestWrapper>,
     );
 
+    // eslint-disable-next-line custom/no-dom-manipulation
     expect(container.querySelector('[aria-label="Notifications"]')).toBeNull();
   });
 
@@ -90,6 +91,7 @@ describe("ToastContainer", () => {
       </TestWrapper>,
     );
 
+    // eslint-disable-next-line custom/no-dom-manipulation
     const toastElements = container.querySelectorAll(
       '[class*="pointer-events-auto"]',
     );
