@@ -112,9 +112,9 @@ describe("SettingsTab - Enhanced Model Dropdowns", () => {
     const modelTab = screen.getByText("Model Selection");
     fireEvent.click(modelTab);
 
-    // All dropdowns should show "Select a model..." initially
+    // All dropdowns should show "-- Select a model --" initially
     const allText = container.textContent || "";
-    expect(allText).toContain("Select a model...");
+    expect(allText).toContain("-- Select a model --");
   });
 
   it("shows pinned models when available", () => {
