@@ -24,11 +24,17 @@ export const FieldsTab: React.FC = () => {
     return config.fields;
   });
 
+  const [lockedInPrompt, setLockedInPrompt] = useState<string>(() => {
+    const config = promptCreatorConfigStorage.load();
+    return config.lockedInPrompt;
+  });
+
   useEffect(() => {
     // Listen for storage changes
     const handleStorageChange = () => {
       const updatedConfig = promptCreatorConfigStorage.load();
       setFields(updatedConfig.fields);
+      setLockedInPrompt(updatedConfig.lockedInPrompt);
     };
 
     window.addEventListener("storage", handleStorageChange);
@@ -268,6 +274,53 @@ export const FieldsTab: React.FC = () => {
         These fields define the structure of your prompt creator. Manage them in{" "}
         <span className="text-blue-400">Settings → Prompt Creator</span>.
       </p>
+
+      {/* Locked-in Prompt Display */}
+      <div className="rounded-xl bg-[#151A21] p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)] border border-white/10">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold text-white">Locked-in Prompt</h2>
+          <span className="text-xs text-gray-500 italic">
+            Always prepended to generated prompts
+          </span>
+        </div>
+        {lockedInPrompt ? (
+          <div className="rounded-lg border border-white/5 bg-black/20 p-4">
+            <p className="text-sm text-gray-300 font-mono whitespace-pre-wrap break-words">
+              {lockedInPrompt}
+            </p>
+          </div>
+        ) : (
+          <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-4">
+            <p className="text-sm text-yellow-200">
+              No locked-in prompt configured. Set one in{" "}
+              <span className="text-yellow-100 font-medium">
+                Settings → Prompt Creator
+              </span>{" "}
+              to ensure consistency across all generated prompts.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Generate Context */}
+      <div className="rounded-xl bg-gradient-to-br from-blue-900/20 to-purple-900/20 p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)] border-2 border-blue-500/30">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold text-white">
+            Prompt Generation
+          </h2>
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-600/30 border border-blue-500/40 text-blue-200 text-xs font-medium">
+            <ChevronRight className="h-3.5 w-3.5" />
+            <span>Go to Prompt Creator to generate</span>
+          </div>
+        </div>
+        <p className="text-sm text-gray-300 leading-relaxed">
+          The{" "}
+          <span className="text-blue-300 font-semibold">Generate button</span>{" "}
+          in the Prompt Creator tab combines the locked-in prompt above with
+          your field selections to create complete, rated prompts. All fields
+          configured here will be available for selection during generation.
+        </p>
+      </div>
 
       <div className="space-y-8">
         {renderSection(

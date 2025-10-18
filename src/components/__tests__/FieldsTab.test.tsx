@@ -436,4 +436,95 @@ describe("FieldsTab", () => {
     expect(screen.getByText(/Default:/i)).toBeInTheDocument();
     expect(screen.getByText(/Default text/i)).toBeInTheDocument();
   });
+
+  it("displays locked-in prompt when configured", () => {
+    const config: PromptCreatorConfig = {
+      fields: [
+        {
+          id: "1",
+          label: "Test Field",
+          type: "text",
+          tier: "mandatory",
+          order: 1,
+        },
+      ],
+      promptGenInstructions: "",
+      ratingRubric: "",
+      openRouterModelId: "",
+      defaultPromptCount: 3,
+      lockedInPrompt: "This is a test locked-in prompt",
+      schemaVersion: 1,
+    };
+
+    mockLoad.mockReturnValue(config);
+
+    render(<FieldsTab />);
+
+    expect(screen.getByText("Locked-in Prompt")).toBeInTheDocument();
+    expect(
+      screen.getByText("This is a test locked-in prompt"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Always prepended to generated prompts/i),
+    ).toBeInTheDocument();
+  });
+
+  it("displays message when locked-in prompt is not configured", () => {
+    const config: PromptCreatorConfig = {
+      fields: [
+        {
+          id: "1",
+          label: "Test Field",
+          type: "text",
+          tier: "mandatory",
+          order: 1,
+        },
+      ],
+      promptGenInstructions: "",
+      ratingRubric: "",
+      openRouterModelId: "",
+      defaultPromptCount: 3,
+      lockedInPrompt: "",
+      schemaVersion: 1,
+    };
+
+    mockLoad.mockReturnValue(config);
+
+    render(<FieldsTab />);
+
+    expect(screen.getByText("Locked-in Prompt")).toBeInTheDocument();
+    expect(
+      screen.getByText(/No locked-in prompt configured/i),
+    ).toBeInTheDocument();
+  });
+
+  it("displays generation context section", () => {
+    const config: PromptCreatorConfig = {
+      fields: [
+        {
+          id: "1",
+          label: "Test Field",
+          type: "text",
+          tier: "mandatory",
+          order: 1,
+        },
+      ],
+      promptGenInstructions: "",
+      ratingRubric: "",
+      openRouterModelId: "",
+      defaultPromptCount: 3,
+      lockedInPrompt: "",
+      schemaVersion: 1,
+    };
+
+    mockLoad.mockReturnValue(config);
+
+    render(<FieldsTab />);
+
+    expect(screen.getByText("Prompt Generation")).toBeInTheDocument();
+    expect(screen.getByText(/Generate button/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Go to Prompt Creator to generate/i),
+    ).toBeInTheDocument();
+  });
 });
