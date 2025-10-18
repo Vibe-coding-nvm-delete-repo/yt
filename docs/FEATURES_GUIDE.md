@@ -88,37 +88,44 @@ Total: $0.00975
 
 ## Prompt Creator
 
-Build structured prompts with customizable fields and automatic scoring.
+Build structured prompts with customizable fields and automatic generation.
 
 ### Key Features
 
+- **Integrated UI**: All field management and generation in one tab
+- **Locked Prompt**: Editable base prompt combined with field selections
 - **Field Builder**: Define custom fields (text, dropdown, multiselect, number, slider)
-- **Tier System**: Mandatory, optional, and free-form fields
-- **Batch Generation**: Generate 1, 3, 5, or 10 prompts
-- **Auto-Scoring**: Rate prompts with configurable rubric
+- **Drag-and-Drop**: Reorder fields by dragging
+- **Inline Editing**: Edit fields directly in the Prompt Creator tab
+- **Real-Time Generation**: Generate prompts with immediate output
+- **Character Limit**: Automatic validation (<1500 characters)
+- **Metadata Display**: View model, tokens, and cost information
+- **Backend Process**: Collapsible section showing generation steps
 - **Draft Auto-Save**: Never lose your work
-- **History**: Save and favorite best prompts
 
-### Configuration
+### UI Layout
 
-Access via **Settings** → **Prompt Creator**:
+The Prompt Creator tab is organized from top to bottom:
 
-1. **Available Fields**: Define fields users can select
-2. **Generation Instructions**: How AI creates prompts
-3. **Rating Rubric**: Scoring criteria
-4. **Model Selection**: Which model to use
+1. **Locked Prompt Field**: Base prompt combined with field selections
+   - Click lock/unlock button to edit
+   - Always prepended to generated prompts
+
+2. **Generate Button**: Create a single prompt instantly
+
+3. **Generated Prompt**: Read-only output with:
+   - Copy button for easy testing
+   - Character count (warns if >1500)
+   - Metadata (model name, input/output tokens)
+   - Collapsible backend process view
+
+4. **All Fields Section**: List of all configured fields
+   - Displayed in user-defined order
+   - Drag handles to reorder
+   - Edit inline or in Settings
+   - Hide button to remove from list
 
 ### Field Types
-
-```json
-{
-  "name": "style",
-  "label": "Art Style",
-  "type": "dropdown",
-  "options": ["Realistic", "Anime", "Abstract"],
-  "tier": "mandatory"
-}
-```
 
 Types:
 
@@ -128,29 +135,21 @@ Types:
 - `number` - Numeric input
 - `slider` - Range slider
 
-Tiers:
+Tiers (for validation):
 
-- `mandatory` - Required (red border if empty)
+- `mandatory` - Required before generation
 - `optional` - Recommended
 - `free` - Additional customization
 
 ### Workflow
 
-The Prompt Creator tab includes a helpful step-by-step guide at the top explaining:
-
-1. How to configure fields in Settings
-2. The role of the locked-in prompt (always prepended to selections)
-3. How to fill mandatory and optional fields
-4. How generation works (creates 3 prompts with automatic scoring)
-5. How to review and save results
-
 Basic workflow:
 
-1. **Configure** fields in Settings
-2. **Fill** fields in Prompt Creator tab
-3. **Generate** 1-10 prompts
-4. **Review** scores and results
-5. **Save** favorites to history
+1. **Add Fields**: Configure in Settings → Prompt Creator or inline
+2. **Set Locked Prompt**: Define base prompt at the top
+3. **Fill Fields**: Select/enter values for all fields
+4. **Generate**: Click Generate button
+5. **Copy**: Use generated prompt in your workflow
 
 ### Example Configuration
 

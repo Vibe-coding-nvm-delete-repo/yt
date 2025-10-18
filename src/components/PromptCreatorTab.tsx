@@ -5,12 +5,11 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   promptCreatorConfigStorage,
   promptCreatorDraftStorage,
-  promptCreatorResultsStorage,
 } from "@/lib/promptCreatorStorage";
 import type {
+  PromptCreatorConfig,
   PromptCreatorDraft,
   PromptCreatorField,
-  PromptCreatorResult,
   PromptCreatorValue,
 } from "@/types/promptCreator";
 
@@ -31,19 +30,6 @@ interface ChatResponse {
   choices?: ChatResponseChoice[];
   usage?: ChatUsage;
 }
-
-const createId = (): string => {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-  return Math.random().toString(36).slice(2);
-};
-
-const tierOrder: Record<PromptCreatorField["tier"], number> = {
-  mandatory: 0,
-  optional: 1,
-  free: 2,
-};
 
 const isValueProvided = (value: unknown): boolean => {
   if (value === null || value === undefined) return false;
@@ -129,30 +115,6 @@ const buildVariablesText = (
     )
     .join("\n");
 
-const parseRating = (raw: string) => {
-  try {
-    const parsed = JSON.parse(raw);
-    return {
-      score: Number(parsed.score) || 0,
-      reasons: Array.isArray(parsed.reasons) ? parsed.reasons.map(String) : [],
-      risks: Array.isArray(parsed.risks) ? parsed.risks.map(String) : [],
-      edits: Array.isArray(parsed.edits) ? parsed.edits.map(String) : [],
-    };
-  } catch (error) {
-    return {
-      score: 0,
-      reasons: [
-        `RATING_ERROR:${error instanceof Error ? error.message : String(error)}`,
-      ],
-      risks: [],
-      edits: [],
-    };
-  }
-};
-
-const ratingPromptTemplate =
-  'Return JSON: {"score": number, "reasons": string[], "risks": string[], "edits": string[]}';
-
 export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
   apiKey,
 }) => {
@@ -160,40 +122,35 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
   const [draft, setDraft] = useState<PromptCreatorDraft>(() =>
     promptCreatorDraftStorage.load(),
   );
-  const [results, setResults] = useState(
-    () => promptCreatorResultsStorage.load().results,
-  );
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [resultsFilter, setResultsFilter] = useState<{
-    minScore: number;
-    sortOrder: "date" | "score";
-  }>({ minScore: 0, sortOrder: "date" });
-  const [showFree, setShowFree] = useState(false);
+  const [uiState, setUiState] = useState({
+    isGenerating: false,
+    error: null as string | null,
+    isLockedPromptLocked: true,
+    showBackendProcess: false,
+    draggedFieldId: null as string | null,
+  });
   const [currentOutput, setCurrentOutput] = useState<{
     content: string;
     copied: boolean;
+    metadata?: {
+      model: string;
+      inputTokens: number;
+      outputTokens: number;
+      totalCost: number;
+    };
   }>({ content: "", copied: false });
 
   const refreshConfig = useCallback(() => {
     setConfig(promptCreatorConfigStorage.load());
   }, []);
 
-  const refreshResults = useCallback(() => {
-    setResults(promptCreatorResultsStorage.load().results);
-  }, []);
-
   useEffect(() => {
     refreshConfig();
-    refreshResults();
 
     const handleStorage = (event: StorageEvent) => {
       if (!event.key) return;
       if (event.key === "prompt-creator-config") {
         refreshConfig();
-      }
-      if (event.key === "prompt-creator-results") {
-        refreshResults();
       }
       if (event.key === "prompt-creator-draft") {
         setDraft(promptCreatorDraftStorage.load());
@@ -202,17 +159,13 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
 
     window.addEventListener("storage", handleStorage);
     return () => window.removeEventListener("storage", handleStorage);
-  }, [refreshConfig, refreshResults]);
+  }, [refreshConfig]);
 
   const visibleFields = useMemo(
     () =>
       [...config.fields]
         .filter((field) => !field.hidden)
-        .sort((a, b) => {
-          const tierDiff = tierOrder[a.tier] - tierOrder[b.tier];
-          if (tierDiff !== 0) return tierDiff;
-          return a.order - b.order;
-        }),
+        .sort((a, b) => a.order - b.order),
     [config.fields],
   );
 
@@ -245,21 +198,12 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
     });
   }, [visibleFields]);
 
-  const groupedFields = useMemo(
-    () => ({
-      mandatory: visibleFields.filter((field) => field.tier === "mandatory"),
-      optional: visibleFields.filter((field) => field.tier === "optional"),
-      free: visibleFields.filter((field) => field.tier === "free"),
-    }),
-    [visibleFields],
-  );
-
   const allMandatoryFilled = useMemo(
     () =>
-      groupedFields.mandatory.every((field) =>
-        isValueProvided(draft.selections[field.id]),
-      ),
-    [groupedFields.mandatory, draft.selections],
+      visibleFields
+        .filter((field) => field.tier === "mandatory")
+        .every((field) => isValueProvided(draft.selections[field.id])),
+    [visibleFields, draft.selections],
   );
 
   const handleSelectionChange = (
@@ -276,6 +220,68 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
     };
     setDraft(nextDraft);
     promptCreatorDraftStorage.save(nextDraft);
+  };
+
+  const handleLockedPromptChange = (value: string) => {
+    const updatedConfig: PromptCreatorConfig = {
+      ...config,
+      lockedInPrompt: value,
+    };
+    setConfig(updatedConfig);
+    promptCreatorConfigStorage.save(updatedConfig);
+  };
+
+  const handleFieldDelete = (fieldId: string) => {
+    const updatedConfig: PromptCreatorConfig = {
+      ...config,
+      fields: config.fields.map((f) =>
+        f.id === fieldId ? { ...f, hidden: true } : f,
+      ),
+    };
+    setConfig(updatedConfig);
+    promptCreatorConfigStorage.save(updatedConfig);
+  };
+
+  const handleFieldDragStart = (fieldId: string) => {
+    setUiState((prev) => ({ ...prev, draggedFieldId: fieldId }));
+  };
+
+  const handleFieldDrop = (targetFieldId: string) => {
+    if (!uiState.draggedFieldId || uiState.draggedFieldId === targetFieldId) {
+      setUiState((prev) => ({ ...prev, draggedFieldId: null }));
+      return;
+    }
+
+    const draggedField = visibleFields.find(
+      (f) => f.id === uiState.draggedFieldId,
+    );
+    const targetField = visibleFields.find((f) => f.id === targetFieldId);
+
+    if (!draggedField || !targetField) {
+      setUiState((prev) => ({ ...prev, draggedFieldId: null }));
+      return;
+    }
+
+    const draggedOrder = draggedField.order;
+    const targetOrder = targetField.order;
+
+    const updatedFields = config.fields.map((field) => {
+      if (field.id === uiState.draggedFieldId) {
+        return { ...field, order: targetOrder };
+      }
+      if (field.id === targetFieldId) {
+        return { ...field, order: draggedOrder };
+      }
+      return field;
+    });
+
+    const updatedConfig: PromptCreatorConfig = {
+      ...config,
+      fields: updatedFields,
+    };
+    setConfig(updatedConfig);
+    promptCreatorConfigStorage.save(updatedConfig);
+    setUiState((prev) => ({ ...prev, draggedFieldId: null }));
   };
 
   const renderFieldControl = (field: PromptCreatorField) => {
@@ -359,12 +365,13 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
                       field.maxSelections &&
                       next.length > field.maxSelections
                     ) {
-                      setError(
-                        `Max selections for ${field.label} is ${field.maxSelections}.`,
-                      );
+                      setUiState((prev) => ({
+                        ...prev,
+                        error: `Max selections for ${field.label} is ${field.maxSelections}.`,
+                      }));
                       next = selected;
                     } else {
-                      setError(null);
+                      setUiState((prev) => ({ ...prev, error: null }));
                     }
                     handleSelectionChange(field, next);
                   }}
@@ -527,17 +534,20 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
     [apiKey, config.openRouterModelId],
   );
 
-  const generatePrompts = async (count: number) => {
+  const generatePrompts = async () => {
     if (!config.openRouterModelId) {
-      setError(
-        "Set a model ID in Settings → Prompt Creator before generating.",
-      );
+      setUiState((prev) => ({
+        ...prev,
+        error: "Set a model ID in Settings → Prompt Creator before generating.",
+      }));
       return;
     }
     if (!apiKey) {
-      setError(
-        "Add an OpenRouter API key in Settings before generating prompts.",
-      );
+      setUiState((prev) => ({
+        ...prev,
+        error:
+          "Add an OpenRouter API key in Settings before generating prompts.",
+      }));
       return;
     }
 
@@ -546,424 +556,286 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
     const fullPromptInput = lockedInPrompt
       ? `${lockedInPrompt}\n\n${variablesText}`
       : variablesText;
-    const ratingSystemPrompt = `You are a prompt quality rater. Follow these instructions:\n${config.ratingRubric}\n${ratingPromptTemplate}`;
 
-    setIsGenerating(true);
-    setError(null);
+    setUiState((prev) => ({ ...prev, isGenerating: true, error: null }));
     setCurrentOutput({ content: "", copied: false }); // Clear previous output
 
     try {
-      for (let index = 0; index < count; index += 1) {
-        const generation = await callChatCompletion(
-          config.promptGenInstructions,
-          fullPromptInput,
-        );
-
-        // Set the current output immediately after generation
-        setCurrentOutput({ content: generation.content, copied: false });
-
-        let ratingRaw: string;
-        let ratingUsage: ChatUsage = {};
-        try {
-          const rating = await callChatCompletion(
-            ratingSystemPrompt,
-            generation.content,
-          );
-          ratingRaw = rating.content;
-          ratingUsage = rating.usage;
-        } catch (ratingError) {
-          ratingRaw = JSON.stringify({
-            score: 0,
-            reasons: [],
-            risks: [],
-            edits: [],
-          });
-          setError(
-            ratingError instanceof Error
-              ? ratingError.message
-              : "Failed to score prompt.",
-          );
-        }
-
-        const parsedRating = parseRating(ratingRaw);
-        const result: PromptCreatorResult = {
-          id: createId(),
-          timestamp: Date.now(),
-          selections: { ...draft.selections },
-          generatedPrompt: generation.content,
-          rating: parsedRating,
-          cost: {
-            generationInputTokens: generation.usage.prompt_tokens ?? 0,
-            generationOutputTokens: generation.usage.completion_tokens ?? 0,
-            generationCost: 0,
-            ratingInputTokens: ratingUsage.prompt_tokens ?? 0,
-            ratingOutputTokens: ratingUsage.completion_tokens ?? 0,
-            ratingCost: 0,
-            totalCost: 0,
-          },
-          isSaved: false,
-        };
-
-        promptCreatorResultsStorage.add(result);
-        refreshResults();
-      }
-    } catch (generationError) {
-      setError(
-        generationError instanceof Error
-          ? generationError.message
-          : "Prompt generation failed.",
+      const generation = await callChatCompletion(
+        config.promptGenInstructions,
+        fullPromptInput,
       );
+
+      // Set the current output immediately after generation with metadata
+      setCurrentOutput({
+        content: generation.content,
+        copied: false,
+        metadata: {
+          model: config.openRouterModelId,
+          inputTokens: generation.usage.prompt_tokens ?? 0,
+          outputTokens: generation.usage.completion_tokens ?? 0,
+          totalCost: 0, // Calculate if pricing is available
+        },
+      });
+    } catch (generationError) {
+      setUiState((prev) => ({
+        ...prev,
+        error:
+          generationError instanceof Error
+            ? generationError.message
+            : "Prompt generation failed.",
+      }));
     } finally {
-      setIsGenerating(false);
+      setUiState((prev) => ({ ...prev, isGenerating: false }));
     }
   };
-
-  const filteredResults = useMemo(() => {
-    let data = [...results];
-    if (resultsFilter.minScore > 0) {
-      data = data.filter((item) => item.rating.score >= resultsFilter.minScore);
-    }
-    if (resultsFilter.sortOrder === "score") {
-      return data.sort((a, b) => b.rating.score - a.rating.score);
-    }
-    return data.sort((a, b) => b.timestamp - a.timestamp);
-  }, [results, resultsFilter]);
 
   const handleCopy = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
       setCurrentOutput((prev) => ({ ...prev, copied: true }));
-      setError(null);
+      setUiState((prev) => ({ ...prev, error: null }));
       setTimeout(() => {
         setCurrentOutput((prev) => ({ ...prev, copied: false }));
       }, 2000);
     } catch (copyError) {
-      setError(
-        copyError instanceof Error
-          ? copyError.message
-          : "Unable to copy prompt to clipboard.",
-      );
+      setUiState((prev) => ({
+        ...prev,
+        error:
+          copyError instanceof Error
+            ? copyError.message
+            : "Unable to copy prompt to clipboard.",
+      }));
     }
-  };
-
-  const toggleSaved = (id: string) => {
-    promptCreatorResultsStorage.toggleSaved(id);
-    refreshResults();
-  };
-
-  const renderSection = (
-    title: string,
-    fields: PromptCreatorField[],
-    collapsed?: boolean,
-  ) => {
-    if (fields.length === 0) {
-      return (
-        <section className="rounded-lg border border-white/5 bg-gray-900/30 p-4">
-          <header className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-100">{title}</h2>
-          </header>
-          <p className="mt-2 text-sm text-gray-400">No fields configured.</p>
-        </section>
-      );
-    }
-
-    if (collapsed) {
-      return (
-        <section className="rounded-lg border border-white/5 bg-gray-900/30">
-          <button
-            type="button"
-            onClick={() => setShowFree((prev) => !prev)}
-            className="flex w-full items-center justify-between px-4 py-3 text-left text-gray-100"
-          >
-            <span>{title}</span>
-            <span className="text-sm text-blue-300">
-              {showFree ? "Hide" : "Show"}
-            </span>
-          </button>
-          {showFree && (
-            <div className="space-y-4 px-4 pb-4">
-              {fields.map(renderFieldControl)}
-            </div>
-          )}
-        </section>
-      );
-    }
-
-    return (
-      <section className="space-y-4 rounded-lg border border-white/5 bg-gray-900/30 p-4">
-        <h2 className="text-lg font-semibold text-gray-100">{title}</h2>
-        {fields.map(renderFieldControl)}
-      </section>
-    );
   };
 
   const hasConfig = visibleFields.length > 0;
   const isGenerationDisabled =
-    !allMandatoryFilled || isGenerating || !hasConfig;
+    !allMandatoryFilled || uiState.isGenerating || !hasConfig;
 
   return (
     <div className="space-y-6">
-      <div className="space-y-4">
+      <h1 className="text-2xl font-semibold text-white">Prompt Creator</h1>
+
+      {/* 1. Locked Prompt Field */}
+      <section className="space-y-2 rounded-lg border border-white/5 bg-gray-900/30 p-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-white">Prompt Creator</h1>
+          <label className="text-sm font-medium text-gray-100">
+            Locked Prompt (combined with field selections)
+          </label>
           <button
             type="button"
-            onClick={() => generatePrompts(1)}
-            disabled={isGenerationDisabled}
-            className={`rounded-md border px-4 py-2 text-sm font-medium transition-colors ${
-              isGenerationDisabled
-                ? "border-transparent bg-gray-700 text-gray-400 cursor-not-allowed"
-                : "border-transparent bg-blue-600 text-white hover:bg-blue-500 shadow-sm"
-            }`}
-            title="Generate a single prompt with the selected text model"
+            onClick={() =>
+              setUiState((prev) => ({
+                ...prev,
+                isLockedPromptLocked: !prev.isLockedPromptLocked,
+              }))
+            }
+            className="flex items-center gap-2 rounded-md border border-white/10 px-3 py-1 text-xs text-gray-200 hover:border-blue-400 transition-colors"
           >
-            {isGenerating ? "Generating..." : "Generate"}
+            {uiState.isLockedPromptLocked ? (
+              <>
+                <span>🔒</span>
+                <span>Unlock to Edit</span>
+              </>
+            ) : (
+              <>
+                <span>🔓</span>
+                <span>Lock</span>
+              </>
+            )}
           </button>
         </div>
-        <div className="rounded-lg border border-blue-500/40 bg-blue-500/10 px-4 py-3 text-sm text-blue-100">
-          <h2 className="mb-2 font-semibold text-blue-50">
-            How the Prompt Creator works:
-          </h2>
-          <ol className="ml-4 list-decimal space-y-1 text-blue-100">
-            <li>
-              <strong>Configure fields:</strong> Set up your prompt fields in
-              Settings → Prompt Creator (mandatory, optional, and free-form).
-            </li>
-            <li>
-              <strong>Locked-in prompt:</strong> A base prompt (configured in
-              Settings) is always prepended to your selections. This ensures
-              consistency across all generated prompts.
-            </li>
-            <li>
-              <strong>Select values:</strong> Fill in the mandatory fields and
-              optionally add guided or free-form selections below.
-            </li>
-            <li>
-              <strong>Generate:</strong> Click &quot;Generate&quot; to create a
-              single prompt using your selected AI model. The prompt is
-              automatically scored and rated, and appears at the top of the
-              page.
-            </li>
-            <li>
-              <strong>Review output:</strong> The generated prompt appears in a
-              scrollable field at the top with a copy button. Review the quality
-              score, reasons, risks, and suggested edits in the Results section
-              below.
-            </li>
-          </ol>
-        </div>
+        <textarea
+          value={config.lockedInPrompt}
+          onChange={(e) => handleLockedPromptChange(e.target.value)}
+          disabled={uiState.isLockedPromptLocked}
+          rows={6}
+          className={`w-full rounded-md border border-white/10 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none font-mono ${
+            uiState.isLockedPromptLocked
+              ? "bg-gray-900/80 cursor-not-allowed opacity-70"
+              : "bg-gray-900/60"
+          }`}
+          placeholder="Enter base prompt that will be combined with field selections..."
+        />
+      </section>
+
+      {/* 2. Generate Button */}
+      <div className="flex items-center gap-4">
+        <button
+          type="button"
+          onClick={() => generatePrompts()}
+          disabled={isGenerationDisabled}
+          className={`rounded-md border px-6 py-3 text-sm font-medium transition-colors ${
+            isGenerationDisabled
+              ? "border-transparent bg-gray-700 text-gray-400 cursor-not-allowed"
+              : "border-transparent bg-blue-600 text-white hover:bg-blue-500 shadow-sm"
+          }`}
+          title="Generate a single prompt with the selected text model"
+        >
+          {uiState.isGenerating ? "Generating..." : "Generate"}
+        </button>
         {!hasConfig && (
-          <p className="rounded-md border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-200">
-            Configure Prompt Creator fields in Settings → Prompt Creator.
+          <p className="text-sm text-yellow-200">
+            Add fields below to start generating prompts
           </p>
         )}
         {!allMandatoryFilled && hasConfig && (
-          <p className="rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
-            Select all mandatory fields before generating prompts.
+          <p className="text-sm text-red-200">
+            Fill all mandatory fields before generating
           </p>
-        )}
-        {error && (
-          <p className="rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
-            {error}
-          </p>
-        )}
-
-        {/* Current Output Section - Appears at top after generation */}
-        {currentOutput.content && (
-          <section className="rounded-lg border border-green-500/40 bg-green-500/10 p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-semibold text-green-50">
-                Generated Prompt
-              </h2>
-              <button
-                type="button"
-                onClick={() => handleCopy(currentOutput.content)}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-green-600 hover:bg-green-700 text-white text-sm font-medium transition-colors"
-                aria-label="Copy generated prompt"
-              >
-                {currentOutput.copied ? "✓ Copied!" : "📋 Copy Prompt"}
-              </button>
-            </div>
-            <textarea
-              readOnly
-              value={currentOutput.content}
-              className="w-full h-64 p-3 rounded-md border border-green-500/30 bg-gray-900/60 text-white text-sm font-mono resize-y focus:outline-none focus:ring-2 focus:ring-green-500/50"
-              style={{ minHeight: "16rem", maxHeight: "32rem" }}
-            />
-            <p className="mt-2 text-xs text-green-200">
-              {currentOutput.content.length} characters • Scroll or resize to
-              view full content
-            </p>
-          </section>
         )}
       </div>
 
-      <div className="space-y-4">
-        {renderSection("Mandatory", groupedFields.mandatory)}
-        {renderSection("Optional / Guided", groupedFields.optional)}
-        {renderSection("Free / Emergent", groupedFields.free, true)}
-      </div>
+      {uiState.error && (
+        <p className="rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+          {uiState.error}
+        </p>
+      )}
 
-      <section className="space-y-4 rounded-lg border border-white/5 bg-gray-900/30 p-4">
-        <header className="flex flex-wrap items-center gap-4">
-          <h2 className="text-lg font-semibold text-gray-100">Results</h2>
-          <label className="flex items-center gap-2 text-sm text-gray-300">
-            Min score
-            <input
-              type="number"
-              min={0}
-              max={10}
-              value={resultsFilter.minScore}
-              onChange={(event) =>
-                setResultsFilter((prev) => ({
-                  ...prev,
-                  minScore: Number(event.target.value) || 0,
-                }))
-              }
-              className="w-16 rounded-md border border-white/10 bg-gray-900/60 px-2 py-1 text-sm text-white"
-            />
-          </label>
-          <label className="flex items-center gap-2 text-sm text-gray-300">
-            Sort by
-            <select
-              value={resultsFilter.sortOrder}
-              onChange={(event) =>
-                setResultsFilter((prev) => ({
-                  ...prev,
-                  sortOrder: event.target.value as "date" | "score",
-                }))
-              }
-              className="rounded-md border border-white/10 bg-gray-900/60 px-2 py-1 text-sm text-white [&>option]:bg-[#1A212A] [&>option]:text-white"
+      {/* 3. Generated Prompt Output */}
+      {currentOutput.content && (
+        <section className="space-y-3 rounded-lg border border-green-500/40 bg-green-500/10 p-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-green-50">
+              Generated Prompt
+            </h2>
+            <button
+              type="button"
+              onClick={() => handleCopy(currentOutput.content)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-green-600 hover:bg-green-700 text-white text-sm font-medium transition-colors"
+              aria-label="Copy generated prompt"
             >
-              <option value="date" className="bg-[#1A212A] text-white">
-                Newest
-              </option>
-              <option value="score" className="bg-[#1A212A] text-white">
-                Score
-              </option>
-            </select>
-          </label>
-        </header>
+              {currentOutput.copied ? "✓ Copied!" : "📋 Copy"}
+            </button>
+          </div>
+          <textarea
+            readOnly
+            value={currentOutput.content}
+            className="w-full h-48 p-3 rounded-md border border-green-500/30 bg-gray-900/60 text-white text-sm font-mono resize-y focus:outline-none"
+          />
+          <div className="flex items-center justify-between text-xs">
+            <div className="flex items-center gap-4 text-green-200">
+              <span
+                className={
+                  currentOutput.content.length > 1500
+                    ? "text-red-300 font-semibold"
+                    : ""
+                }
+              >
+                {currentOutput.content.length} / 1500 characters
+              </span>
+              {currentOutput.content.length > 1500 && (
+                <span className="text-red-300">⚠ Exceeds limit</span>
+              )}
+            </div>
+            {currentOutput.metadata && (
+              <div className="flex items-center gap-4 text-green-200">
+                <span>
+                  Model: {currentOutput.metadata.model.split("/").pop()}
+                </span>
+                <span>
+                  Tokens: {currentOutput.metadata.inputTokens} in /{" "}
+                  {currentOutput.metadata.outputTokens} out
+                </span>
+              </div>
+            )}
+          </div>
 
-        {filteredResults.length === 0 ? (
-          <p className="text-sm text-gray-400">
-            Generate prompts to see results.
+          {/* 4. Backend Process Section (Collapsed) */}
+          <details
+            open={uiState.showBackendProcess}
+            onToggle={(e) =>
+              setUiState((prev) => ({
+                ...prev,
+                showBackendProcess: e.currentTarget.open,
+              }))
+            }
+            className="rounded-md border border-green-500/20 bg-gray-900/40 p-3 text-sm"
+          >
+            <summary className="cursor-pointer text-green-100 font-medium">
+              Backend Process Steps
+            </summary>
+            <div className="mt-3 space-y-2 text-green-200">
+              <div className="flex items-start gap-2">
+                <span className="text-green-400">✓</span>
+                <span>Loaded locked prompt from configuration</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-green-400">✓</span>
+                <span>Combined locked prompt with field selections</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-green-400">✓</span>
+                <span>
+                  Sent request to OpenRouter API with model:{" "}
+                  {config.openRouterModelId}
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-green-400">✓</span>
+                <span>Received generated prompt from API</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-green-400">✓</span>
+                <span>Validated output and character count</span>
+              </div>
+            </div>
+          </details>
+        </section>
+      )}
+
+      {/* 5. All Fields Section */}
+      <section className="space-y-4 rounded-lg border border-white/5 bg-gray-900/30 p-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-100">
+            All Fields
+            {visibleFields.length > 0 && (
+              <span className="ml-2 text-sm text-gray-400">
+                ({visibleFields.length} fields)
+              </span>
+            )}
+          </h2>
+          <p className="text-xs text-gray-400">
+            Drag to reorder • Edit fields inline or in Settings
           </p>
+        </div>
+
+        {visibleFields.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-sm text-gray-400 mb-4">
+              No fields configured yet. Add fields in Settings → Prompt Creator.
+            </p>
+          </div>
         ) : (
           <div className="space-y-3">
-            {filteredResults.map((result) => {
-              const ratingErrorMessage = result.rating.reasons.find((reason) =>
-                reason.startsWith("RATING_ERROR:"),
-              );
-              const isRatingError = Boolean(ratingErrorMessage);
-              const scoreLabel = isRatingError
-                ? "Not scored"
-                : `${result.rating.score}/10`;
-              return (
-                <article
-                  key={result.id}
-                  className="space-y-3 rounded-lg border border-white/5 bg-gray-900/40 p-4"
-                >
-                  <header className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 text-sm text-gray-200">
-                      <span className="font-semibold">{scoreLabel}</span>
-                      <span className="text-gray-500">
-                        {new Date(result.timestamp).toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleCopy(result.generatedPrompt)}
-                        className="rounded-md border border-white/10 px-2 py-1 text-xs text-gray-200 hover:border-blue-400"
-                      >
-                        Copy
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => toggleSaved(result.id)}
-                        className={`rounded-md border px-2 py-1 text-xs ${
-                          result.isSaved
-                            ? "border-yellow-400 text-yellow-300"
-                            : "border-white/10 text-gray-200 hover:border-yellow-400"
-                        }`}
-                      >
-                        {result.isSaved ? "Saved" : "Save"}
-                      </button>
-                    </div>
-                  </header>
-                  <p className="whitespace-pre-wrap text-sm text-gray-100">
-                    {result.generatedPrompt}
-                  </p>
-                  <details className="rounded-md border border-white/5 bg-gray-900/30 p-3 text-sm text-gray-200">
-                    <summary className="cursor-pointer text-gray-100">
-                      Details
-                    </summary>
-                    <div className="mt-2 space-y-2">
-                      {isRatingError ? (
-                        <p className="text-red-300">
-                          {ratingErrorMessage?.replace(
-                            "RATING_ERROR:",
-                            "Rating failed: ",
-                          )}
-                        </p>
-                      ) : (
-                        <>
-                          <div>
-                            <h3 className="font-semibold text-gray-100">
-                              Reasons
-                            </h3>
-                            <ul className="ml-4 list-disc text-gray-200">
-                              {result.rating.reasons.map((reason) => (
-                                <li key={reason}>{reason}</li>
-                              ))}
-                            </ul>
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-gray-100">
-                              Risks
-                            </h3>
-                            <ul className="ml-4 list-disc text-gray-200">
-                              {result.rating.risks.map((risk) => (
-                                <li key={risk}>{risk}</li>
-                              ))}
-                            </ul>
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-gray-100">
-                              Suggested edits
-                            </h3>
-                            <ul className="ml-4 list-disc text-gray-200">
-                              {result.rating.edits.map((edit) => (
-                                <li key={edit}>{edit}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        </>
-                      )}
-                      <div>
-                        <h3 className="font-semibold text-gray-100">
-                          Selections
-                        </h3>
-                        <ul className="ml-4 list-disc text-gray-200">
-                          {visibleFields.map((field) => (
-                            <li key={field.id}>
-                              <span className="font-medium">
-                                {field.label}:
-                              </span>{" "}
-                              {formatFieldValue(
-                                field,
-                                result.selections[field.id],
-                              )}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  </details>
-                </article>
-              );
-            })}
+            {visibleFields.map((field) => (
+              <div
+                key={field.id}
+                draggable
+                onDragStart={() => handleFieldDragStart(field.id)}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={() => handleFieldDrop(field.id)}
+                className={`space-y-2 rounded-lg border border-white/10 bg-gray-900/40 p-4 cursor-move transition-colors hover:border-blue-400/50 ${
+                  uiState.draggedFieldId === field.id ? "opacity-50" : ""
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-400">⋮⋮</span>
+                    {renderFieldControl(field)}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleFieldDelete(field.id)}
+                    className="rounded-md border border-white/10 px-2 py-1 text-xs text-gray-400 hover:border-red-400 hover:text-red-300"
+                    title="Hide field"
+                  >
+                    Hide
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </section>
