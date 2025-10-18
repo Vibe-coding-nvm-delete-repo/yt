@@ -372,7 +372,7 @@ export class SettingsStorage {
   }
 
   updateSelectedVisionModels(modelIds: string[]): void {
-    this.batchUpdate({ selectedVisionModels: modelIds.slice(0, 5) });
+    this.batchUpdate({ selectedVisionModels: modelIds.slice(0, 3) });
   }
 
   updateCustomPrompt(prompt: string): void {
@@ -388,7 +388,7 @@ export class SettingsStorage {
 
   updatePreferredModels(modelIds: string[]): void {
     this.batchUpdate({
-      preferredModels: Array.isArray(modelIds) ? modelIds.slice(0, 5) : [],
+      preferredModels: Array.isArray(modelIds) ? modelIds.slice(0, 3) : [],
     });
   }
 

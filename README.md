@@ -12,7 +12,7 @@ A Next.js 15 application that provides AI-powered tools for YouTube content crea
 ### 🖼️ Image to Prompt
 
 - Upload images and generate descriptive prompts using AI vision models
-- Multi-model comparison: test up to 5 vision models simultaneously
+- Multi-model comparison: test up to 3 vision models simultaneously
 - Real-time cost tracking for each generation
 - Save and rate generated prompts
 - Batch processing support for multiple images
@@ -80,7 +80,7 @@ npm run dev
 
 1. Navigate to **Settings** tab
 2. Enter your OpenRouter API key
-3. Select your preferred vision models (up to 5)
+3. Select your preferred vision models (up to 3)
 4. Customize the default prompt template (optional)
 5. Start creating!
 
@@ -148,7 +148,7 @@ This application integrates with the [OpenRouter API](https://openrouter.ai/) to
 
 - **Supported Models**: GPT-4 Vision, Claude 3, Gemini Pro Vision, and more
 - **Cost Transparency**: Real-time cost tracking for all API calls
-- **Model Selection**: Choose up to 5 models for parallel processing
+- **Model Selection**: Choose up to 3 models for parallel processing
 - **Rate Limiting**: Automatic retry with exponential backoff
 
 ## 🧪 Testing

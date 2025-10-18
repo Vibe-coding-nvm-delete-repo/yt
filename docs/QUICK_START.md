@@ -45,7 +45,7 @@ Open [http://localhost:3000](http://localhost:3000)
 
 1. In Settings, scroll to "Vision Models"
 2. Click "Refresh Models"
-3. Select up to 5 models:
+3. Select up to 3 models:
    - **Budget**: `google/gemini-pro-vision`
    - **Balanced**: `anthropic/claude-3-haiku`
    - **Premium**: `anthropic/claude-3-opus`
@@ -60,6 +60,7 @@ Open [http://localhost:3000](http://localhost:3000)
 4. View the AI-generated prompt and cost
 
 **Example:**
+
 ```
 Upload: landscape.jpg
 → AI generates: "A breathtaking mountain vista at golden hour..."
@@ -84,14 +85,17 @@ npm run check:ci   # Run all checks
 ## Troubleshooting
 
 **"Invalid API Key"**
+
 - Verify key starts with "sk-"
 - Check OpenRouter account has credits
 
 **"No Models Available"**
+
 - Click "Refresh Models" in Settings
 - Check internet connection
 
 **Slow Performance**
+
 - Use fewer models (2-3 instead of 5)
 - Close unnecessary browser tabs
 
