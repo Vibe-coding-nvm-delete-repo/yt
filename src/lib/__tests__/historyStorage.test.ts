@@ -1,6 +1,25 @@
 import { HistoryStorage } from "../historyStorage";
 import type { HistoryEntry } from "@/types/history";
 
+// Helper function to create valid test HistoryEntry objects
+const createTestHistoryEntry = (
+  overrides: Partial<HistoryEntry> = {},
+): HistoryEntry => ({
+  id: `entry-${Date.now()}`,
+  imageUrl: "",
+  prompt: "test prompt",
+  charCount: 100,
+  totalCost: 0.01,
+  inputTokens: 50,
+  outputTokens: 50,
+  inputCost: 0.005,
+  outputCost: 0.005,
+  modelId: "test-model",
+  modelName: "Test Model",
+  createdAt: Date.now(),
+  ...overrides,
+});
+
 describe("HistoryStorage", () => {
   let storage: HistoryStorage;
 
@@ -17,20 +36,11 @@ describe("HistoryStorage", () => {
   });
 
   it("should add history entry", () => {
-    const entry: HistoryEntry = {
+    const entry: HistoryEntry = createTestHistoryEntry({
       id: "entry-1",
-      timestamp: Date.now(),
-      imagePreview: "data:image/png;base64,test",
-      modelResults: [
-        {
-          modelId: "model-1",
-          modelName: "Test Model",
-          prompt: "Test prompt",
-          isLoading: false,
-          cost: 0.001,
-        },
-      ],
-    };
+      createdAt: Date.now(),
+      imageUrl: "data:image/png;base64,test",
+    });
 
     storage.addEntry(entry);
     const state = storage.getState();
@@ -40,12 +50,11 @@ describe("HistoryStorage", () => {
   });
 
   it("should get state", () => {
-    const entry: HistoryEntry = {
+    const entry: HistoryEntry = createTestHistoryEntry({
       id: "entry-1",
-      timestamp: Date.now(),
-      imagePreview: null,
-      modelResults: [],
-    };
+      createdAt: Date.now(),
+      imageUrl: "",
+    });
 
     storage.addEntry(entry);
     const state = storage.getState();
@@ -69,19 +78,17 @@ describe("HistoryStorage", () => {
   });
 
   it("should add multiple entries", () => {
-    const entry1: HistoryEntry = {
+    const entry1: HistoryEntry = createTestHistoryEntry({
       id: "entry-1",
-      timestamp: Date.now(),
-      imagePreview: null,
-      modelResults: [],
-    };
+      createdAt: Date.now(),
+      imageUrl: "",
+    });
 
-    const entry2: HistoryEntry = {
+    const entry2: HistoryEntry = createTestHistoryEntry({
       id: "entry-2",
-      timestamp: Date.now() - 1000,
-      imagePreview: null,
-      modelResults: [],
-    };
+      createdAt: Date.now() - 1000,
+      imageUrl: "",
+    });
 
     storage.addEntry(entry1);
     storage.addEntry(entry2);
@@ -94,12 +101,11 @@ describe("HistoryStorage", () => {
     const callback = jest.fn();
     storage.subscribe(callback);
 
-    const entry: HistoryEntry = {
+    const entry: HistoryEntry = createTestHistoryEntry({
       id: "entry-1",
-      timestamp: Date.now(),
-      imagePreview: null,
-      modelResults: [],
-    };
+      createdAt: Date.now(),
+      imageUrl: "",
+    });
 
     storage.addEntry(entry);
 
@@ -113,12 +119,11 @@ describe("HistoryStorage", () => {
     callback.mockClear();
     unsubscribe();
 
-    const entry: HistoryEntry = {
+    const entry: HistoryEntry = createTestHistoryEntry({
       id: "entry-1",
-      timestamp: Date.now(),
-      imagePreview: null,
-      modelResults: [],
-    };
+      createdAt: Date.now(),
+      imageUrl: "",
+    });
 
     storage.addEntry(entry);
 
@@ -131,12 +136,11 @@ describe("HistoryStorage", () => {
       throw new Error("Quota exceeded");
     });
 
-    const entry: HistoryEntry = {
+    const entry: HistoryEntry = createTestHistoryEntry({
       id: "entry-1",
-      timestamp: Date.now(),
-      imagePreview: null,
-      modelResults: [],
-    };
+      createdAt: Date.now(),
+      imageUrl: "",
+    });
 
     expect(() => {
       storage.addEntry(entry);
@@ -158,9 +162,17 @@ describe("HistoryStorage", () => {
   it("should limit entries to 25", () => {
     const entries: HistoryEntry[] = Array.from({ length: 30 }, (_, i) => ({
       id: `entry-${i}`,
-      timestamp: Date.now() - i,
-      imagePreview: null,
-      modelResults: [],
+      createdAt: Date.now() - i,
+      imageUrl: "",
+      prompt: "",
+      charCount: 0,
+      totalCost: 0,
+      inputTokens: 0,
+      outputTokens: 0,
+      inputCost: 0,
+      outputCost: 0,
+      modelId: "",
+      modelName: "",
     }));
 
     entries.forEach((entry) => storage.addEntry(entry));
@@ -198,12 +210,11 @@ describe("HistoryStorage", () => {
     goodCallback.mockClear();
     badCallback.mockClear();
 
-    const entry: HistoryEntry = {
+    const entry: HistoryEntry = createTestHistoryEntry({
       id: "entry-1",
-      timestamp: Date.now(),
-      imagePreview: null,
-      modelResults: [],
-    };
+      createdAt: Date.now(),
+      imageUrl: "",
+    });
 
     expect(() => {
       storage.addEntry(entry);
