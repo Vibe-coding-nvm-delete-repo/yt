@@ -206,6 +206,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   const debouncedTextModelSearch = useDebounce(textModelSearch, 200);
   const textModelDropdownRef = useRef<HTMLDivElement>(null);
   const textModelSearchInputRef = useRef<HTMLInputElement>(null);
+  const fieldFormRef = useRef<HTMLDivElement>(null);
 
   const orderedPromptCreatorFields = useMemo(
     () =>
@@ -560,6 +561,14 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       step: field.step ?? 1,
       maxLength: field.maxLength ?? 60,
     });
+
+    // Scroll the form into view after state updates
+    setTimeout(() => {
+      fieldFormRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
+    }, 100);
   };
 
   const handleFieldSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -1139,7 +1148,14 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
 
         {/* Right Sidebar: Field Creation Form - Sticky */}
         <aside className="w-full lg:w-80 flex-shrink-0">
-          <div className="lg:sticky lg:top-4 rounded-xl bg-gradient-to-br from-blue-900/20 to-purple-900/20 p-4 shadow-[0_8px_24px_rgba(0,0,0,0.35)] border-2 border-blue-500/30">
+          <div
+            ref={fieldFormRef}
+            className={`lg:sticky lg:top-4 rounded-xl bg-gradient-to-br from-blue-900/20 to-purple-900/20 p-4 shadow-[0_8px_24px_rgba(0,0,0,0.35)] border-2 transition-all ${
+              editingFieldId
+                ? "border-blue-400 ring-2 ring-blue-500/30"
+                : "border-blue-500/30"
+            }`}
+          >
             <header className="mb-4">
               <h3 className="text-base font-semibold text-white mb-1">
                 {editingFieldId ? "Edit Field" : "Create New Field"}
