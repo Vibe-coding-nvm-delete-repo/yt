@@ -14,6 +14,7 @@ import type {
 } from "@/types/promptCreator";
 import { isNotEmpty } from "@/utils/stringValidation";
 import { isNotEmpty as arrayNotEmpty } from "@/utils/arrayHelpers";
+import { now } from "@/utils/timeHelpers";
 
 export interface PromptCreatorTabProps {
   apiKey: string;
@@ -192,7 +193,7 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
 
       const nextDraft: PromptCreatorDraft = {
         selections: nextSelections,
-        lastModified: Date.now(),
+        lastModified: now(),
         schemaVersion: 1 as const,
       };
       promptCreatorDraftStorage.save(nextDraft);
@@ -217,7 +218,7 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
         ...draft.selections,
         [field.id]: value,
       },
-      lastModified: Date.now(),
+      lastModified: now(),
       schemaVersion: 1 as const,
     };
     setDraft(nextDraft);

@@ -22,6 +22,7 @@ import Image from "next/image";
 import { RatingWidget } from "@/components/RatingWidget";
 import { middleEllipsis } from "@/utils/truncation";
 import { UI_CONSTRAINTS } from "@/lib/constants";
+import { now } from "@/utils/timeHelpers";
 
 interface ImageToPromptTabProps {
   settings: AppSettings;
@@ -51,7 +52,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
   const [modelResults, setModelResults] = useState<ModelResult[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [sessionId] = useState<string>(() => `session-${Date.now()}`); // Stable session ID for ratings
+  const [sessionId] = useState<string>(() => `session-${now()}`); // Stable session ID for ratings
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const dropZoneRef = useRef<HTMLDivElement | null>(null);
   const [copiedMap, setCopiedMap] = useState<Record<string, boolean>>({});
@@ -377,7 +378,7 @@ export const ImageToPromptTab: React.FC<ImageToPromptTabProps> = ({
     });
 
     // Process all models in parallel using Promise.all
-    const timestamp = Date.now();
+    const timestamp = now();
     const promises = modelResults.map(async (result, i) => {
       try {
         const client = createOpenRouterClient(settings.openRouterApiKey);

@@ -5,6 +5,7 @@ import React, { Component } from "react";
 import type { AppError } from "../types/errors";
 import { ErrorSeverity, createErrorFromException } from "../types/errors";
 import { generateId } from "@/utils/formatting";
+import { now } from "@/utils/timeHelpers";
 
 interface Props {
   children: ReactNode;
@@ -48,7 +49,7 @@ export class ErrorBoundary extends Component<Props, State> {
     return {
       hasError: true,
       error: appError,
-      errorId: `error_${Date.now()}_${generateId()}`,
+      errorId: `error_${now()}_${generateId()}`,
     };
   }
 

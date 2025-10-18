@@ -45,6 +45,7 @@ import {
   buildModelDrivenInstructions,
   buildModelDrivenRubric,
 } from "@/utils/promptCreatorHelpers";
+import { now } from "@/utils/timeHelpers";
 
 interface SettingsTabProps {
   settings: AppSettings;
@@ -611,7 +612,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       const draft = promptCreatorDraftStorage.load();
       if (field.id in draft.selections) {
         delete draft.selections[field.id];
-        promptCreatorDraftStorage.save({ ...draft, lastModified: Date.now() });
+        promptCreatorDraftStorage.save({ ...draft, lastModified: now() });
       }
     }
 
