@@ -15,6 +15,9 @@ import type {
 import { isNotEmpty } from "@/utils/stringValidation";
 import { isNotEmpty as arrayNotEmpty } from "@/utils/arrayHelpers";
 import { now } from "@/utils/timeHelpers";
+import { PromptCreatorLockedPrompt } from "@/components/promptcreator/PromptCreatorLockedPrompt";
+import { PromptCreatorOutput } from "@/components/promptcreator/PromptCreatorOutput";
+import { PromptCreatorForm } from "@/components/promptcreator/PromptCreatorForm";
 
 export interface PromptCreatorTabProps {
   apiKey: string;
@@ -748,47 +751,17 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
       <h1 className="text-2xl font-semibold text-white">Prompt Creator</h1>
 
       {/* 1. Locked Prompt Field */}
-      <section className="space-y-2 rounded-lg border border-white/5 bg-gray-900/30 p-4">
-        <div className="flex items-center justify-between">
-          <label className="text-sm font-medium text-gray-100">
-            Locked Prompt (combined with field selections)
-          </label>
-          <button
-            type="button"
-            onClick={() =>
-              setUiState((prev) => ({
-                ...prev,
-                isLockedPromptLocked: !prev.isLockedPromptLocked,
-              }))
-            }
-            className="flex items-center gap-2 rounded-md border border-white/10 px-3 py-1 text-xs text-gray-200 hover:border-blue-400 transition-colors"
-          >
-            {uiState.isLockedPromptLocked ? (
-              <>
-                <span>🔒</span>
-                <span>Unlock to Edit</span>
-              </>
-            ) : (
-              <>
-                <span>🔓</span>
-                <span>Lock</span>
-              </>
-            )}
-          </button>
-        </div>
-        <textarea
-          value={config.lockedInPrompt}
-          onChange={(e) => handleLockedPromptChange(e.target.value)}
-          disabled={uiState.isLockedPromptLocked}
-          rows={6}
-          className={`w-full rounded-md border border-white/10 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none font-mono ${
-            uiState.isLockedPromptLocked
-              ? "bg-gray-900/80 cursor-not-allowed opacity-70"
-              : "bg-gray-900/60"
-          }`}
-          placeholder="Enter base prompt that will be combined with field selections..."
-        />
-      </section>
+      <PromptCreatorLockedPrompt
+        lockedInPrompt={config.lockedInPrompt}
+        isLocked={uiState.isLockedPromptLocked}
+        onLockedPromptChange={handleLockedPromptChange}
+        onToggleLock={() =>
+          setUiState((prev) => ({
+            ...prev,
+            isLockedPromptLocked: !prev.isLockedPromptLocked,
+          }))
+        }
+      />
 
       {/* 2. Generate Button */}
       <div className="flex items-center gap-4">
@@ -824,178 +797,28 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
       )}
 
       {/* 3. Generated Prompt Output */}
-      {currentOutput.content && (
-        <section className="space-y-3 rounded-lg border border-green-500/40 bg-green-500/10 p-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-green-50">
-              Generated Prompt
-            </h2>
-            <button
-              type="button"
-              onClick={() => handleCopy(currentOutput.content)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-green-600 hover:bg-green-700 text-white text-sm font-medium transition-colors"
-              aria-label="Copy generated prompt"
-            >
-              {currentOutput.copied ? "✓ Copied!" : "📋 Copy"}
-            </button>
-          </div>
-          <textarea
-            readOnly
-            value={currentOutput.content}
-            className="w-full h-48 p-3 rounded-md border border-green-500/30 bg-gray-900/60 text-white text-sm font-mono resize-y focus:outline-none"
-          />
-          <div className="flex items-center justify-between text-xs">
-            <div className="flex items-center gap-4 text-green-200">
-              <span
-                className={
-                  currentOutput.content.length > 1500
-                    ? "text-red-300 font-semibold"
-                    : ""
-                }
-              >
-                {currentOutput.content.length} / 1500 characters
-              </span>
-              {currentOutput.content.length > 1500 && (
-                <span className="text-red-300">⚠ Exceeds limit</span>
-              )}
-            </div>
-            {currentOutput.metadata && (
-              <div className="flex items-center gap-4 text-green-200">
-                <span>
-                  Model: {currentOutput.metadata.model.split("/").pop()}
-                </span>
-                <span>
-                  Tokens: {currentOutput.metadata.inputTokens} in /{" "}
-                  {currentOutput.metadata.outputTokens} out
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Backend Process Section (Collapsed) */}
-          {uiState.generationSteps.length > 0 && (
-            <details
-              open={uiState.showBackendProcess}
-              onToggle={(e) => {
-                const target = e.currentTarget;
-                if (target) {
-                  setUiState((prev) => ({
-                    ...prev,
-                    showBackendProcess: target.open,
-                  }));
-                }
-              }}
-              className="rounded-md border border-green-500/20 bg-gray-900/40 p-3 text-sm"
-            >
-              <summary className="cursor-pointer text-green-100 font-medium">
-                Backend Process Steps{" "}
-                {uiState.isGenerating && (
-                  <span className="ml-2 text-xs text-blue-300">
-                    (In Progress...)
-                  </span>
-                )}
-              </summary>
-              <div className="mt-3 space-y-2 text-green-200">
-                {uiState.generationSteps.map((step, index) => (
-                  <div key={index} className="flex items-start gap-2">
-                    <span
-                      className={`flex-shrink-0 ${
-                        step.status === "completed"
-                          ? "text-green-400"
-                          : step.status === "active"
-                            ? "text-blue-400"
-                            : step.status === "error"
-                              ? "text-red-400"
-                              : "text-gray-500"
-                      }`}
-                    >
-                      {step.status === "completed" && "✓"}
-                      {step.status === "active" && "⋯"}
-                      {step.status === "error" && "✗"}
-                      {step.status === "pending" && "○"}
-                    </span>
-                    <div className="flex-1">
-                      <span
-                        className={
-                          step.status === "active"
-                            ? "text-blue-300 font-medium"
-                            : step.status === "error"
-                              ? "text-red-300"
-                              : step.status === "completed"
-                                ? "text-green-200"
-                                : "text-gray-400"
-                        }
-                      >
-                        {step.label}
-                      </span>
-                      {step.detail && (
-                        <span className="ml-2 text-xs text-gray-400">
-                          — {step.detail}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </details>
-          )}
-        </section>
-      )}
+      <PromptCreatorOutput
+        content={currentOutput.content}
+        copied={currentOutput.copied}
+        metadata={currentOutput.metadata}
+        generationSteps={uiState.generationSteps}
+        showBackendProcess={uiState.showBackendProcess}
+        isGenerating={uiState.isGenerating}
+        onCopy={() => handleCopy(currentOutput.content)}
+        onToggleBackendProcess={(open) =>
+          setUiState((prev) => ({ ...prev, showBackendProcess: open }))
+        }
+      />
 
       {/* 5. All Fields Section */}
-      <section className="space-y-4 rounded-lg border border-white/5 bg-gray-900/30 p-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-100">
-            All Fields
-            {visibleFields.length > 0 && (
-              <span className="ml-2 text-sm text-gray-400">
-                ({visibleFields.length} fields)
-              </span>
-            )}
-          </h2>
-          <p className="text-xs text-gray-400">
-            Drag to reorder • Edit fields inline or in Settings
-          </p>
-        </div>
-
-        {visibleFields.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-sm text-gray-400 mb-4">
-              No fields configured yet. Add fields in Settings → Prompt Creator.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {visibleFields.map((field) => (
-              <div
-                key={field.id}
-                draggable
-                onDragStart={() => handleFieldDragStart(field.id)}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={() => handleFieldDrop(field.id)}
-                className={`space-y-2 rounded-lg border border-white/10 bg-gray-900/40 p-4 cursor-move transition-colors hover:border-blue-400/50 ${
-                  uiState.draggedFieldId === field.id ? "opacity-50" : ""
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-400">⋮⋮</span>
-                    {renderFieldControl(field)}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleFieldDelete(field.id)}
-                    className="rounded-md border border-white/10 px-2 py-1 text-xs text-gray-400 hover:border-red-400 hover:text-red-300"
-                    title="Hide field"
-                  >
-                    Hide
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+      <PromptCreatorForm
+        visibleFields={visibleFields}
+        draggedFieldId={uiState.draggedFieldId}
+        onFieldDragStart={handleFieldDragStart}
+        onFieldDrop={handleFieldDrop}
+        onFieldDelete={handleFieldDelete}
+        renderFieldControl={renderFieldControl}
+      />
     </div>
   );
 };
