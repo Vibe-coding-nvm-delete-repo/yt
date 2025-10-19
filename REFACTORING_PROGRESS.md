@@ -54,6 +54,51 @@ Split monolithic components that exceed the 400-line architectural limit, specif
 - Removed dropdown state management from parent (moved to SettingsModelSelection)
 - Simplified useEffect hooks by removing unused dropdown logic
 
+### PromptCreatorTab.tsx Refactoring
+
+**Metrics:**
+
+- **Before:** 1003 lines
+- **After:** 826 lines
+- **Reduction:** 177 lines (18% decrease)
+- **Status:** ⚠️ Still exceeds 400-line limit, but significant progress made
+
+**Components Extracted:**
+
+1. **PromptCreatorLockedPrompt.tsx** (1.7K)
+   - Locked prompt field with lock/unlock toggle
+   - Textarea for base prompt configuration
+   - Tests: 6 tests covering rendering, lock state, onChange
+
+2. **PromptCreatorOutput.tsx** (4.8K)
+   - Generated prompt display section
+   - Copy functionality with feedback
+   - Character count and limit warnings
+   - Backend process steps visualization
+   - Metadata display (model, tokens)
+   - Tests: 10 tests covering rendering, copy, metadata, steps
+
+3. **PromptCreatorForm.tsx** (2.6K)
+   - Form fields display and management
+   - Drag-and-drop reordering
+   - Field control rendering (via render prop)
+   - Hide field functionality
+   - Tests: 6 tests covering rendering, empty state, drag state
+
+**Code Quality:**
+
+- ✅ All 64 test suites passing (676 tests total)
+- ✅ Zero lint errors/warnings
+- ✅ Zero TypeScript errors (strict mode)
+- ✅ 22 new tests added (13 for SettingsTab, 20 for PromptCreatorTab components)
+- ✅ Proper type safety with `exactOptionalPropertyTypes: true`
+
+**Cleanup:**
+
+- Removed inline UI rendering code
+- Better component boundaries
+- Improved code organization
+
 ## 📋 Remaining Work
 
 ### SettingsTab.tsx (1409 lines remaining)
@@ -226,12 +271,13 @@ Split monolithic components that exceed the 400-line architectural limit, specif
 
 ### After This PR
 
-- SettingsTab: 1409 lines ⚠️ (20% improvement)
-- PromptCreatorTab: 1003 lines ⚠️ (unchanged)
-- 4 new reusable components created
-- 13 new tests added
+- SettingsTab: 1409 lines ⚠️ (20% improvement, 352 lines removed)
+- PromptCreatorTab: 826 lines ⚠️ (18% improvement, 177 lines removed)
+- 7 new reusable components created (4 for SettingsTab, 3 for PromptCreatorTab)
+- 33 new tests added (13 for SettingsTab, 20 for PromptCreatorTab)
 - Better separation of concerns
 - Easier to maintain individual sections
+- Total reduction: 529 lines (19% overall)
 
 ### Target (After All PRs)
 
