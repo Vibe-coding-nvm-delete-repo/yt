@@ -127,4 +127,66 @@ describe("PromptCreatorTab", () => {
       screen.getByRole("button", { name: /Generate/i }),
     ).toBeInTheDocument();
   });
+
+  it("handles details toggle without crashing when currentTarget is null", async () => {
+    // Mock fetch for successful generation
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        choices: [{ message: { content: "Generated prompt" } }],
+        usage: { prompt_tokens: 10, completion_tokens: 20 },
+      }),
+    });
+
+    render(<PromptCreatorTab apiKey="sk-test" />);
+
+    await screen.findByLabelText(/Time of Day$/);
+
+    // Fill mandatory field to enable generation
+    const dropdown = await screen.findByLabelText(/Time of Day$/);
+    fireEvent.change(dropdown, { target: { value: "Dusk" } });
+
+    // Wait for button to be enabled
+    await waitFor(() => {
+      const generateButton = screen.getByRole("button", {
+        name: /^Generate$/i,
+      });
+      expect(generateButton).not.toBeDisabled();
+    });
+
+    // Click generate button
+    const generateButton = screen.getByRole("button", {
+      name: /^Generate$/i,
+    });
+    fireEvent.click(generateButton);
+
+    // Wait for generation to complete by finding the heading
+    await waitFor(
+      () => {
+        expect(
+          screen.getByRole("heading", { name: /Generated Prompt/i }),
+        ).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
+
+    // Find the details element and simulate toggle with null currentTarget
+    const detailsElement = screen
+      .getByText(/Backend Process Steps/i)
+      .closest("details");
+
+    if (detailsElement) {
+      // Create a toggle event with null currentTarget (edge case)
+      const toggleEvent = new Event("toggle", { bubbles: true });
+      Object.defineProperty(toggleEvent, "currentTarget", {
+        value: null,
+        writable: false,
+      });
+
+      // This should not crash the application
+      expect(() => {
+        detailsElement.dispatchEvent(toggleEvent);
+      }).not.toThrow();
+    }
+  });
 });

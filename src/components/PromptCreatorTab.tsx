@@ -12,6 +12,12 @@ import type {
   PromptCreatorField,
   PromptCreatorValue,
 } from "@/types/promptCreator";
+import { isNotEmpty } from "@/utils/stringValidation";
+import { isNotEmpty as arrayNotEmpty } from "@/utils/arrayHelpers";
+import { now } from "@/utils/timeHelpers";
+import { PromptCreatorLockedPrompt } from "@/components/promptcreator/PromptCreatorLockedPrompt";
+import { PromptCreatorOutput } from "@/components/promptcreator/PromptCreatorOutput";
+import { PromptCreatorForm } from "@/components/promptcreator/PromptCreatorForm";
 
 export interface PromptCreatorTabProps {
   apiKey: string;
@@ -33,8 +39,8 @@ interface ChatResponse {
 
 const isValueProvided = (value: unknown): boolean => {
   if (value === null || value === undefined) return false;
-  if (typeof value === "string") return value.trim().length > 0;
-  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === "string") return isNotEmpty(value);
+  if (Array.isArray(value)) return arrayNotEmpty(value);
   return true;
 };
 
@@ -60,7 +66,7 @@ const parseDefaultValue = (
   if (raw === undefined || raw === null) {
     return undefined;
   }
-  if (typeof raw === "string" && raw.trim().length === 0) {
+  if (typeof raw === "string" && !isNotEmpty(raw)) {
     return undefined;
   }
 
@@ -128,6 +134,11 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
     isLockedPromptLocked: true,
     showBackendProcess: false,
     draggedFieldId: null as string | null,
+    generationSteps: [] as Array<{
+      label: string;
+      status: "pending" | "active" | "completed" | "error";
+      detail?: string;
+    }>,
   });
   const [currentOutput, setCurrentOutput] = useState<{
     content: string;
@@ -144,8 +155,15 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
     setConfig(promptCreatorConfigStorage.load());
   }, []);
 
+  // Refresh config on component mount, focus, and storage changes
   useEffect(() => {
+    // Initial load
     refreshConfig();
+
+    const handleFocus = () => {
+      // Refresh config when window regains focus to pick up any changes from Settings
+      refreshConfig();
+    };
 
     const handleStorage = (event: StorageEvent) => {
       if (!event.key) return;
@@ -157,8 +175,13 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
       }
     };
 
+    window.addEventListener("focus", handleFocus);
     window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("storage", handleStorage);
+    };
   }, [refreshConfig]);
 
   const visibleFields = useMemo(
@@ -190,7 +213,7 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
 
       const nextDraft: PromptCreatorDraft = {
         selections: nextSelections,
-        lastModified: Date.now(),
+        lastModified: now(),
         schemaVersion: 1 as const,
       };
       promptCreatorDraftStorage.save(nextDraft);
@@ -215,7 +238,7 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
         ...draft.selections,
         [field.id]: value,
       },
-      lastModified: Date.now(),
+      lastModified: now(),
       schemaVersion: 1 as const,
     };
     setDraft(nextDraft);
@@ -482,6 +505,7 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
     async (
       systemPrompt: string,
       userContent: string,
+      modelId: string,
     ): Promise<{
       content: string;
       usage: ChatUsage;
@@ -499,7 +523,7 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
               "X-Title": "Prompt Creator",
             },
             body: JSON.stringify({
-              model: config.openRouterModelId,
+              model: modelId,
               messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: userContent },
@@ -531,60 +555,169 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
         );
       }
     },
-    [apiKey, config.openRouterModelId],
+    [apiKey],
   );
 
   const generatePrompts = async () => {
-    if (!config.openRouterModelId) {
-      setUiState((prev) => ({
-        ...prev,
-        error: "Set a model ID in Settings → Prompt Creator before generating.",
-      }));
-      return;
-    }
-    if (!apiKey) {
-      setUiState((prev) => ({
-        ...prev,
-        error:
-          "Add an OpenRouter API key in Settings before generating prompts.",
-      }));
-      return;
-    }
+    // Initialize generation steps
+    const steps = [
+      {
+        label: "Loading configuration",
+        status: "pending" as const,
+        detail: "",
+      },
+      {
+        label: "Building prompt from selections",
+        status: "pending" as const,
+        detail: "",
+      },
+      {
+        label: "Preparing API request",
+        status: "pending" as const,
+        detail: "",
+      },
+      {
+        label: "Sending request to OpenRouter",
+        status: "pending" as const,
+        detail: "",
+      },
+      { label: "Processing response", status: "pending" as const, detail: "" },
+    ];
 
-    const variablesText = buildVariablesText(visibleFields, draft.selections);
-    const lockedInPrompt = config.lockedInPrompt || "";
-    const fullPromptInput = lockedInPrompt
-      ? `${lockedInPrompt}\n\n${variablesText}`
-      : variablesText;
-
-    setUiState((prev) => ({ ...prev, isGenerating: true, error: null }));
+    setUiState((prev) => ({
+      ...prev,
+      isGenerating: true,
+      error: null,
+      showBackendProcess: true,
+      generationSteps: steps,
+    }));
     setCurrentOutput({ content: "", copied: false }); // Clear previous output
 
+    const updateStep = (
+      index: number,
+      status: "active" | "completed" | "error",
+      detail?: string,
+    ) => {
+      setUiState((prev) => ({
+        ...prev,
+        generationSteps: prev.generationSteps.map((step, i) =>
+          i === index
+            ? { ...step, status, ...(detail !== undefined ? { detail } : {}) }
+            : step,
+        ),
+      }));
+    };
+
     try {
-      const generation = await callChatCompletion(
-        config.promptGenInstructions,
-        fullPromptInput,
+      // Step 1: Load configuration
+      updateStep(0, "active");
+      const latestConfig = promptCreatorConfigStorage.load();
+      setConfig(latestConfig);
+
+      if (!latestConfig.openRouterModelId) {
+        updateStep(0, "error", "No model selected");
+        setUiState((prev) => ({
+          ...prev,
+          error:
+            "Set a model ID in Settings → Prompt Creator before generating.",
+          isGenerating: false,
+        }));
+        return;
+      }
+      if (!apiKey) {
+        updateStep(0, "error", "No API key found");
+        setUiState((prev) => ({
+          ...prev,
+          error:
+            "Add an OpenRouter API key in Settings before generating prompts.",
+          isGenerating: false,
+        }));
+        return;
+      }
+      updateStep(
+        0,
+        "completed",
+        `Model: ${latestConfig.openRouterModelId.split("/").pop()}`,
       );
 
-      // Set the current output immediately after generation with metadata
+      // Step 2: Build prompt from selections
+      updateStep(1, "active");
+      const variablesText = buildVariablesText(visibleFields, draft.selections);
+      const lockedInPrompt = latestConfig.lockedInPrompt || "";
+      const fullPromptInput = lockedInPrompt
+        ? `${lockedInPrompt}\n\n${variablesText}`
+        : variablesText;
+      updateStep(1, "completed", `${visibleFields.length} fields combined`);
+
+      // Step 3: Prepare API request
+      updateStep(2, "active");
+      updateStep(
+        2,
+        "completed",
+        `Request prepared for ${latestConfig.openRouterModelId.split("/").pop()}`,
+      );
+
+      // Step 4: Send request to OpenRouter
+      updateStep(3, "active");
+      const generation = await callChatCompletion(
+        latestConfig.promptGenInstructions,
+        fullPromptInput,
+        latestConfig.openRouterModelId,
+      );
+      updateStep(
+        3,
+        "completed",
+        `Received ${generation.usage.completion_tokens ?? 0} tokens`,
+      );
+
+      // Step 5: Process response
+      updateStep(4, "active");
       setCurrentOutput({
         content: generation.content,
         copied: false,
         metadata: {
-          model: config.openRouterModelId,
+          model: latestConfig.openRouterModelId,
           inputTokens: generation.usage.prompt_tokens ?? 0,
           outputTokens: generation.usage.completion_tokens ?? 0,
           totalCost: 0, // Calculate if pricing is available
         },
       });
+      updateStep(
+        4,
+        "completed",
+        `Generated ${generation.content.length} characters`,
+      );
     } catch (generationError) {
-      setUiState((prev) => ({
-        ...prev,
-        error:
-          generationError instanceof Error
-            ? generationError.message
-            : "Prompt generation failed.",
-      }));
+      // Find the first non-completed step and mark it as error
+      setUiState((prev) => {
+        const errorStepIndex = prev.generationSteps.findIndex(
+          (s) => s.status !== "completed",
+        );
+        const updatedSteps =
+          errorStepIndex >= 0
+            ? prev.generationSteps.map((step, i) =>
+                i === errorStepIndex
+                  ? {
+                      ...step,
+                      status: "error" as const,
+                      detail:
+                        generationError instanceof Error
+                          ? generationError.message
+                          : "Failed",
+                    }
+                  : step,
+              )
+            : prev.generationSteps;
+
+        return {
+          ...prev,
+          error:
+            generationError instanceof Error
+              ? generationError.message
+              : "Prompt generation failed.",
+          generationSteps: updatedSteps,
+        };
+      });
     } finally {
       setUiState((prev) => ({ ...prev, isGenerating: false }));
     }
@@ -618,47 +751,17 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
       <h1 className="text-2xl font-semibold text-white">Prompt Creator</h1>
 
       {/* 1. Locked Prompt Field */}
-      <section className="space-y-2 rounded-lg border border-white/5 bg-gray-900/30 p-4">
-        <div className="flex items-center justify-between">
-          <label className="text-sm font-medium text-gray-100">
-            Locked Prompt (combined with field selections)
-          </label>
-          <button
-            type="button"
-            onClick={() =>
-              setUiState((prev) => ({
-                ...prev,
-                isLockedPromptLocked: !prev.isLockedPromptLocked,
-              }))
-            }
-            className="flex items-center gap-2 rounded-md border border-white/10 px-3 py-1 text-xs text-gray-200 hover:border-blue-400 transition-colors"
-          >
-            {uiState.isLockedPromptLocked ? (
-              <>
-                <span>🔒</span>
-                <span>Unlock to Edit</span>
-              </>
-            ) : (
-              <>
-                <span>🔓</span>
-                <span>Lock</span>
-              </>
-            )}
-          </button>
-        </div>
-        <textarea
-          value={config.lockedInPrompt}
-          onChange={(e) => handleLockedPromptChange(e.target.value)}
-          disabled={uiState.isLockedPromptLocked}
-          rows={6}
-          className={`w-full rounded-md border border-white/10 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none font-mono ${
-            uiState.isLockedPromptLocked
-              ? "bg-gray-900/80 cursor-not-allowed opacity-70"
-              : "bg-gray-900/60"
-          }`}
-          placeholder="Enter base prompt that will be combined with field selections..."
-        />
-      </section>
+      <PromptCreatorLockedPrompt
+        lockedInPrompt={config.lockedInPrompt}
+        isLocked={uiState.isLockedPromptLocked}
+        onLockedPromptChange={handleLockedPromptChange}
+        onToggleLock={() =>
+          setUiState((prev) => ({
+            ...prev,
+            isLockedPromptLocked: !prev.isLockedPromptLocked,
+          }))
+        }
+      />
 
       {/* 2. Generate Button */}
       <div className="flex items-center gap-4">
@@ -694,151 +797,28 @@ export const PromptCreatorTab: React.FC<PromptCreatorTabProps> = ({
       )}
 
       {/* 3. Generated Prompt Output */}
-      {currentOutput.content && (
-        <section className="space-y-3 rounded-lg border border-green-500/40 bg-green-500/10 p-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-green-50">
-              Generated Prompt
-            </h2>
-            <button
-              type="button"
-              onClick={() => handleCopy(currentOutput.content)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-green-600 hover:bg-green-700 text-white text-sm font-medium transition-colors"
-              aria-label="Copy generated prompt"
-            >
-              {currentOutput.copied ? "✓ Copied!" : "📋 Copy"}
-            </button>
-          </div>
-          <textarea
-            readOnly
-            value={currentOutput.content}
-            className="w-full h-48 p-3 rounded-md border border-green-500/30 bg-gray-900/60 text-white text-sm font-mono resize-y focus:outline-none"
-          />
-          <div className="flex items-center justify-between text-xs">
-            <div className="flex items-center gap-4 text-green-200">
-              <span
-                className={
-                  currentOutput.content.length > 1500
-                    ? "text-red-300 font-semibold"
-                    : ""
-                }
-              >
-                {currentOutput.content.length} / 1500 characters
-              </span>
-              {currentOutput.content.length > 1500 && (
-                <span className="text-red-300">⚠ Exceeds limit</span>
-              )}
-            </div>
-            {currentOutput.metadata && (
-              <div className="flex items-center gap-4 text-green-200">
-                <span>
-                  Model: {currentOutput.metadata.model.split("/").pop()}
-                </span>
-                <span>
-                  Tokens: {currentOutput.metadata.inputTokens} in /{" "}
-                  {currentOutput.metadata.outputTokens} out
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* 4. Backend Process Section (Collapsed) */}
-          <details
-            open={uiState.showBackendProcess}
-            onToggle={(e) =>
-              setUiState((prev) => ({
-                ...prev,
-                showBackendProcess: e.currentTarget.open,
-              }))
-            }
-            className="rounded-md border border-green-500/20 bg-gray-900/40 p-3 text-sm"
-          >
-            <summary className="cursor-pointer text-green-100 font-medium">
-              Backend Process Steps
-            </summary>
-            <div className="mt-3 space-y-2 text-green-200">
-              <div className="flex items-start gap-2">
-                <span className="text-green-400">✓</span>
-                <span>Loaded locked prompt from configuration</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-green-400">✓</span>
-                <span>Combined locked prompt with field selections</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-green-400">✓</span>
-                <span>
-                  Sent request to OpenRouter API with model:{" "}
-                  {config.openRouterModelId}
-                </span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-green-400">✓</span>
-                <span>Received generated prompt from API</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-green-400">✓</span>
-                <span>Validated output and character count</span>
-              </div>
-            </div>
-          </details>
-        </section>
-      )}
+      <PromptCreatorOutput
+        content={currentOutput.content}
+        copied={currentOutput.copied}
+        metadata={currentOutput.metadata}
+        generationSteps={uiState.generationSteps}
+        showBackendProcess={uiState.showBackendProcess}
+        isGenerating={uiState.isGenerating}
+        onCopy={() => handleCopy(currentOutput.content)}
+        onToggleBackendProcess={(open) =>
+          setUiState((prev) => ({ ...prev, showBackendProcess: open }))
+        }
+      />
 
       {/* 5. All Fields Section */}
-      <section className="space-y-4 rounded-lg border border-white/5 bg-gray-900/30 p-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-100">
-            All Fields
-            {visibleFields.length > 0 && (
-              <span className="ml-2 text-sm text-gray-400">
-                ({visibleFields.length} fields)
-              </span>
-            )}
-          </h2>
-          <p className="text-xs text-gray-400">
-            Drag to reorder • Edit fields inline or in Settings
-          </p>
-        </div>
-
-        {visibleFields.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-sm text-gray-400 mb-4">
-              No fields configured yet. Add fields in Settings → Prompt Creator.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {visibleFields.map((field) => (
-              <div
-                key={field.id}
-                draggable
-                onDragStart={() => handleFieldDragStart(field.id)}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={() => handleFieldDrop(field.id)}
-                className={`space-y-2 rounded-lg border border-white/10 bg-gray-900/40 p-4 cursor-move transition-colors hover:border-blue-400/50 ${
-                  uiState.draggedFieldId === field.id ? "opacity-50" : ""
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-400">⋮⋮</span>
-                    {renderFieldControl(field)}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleFieldDelete(field.id)}
-                    className="rounded-md border border-white/10 px-2 py-1 text-xs text-gray-400 hover:border-red-400 hover:text-red-300"
-                    title="Hide field"
-                  >
-                    Hide
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+      <PromptCreatorForm
+        visibleFields={visibleFields}
+        draggedFieldId={uiState.draggedFieldId}
+        onFieldDragStart={handleFieldDragStart}
+        onFieldDrop={handleFieldDrop}
+        onFieldDelete={handleFieldDelete}
+        renderFieldControl={renderFieldControl}
+      />
     </div>
   );
 };
