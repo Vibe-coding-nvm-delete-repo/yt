@@ -45,6 +45,8 @@ import {
   buildModelDrivenRubric,
 } from "@/utils/promptCreatorHelpers";
 import { now } from "@/utils/timeHelpers";
+import { LeonardoSettingsPanel } from "@/components/settings/leonardo/LeonardoSettingsPanel";
+
 
 interface SettingsTabProps {
   settings: AppSettings;
@@ -56,6 +58,7 @@ type SettingsSubTab =
   | "model-selection"
   | "custom-prompts"
   | "prompt-creator"
+  | "leonardo-ai"
   | "categories";
 
 type PromptCreatorFieldForm = {
@@ -1381,6 +1384,16 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
             Prompt Creator
           </button>
           <button
+            onClick={() => setActiveSubTab("leonardo-ai")}
+            className={`py-2 px-4 font-medium text-sm border-b-2 transition-colors ${
+              activeSubTab === "leonardo-ai"
+                ? "border-blue-500 text-blue-400"
+                : "border-transparent text-gray-400 hover:text-gray-300"
+            }`}
+          >
+            Leonardo.AI
+          </button>
+          <button
             onClick={() => setActiveSubTab("categories")}
             className={`py-2 px-4 font-medium text-sm border-b-2 transition-colors ${
               activeSubTab === "categories"
@@ -1400,6 +1413,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
         {activeSubTab === "model-selection" && renderModelSelectionTab()}
         {activeSubTab === "custom-prompts" && renderCustomPromptsTab()}
         {activeSubTab === "prompt-creator" && renderPromptCreatorTab()}
+        {activeSubTab === "leonardo-ai" && <LeonardoSettingsPanel />}
         {activeSubTab === "categories" && renderCategoriesTab()}
       </div>
     </div>
