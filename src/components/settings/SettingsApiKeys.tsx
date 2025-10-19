@@ -1,9 +1,16 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { Key, RefreshCw, CheckCircle, XCircle, Eye, EyeOff } from 'lucide-react';
-import { Tooltip } from '@/components/common/Tooltip';
-import type { ExtendedValidationState } from '@/types/validation';
+import React from "react";
+import {
+  Key,
+  RefreshCw,
+  CheckCircle,
+  XCircle,
+  Eye,
+  EyeOff,
+} from "lucide-react";
+import { Tooltip } from "@/components/common/Tooltip";
+import type { ExtendedValidationState } from "@/types/validation";
 
 export type SettingsApiKeysProps = {
   apiKey: string;
@@ -12,12 +19,12 @@ export type SettingsApiKeysProps = {
   onApiKeyChange: (value: string) => void;
   onToggleShow: () => void;
   onValidate: () => void;
-  tooltipText?: string;
-  validatedAtLabel?: string;
+  tooltipText?: string | undefined;
+  validatedAtLabel?: string | undefined;
 };
 
 const DEFAULT_TOOLTIP =
-  'Paste your OpenRouter API key (starts with sk-or-v1-). Toggle visibility as needed, then click Validate to confirm before fetching models.';
+  "Paste your OpenRouter API key (starts with sk-or-v1-). Toggle visibility as needed, then click Validate to confirm before fetching models.";
 
 export const SettingsApiKeys: React.FC<SettingsApiKeysProps> = ({
   apiKey,
@@ -39,14 +46,17 @@ export const SettingsApiKeys: React.FC<SettingsApiKeysProps> = ({
         message={tooltipText}
       />
       {validation.isValid && (
-        <CheckCircle className="ml-2 h-4 w-4 text-green-600" aria-hidden="true" />
+        <CheckCircle
+          className="ml-2 h-4 w-4 text-green-600"
+          aria-hidden="true"
+        />
       )}
     </div>
 
     <div className="space-y-3">
       <div className="relative">
         <input
-          type={showApiKey ? 'text' : 'password'}
+          type={showApiKey ? "text" : "password"}
           value={apiKey}
           onChange={(event) => onApiKeyChange(event.target.value)}
           placeholder="sk-or-v1-..."
@@ -56,9 +66,13 @@ export const SettingsApiKeys: React.FC<SettingsApiKeysProps> = ({
           type="button"
           onClick={onToggleShow}
           className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-          aria-label={showApiKey ? 'Hide API key' : 'Show API key'}
+          aria-label={showApiKey ? "Hide API key" : "Show API key"}
         >
-          {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          {showApiKey ? (
+            <EyeOff className="h-4 w-4" />
+          ) : (
+            <Eye className="h-4 w-4" />
+          )}
         </button>
       </div>
 

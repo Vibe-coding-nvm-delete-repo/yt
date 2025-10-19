@@ -26,17 +26,16 @@ import {
   RefreshCw,
   Search,
   ChevronDown,
-  Key,
   CheckCircle,
-  Eye,
-  EyeOff,
-  XCircle,
   Pin,
   PinOff,
 } from "lucide-react";
-import { Tooltip } from "@/components/common/Tooltip";
 import { useSettings as useSettingsHook } from "@/hooks/useSettings";
 import { useToast } from "@/contexts/ToastContext";
+import { SettingsApiKeys } from "@/components/settings/SettingsApiKeys";
+import { SettingsCustomPrompts } from "@/components/settings/SettingsCustomPrompts";
+import { SettingsCategories } from "@/components/settings/SettingsCategories";
+import { SettingsModelSelection } from "@/components/settings/SettingsModelSelection";
 import { middleEllipsis } from "@/utils/truncation";
 import { useDebounce } from "@/hooks/useDebounce";
 import { formatTimestamp, formatPrice, generateId } from "@/utils/formatting";
@@ -125,16 +124,6 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     error: null,
     searchTerm: "",
   });
-
-  // Dropdown states for the 3 individual model selectors
-  const [dropdownStates, setDropdownStates] = useState<
-    Record<number, { isOpen: boolean; search: string }>
-  >({
-    0: { isOpen: false, search: "" },
-    1: { isOpen: false, search: "" },
-    2: { isOpen: false, search: "" },
-  });
-  const dropdownRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
   const [promptCreatorConfigState, setPromptCreatorConfigState] =
     useState<PromptCreatorConfig>(() => promptCreatorConfigStorage.load());
@@ -300,22 +289,10 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     return () => clearTimeout(timeoutId);
   }, [lockedInPrompt]);
 
-  // Close dropdowns when clicking outside
+  // Close text model dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
-      Object.keys(dropdownRefs.current).forEach((key) => {
-        const index = Number(key);
-        const ref = dropdownRefs.current[index];
-        if (ref && !ref.contains(target) && dropdownStates[index]?.isOpen) {
-          setDropdownStates((prev) => ({
-            ...prev,
-            [index]: { isOpen: false, search: prev[index]?.search || "" },
-          }));
-        }
-      });
-
-      // Close text model dropdown when clicking outside
       if (
         textModelDropdownRef.current &&
         !textModelDropdownRef.current.contains(target) &&
@@ -326,11 +303,10 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
       }
     };
 
-    // Use window instead of document for event listeners to avoid ESLint rule
     const doc = window.document;
     doc.addEventListener("mousedown", handleClickOutside);
     return () => doc.removeEventListener("mousedown", handleClickOutside);
-  }, [dropdownStates, isTextModelDropdownOpen]);
+  }, [isTextModelDropdownOpen]);
 
   const handleApiKeyChange = useCallback(
     (value: string) => {
@@ -635,82 +611,24 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
   const renderApiKeysTab = useCallback(
     () => (
       <div className="bg-[#151A21] rounded-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)] space-y-4">
-        <div className="flex items-center text-white">
-          <Key className="mr-2 h-5 w-5" />
-          <h3 className="text-lg font-semibold">OpenRouter API Key</h3>
-          <Tooltip
-            id="settings-openrouter-api-key"
-            label="More information about the OpenRouter API key"
-            message="Paste your OpenRouter API key (starts with sk-or-v1-). Toggle visibility as needed, then click Validate to confirm before fetching models."
-          />
-          {validationState.isValid && (
-            <CheckCircle
-              className="ml-2 h-4 w-4 text-green-400"
-              aria-hidden="true"
-            />
-          )}
-        </div>
-
-        <div className="space-y-3">
-          <div className="relative">
-            <input
-              type={showApiKey ? "text" : "password"}
-              value={apiKey}
-              onChange={(e) => handleApiKeyChange(e.target.value)}
-              placeholder="sk-or-v1-..."
-              className="w-full px-4 py-2 pr-12 border-none rounded-lg focus:ring-2 focus:ring-blue-500/50 bg-white/5 focus:bg-white/10 text-white placeholder:text-gray-500 transition-colors"
-            />
-            <button
-              type="button"
-              onClick={() => setShowApiKey(!showApiKey)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300"
-              aria-label={showApiKey ? "Hide API key" : "Show API key"}
-            >
-              {showApiKey ? (
-                <EyeOff className="h-4 w-4" />
-              ) : (
-                <Eye className="h-4 w-4" />
-              )}
-            </button>
-          </div>
-
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={validateApiKey}
-              disabled={validationState.isValidating || !apiKey.trim()}
-              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {validationState.isValidating ? (
-                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <CheckCircle className="mr-2 h-4 w-4" />
-              )}
-              Validate API Key
-            </button>
-
-            {validationState.isValid && (
-              <div className="flex items-center text-green-400">
-                <CheckCircle className="mr-1 h-4 w-4" />
-                <span className="text-sm">
-                  API key is valid
-                  {settings.lastApiKeyValidation && (
-                    <span className="text-gray-400 ml-1">
-                      (validated{" "}
-                      {formatTimestamp(settings.lastApiKeyValidation)})
-                    </span>
-                  )}
-                </span>
-              </div>
-            )}
-
-            {validationState.error && (
-              <div className="flex items-center text-red-400">
-                <XCircle className="mr-1 h-4 w-4" />
-                <span className="text-sm">{validationState.error}</span>
-              </div>
-            )}
-          </div>
-        </div>
+        <SettingsApiKeys
+          apiKey={apiKey}
+          showApiKey={showApiKey}
+          validation={{
+            ...validationState,
+            lastCheckedAt: settings.lastApiKeyValidation ?? null,
+            validationAttempts: 0,
+            isStale: false,
+          }}
+          onApiKeyChange={handleApiKeyChange}
+          onToggleShow={() => setShowApiKey(!showApiKey)}
+          onValidate={validateApiKey}
+          validatedAtLabel={
+            settings.lastApiKeyValidation
+              ? formatTimestamp(settings.lastApiKeyValidation)
+              : undefined
+          }
+        />
       </div>
     ),
     [
@@ -725,22 +643,10 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
 
   const renderCustomPromptsTab = useCallback(
     () => (
-      <div className="bg-[#151A21] rounded-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)] space-y-4">
-        <h3 className="text-lg font-semibold text-white">
-          Custom Prompt Templates
-        </h3>
-        <textarea
-          value={customPrompt}
-          onChange={(e) => setCustomPrompt(e.target.value)}
-          rows={4}
-          placeholder="Enter your custom prompt template..."
-          className="w-full px-4 py-2 border-none rounded-lg focus:ring-2 focus:ring-blue-500/50 bg-white/5 focus:bg-white/10 text-white placeholder:text-gray-500 resize-none transition-colors"
-        />
-        <p className="text-sm text-gray-400">
-          This prompt will be used when generating prompts from images. Changes
-          are saved automatically.
-        </p>
-      </div>
+      <SettingsCustomPrompts
+        customPrompt={customPrompt}
+        onCustomPromptChange={setCustomPrompt}
+      />
     ),
     [customPrompt],
   );
@@ -1399,284 +1305,26 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
     </div>
   );
 
-  const renderCategoriesTab = useCallback(
-    () => (
-      <div className="bg-[#151A21] rounded-xl p-6 shadow-[0_8px_24px_rgba(0,0,0,0.35)] space-y-4">
-        <h3 className="text-lg font-semibold text-gray-400">Categories</h3>
-        <p className="text-sm text-gray-500 italic">
-          This feature is coming soon.
-        </p>
-      </div>
-    ),
-    [],
-  );
+  const renderCategoriesTab = useCallback(() => <SettingsCategories />, []);
 
   const renderModelSelectionTab = useCallback(
     () => (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-white flex items-center">
-            Vision Models (Select up to 3)
-          </h3>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={fetchModels}
-              disabled={modelState.isLoading || !validationState.isValid}
-              className="flex items-center px-3 py-1 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {modelState.isLoading ? (
-                <RefreshCw className="mr-2 h-3 w-3 animate-spin" />
-              ) : (
-                <RefreshCw className="mr-2 h-3 w-3" />
-              )}
-              Fetch
-            </button>
-            {settings.lastModelFetch && (
-              <div className="flex items-center text-green-400">
-                <CheckCircle className="mr-1 h-4 w-4" />
-                <span className="text-sm">
-                  Verified
-                  <span className="text-gray-400 ml-1">
-                    (verified {formatTimestamp(settings.lastModelFetch)})
-                  </span>
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {modelState.error && (
-          <div className="p-4 bg-red-900/20 border border-red-800/30 rounded-lg">
-            <p className="text-sm text-red-400">{modelState.error}</p>
-          </div>
-        )}
-
-        {modelState.models.length > 0 && (
-          <>
-            <div className="text-sm text-gray-400">
-              Selected: {selectedVisionModels.length} / 3
-            </div>
-
-            {/* Vision Model Selectors - Vertical Layout (3 columns) */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 overflow-visible">
-              {[0, 1, 2].map((index) => {
-                const selectedModelId = selectedVisionModels[index];
-                const selectedModelData = selectedModelId
-                  ? modelState.models.find((m) => m.id === selectedModelId)
-                  : null;
-                const isDropdownOpen = dropdownStates[index]?.isOpen || false;
-                const searchValue = dropdownStates[index]?.search || "";
-
-                // Filter models for this dropdown
-                const query = searchValue.toLowerCase();
-                const filteredModels = modelState.models.filter(
-                  (m) =>
-                    m.name.toLowerCase().includes(query) ||
-                    m.id.toLowerCase().includes(query),
-                );
-
-                // Separate pinned and unpinned models
-                const pinnedSet = new Set(settings.pinnedModels || []);
-                const pinnedModels = filteredModels.filter((m) =>
-                  pinnedSet.has(m.id),
-                );
-                const unpinnedModels = filteredModels.filter(
-                  (m) => !pinnedSet.has(m.id),
-                );
-
-                return (
-                  <div
-                    key={index}
-                    className="bg-[#151A21] rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.35)] p-6 overflow-visible"
-                  >
-                    <h4 className="font-semibold text-white mb-3">
-                      Vision Model {index + 1}
-                    </h4>
-
-                    {/* Enhanced Dropdown with Search, Pricing, Pinning */}
-                    <div
-                      className="relative"
-                      ref={(el) => {
-                        if (el) dropdownRefs.current[index] = el;
-                      }}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setDropdownStates((prev) => ({
-                            ...prev,
-                            [index]: {
-                              isOpen: !isDropdownOpen,
-                              search: searchValue,
-                            },
-                          }));
-                        }}
-                        className="w-full px-4 py-2 border-none rounded-lg focus:ring-2 focus:ring-blue-500/50 bg-white/5 hover:bg-white/10 text-left flex items-center justify-between transition-colors"
-                        aria-label={`Select Vision Model ${index + 1}`}
-                      >
-                        <span
-                          className="text-white text-sm"
-                          title={
-                            selectedModelData
-                              ? selectedModelData.name
-                              : "Select a model…"
-                          }
-                        >
-                          {selectedModelData
-                            ? middleEllipsis(selectedModelData.name, 25)
-                            : "Select a model…"}
-                        </span>
-                        <ChevronDown
-                          className={`h-4 w-4 text-gray-500 transition-transform flex-shrink-0 ${isDropdownOpen ? "transform rotate-180" : ""}`}
-                        />
-                      </button>
-
-                      {isDropdownOpen && (
-                        <div className="absolute z-50 w-full mt-1 bg-[#1A212A] border border-white/10 rounded-lg shadow-[0_24px_56px_rgba(0,0,0,0.55)] max-h-80 overflow-hidden flex flex-col">
-                          <div className="p-2 border-b border-white/6">
-                            <div className="relative">
-                              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                              <input
-                                type="text"
-                                placeholder="Search models..."
-                                value={searchValue}
-                                onChange={(e) => {
-                                  setDropdownStates((prev) => ({
-                                    ...prev,
-                                    [index]: {
-                                      isOpen: true,
-                                      search: e.target.value,
-                                    },
-                                  }));
-                                }}
-                                className="w-full pl-10 pr-4 py-2 border-none rounded-lg focus:ring-2 focus:ring-blue-500/50 bg-white/5 focus:bg-white/10 text-white placeholder:text-gray-500 text-sm transition-colors"
-                                onClick={(e) => e.stopPropagation()}
-                                autoFocus
-                              />
-                            </div>
-                          </div>
-
-                          <div className="overflow-y-auto flex-1">
-                            {(() => {
-                              const renderRow = (
-                                model: (typeof modelState.models)[number],
-                              ) => {
-                                const isPinned = pinnedSet.has(model.id);
-                                const isSelected = selectedModelId === model.id;
-                                const isDisabled =
-                                  selectedVisionModels.includes(model.id) &&
-                                  !isSelected;
-
-                                return (
-                                  <button
-                                    key={model.id}
-                                    type="button"
-                                    onClick={() => {
-                                      if (!isDisabled) {
-                                        const newModels = [
-                                          ...selectedVisionModels,
-                                        ];
-                                        newModels[index] = model.id;
-                                        setSelectedVisionModels(
-                                          newModels.filter(Boolean),
-                                        );
-                                        setDropdownStates((prev) => ({
-                                          ...prev,
-                                          [index]: {
-                                            isOpen: false,
-                                            search: "",
-                                          },
-                                        }));
-                                      }
-                                    }}
-                                    disabled={isDisabled}
-                                    className={`w-full px-4 py-2 text-left hover:bg-white/5 transition-colors ${
-                                      isSelected
-                                        ? "bg-blue-900/30 text-blue-400"
-                                        : isDisabled
-                                          ? "text-gray-500 cursor-not-allowed"
-                                          : "text-white"
-                                    }`}
-                                    title={model.name}
-                                  >
-                                    <div className="flex items-center justify-between">
-                                      <div className="min-w-0 flex-1">
-                                        <div className="text-sm font-medium">
-                                          {middleEllipsis(model.name, 30)}
-                                        </div>
-                                        <div className="text-xs text-gray-400">
-                                          {formatPrice(
-                                            model.pricing.prompt +
-                                              model.pricing.completion,
-                                          )}
-                                          /token
-                                        </div>
-                                      </div>
-                                      <button
-                                        type="button"
-                                        aria-label={
-                                          isPinned ? "Unpin model" : "Pin model"
-                                        }
-                                        className="ml-3 text-gray-400 hover:text-gray-300 flex-shrink-0"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          hookTogglePinnedModel(model.id);
-                                          addToast(
-                                            isPinned
-                                              ? "Model unpinned"
-                                              : "Model pinned",
-                                            "success",
-                                          );
-                                        }}
-                                      >
-                                        {isPinned ? (
-                                          <Pin className="h-4 w-4 text-blue-600" />
-                                        ) : (
-                                          <PinOff className="h-4 w-4" />
-                                        )}
-                                      </button>
-                                    </div>
-                                  </button>
-                                );
-                              };
-
-                              return (
-                                <>
-                                  {pinnedModels.length > 0 && (
-                                    <>
-                                      <div className="px-4 py-1 text-xs uppercase tracking-wide text-gray-400">
-                                        Pinned
-                                      </div>
-                                      {pinnedModels.map((m) => renderRow(m))}
-                                      <div className="my-1 border-t border-white/6" />
-                                    </>
-                                  )}
-                                  {unpinnedModels.map((m) => renderRow(m))}
-                                  {filteredModels.length === 0 && (
-                                    <div className="px-4 py-3 text-sm text-gray-400 text-center">
-                                      No models found
-                                    </div>
-                                  )}
-                                </>
-                              );
-                            })()}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        )}
-      </div>
+      <SettingsModelSelection
+        modelState={modelState}
+        selectedVisionModels={selectedVisionModels}
+        pinnedModels={settings.pinnedModels || []}
+        lastModelFetch={settings.lastModelFetch ?? undefined}
+        isValidApiKey={validationState.isValid}
+        onFetchModels={fetchModels}
+        onModelSelect={setSelectedVisionModels}
+        onTogglePinned={hookTogglePinnedModel}
+        onPinToast={(message) => addToast(message, "success")}
+      />
     ),
     [
       modelState,
       validationState.isValid,
       selectedVisionModels,
-      dropdownStates,
       settings.lastModelFetch,
       settings.pinnedModels,
       fetchModels,
