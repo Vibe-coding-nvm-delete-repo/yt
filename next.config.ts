@@ -26,9 +26,12 @@ const nextConfig: NextConfig = {
 
   // Production Build Optimizations
   compiler: {
-    removeConsole: process.env.NODE_ENV === "production" ? {
-      exclude: ["error", "warn"], // Keep error and warn logs
-    } : false,
+    removeConsole:
+      process.env.NODE_ENV === "production"
+        ? {
+            exclude: ["error", "warn"], // Keep error and warn logs
+          }
+        : false,
   },
 
   // Enable compression
@@ -36,7 +39,6 @@ const nextConfig: NextConfig = {
 
   // Optimize bundle size with React optimizations
   reactStrictMode: true,
-  swcMinify: true, // Use SWC for faster minification
 
   // Production-only optimizations
   productionBrowserSourceMaps: false, // Disable source maps in production for smaller bundles

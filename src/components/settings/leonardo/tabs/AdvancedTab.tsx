@@ -68,7 +68,10 @@ export const AdvancedTab: React.FC<AdvancedTabProps> = ({
                   type="button"
                   onClick={() =>
                     onChange({
-                      technical: { ...config.technical, focusPriority: priority },
+                      technical: {
+                        ...config.technical,
+                        focusPriority: priority,
+                      },
                     })
                   }
                   className={`rounded-lg border p-3 text-center text-sm capitalize transition-all ${
@@ -104,7 +107,9 @@ export const AdvancedTab: React.FC<AdvancedTabProps> = ({
               <input
                 type="checkbox"
                 checked={
-                  config.technical[effect.key as keyof typeof config.technical] as boolean
+                  config.technical[
+                    effect.key as keyof typeof config.technical
+                  ] as boolean
                 }
                 onChange={(e) =>
                   onChange({
@@ -198,20 +203,22 @@ export const AdvancedTab: React.FC<AdvancedTabProps> = ({
           min="1"
           max="3600"
           value={config.videoMetadata?.duration || ""}
-          onChange={(e) =>
-            onChange({
-              videoMetadata: {
-                ...config.videoMetadata,
-                duration: Number(e.target.value) || undefined,
-              },
-            })
-          }
+          onChange={(e) => {
+            const value = Number(e.target.value);
+            const newMetadata = {
+              ...config.videoMetadata,
+            };
+            if (value > 0) {
+              newMetadata.duration = value;
+            } else {
+              delete newMetadata.duration;
+            }
+            onChange({ videoMetadata: newMetadata });
+          }}
           placeholder="Duration in seconds"
           className="w-full rounded-lg border border-white/10 bg-gray-900/60 px-4 py-3 text-white focus:border-blue-500 focus:outline-none"
         />
-        <p className="text-xs text-gray-400">
-          Leave empty for static images
-        </p>
+        <p className="text-xs text-gray-400">Leave empty for static images</p>
       </div>
     </div>
   );

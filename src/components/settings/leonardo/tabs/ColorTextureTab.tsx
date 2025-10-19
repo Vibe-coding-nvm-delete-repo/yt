@@ -19,7 +19,11 @@ export const ColorTextureTab: React.FC<ColorTextureTabProps> = ({
       {/* Color Palette */}
       <ColorPaletteSelector
         value={config.colorPalette}
-        onChange={(colorPalette) => onChange({ colorPalette })}
+        onChange={(colorPalette) => {
+          // With exactOptionalPropertyTypes: true, we cannot pass undefined
+          // Instead, we conditionally include the property
+          onChange(colorPalette !== undefined ? { colorPalette } : {});
+        }}
       />
 
       {/* Texture */}
