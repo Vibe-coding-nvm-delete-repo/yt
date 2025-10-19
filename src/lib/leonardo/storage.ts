@@ -259,7 +259,9 @@ export class LeonardoHistoryStorage {
     const index = history.findIndex((entry) => entry.id === id);
 
     if (index !== -1) {
-      history[index] = { ...history[index], ...updates };
+      // With exactOptionalPropertyTypes: true, we need to ensure the result
+      // maintains the required properties from the original entry
+      history[index] = { ...history[index], ...updates } as LeonardoConfigHistoryEntry;
       storage.setItem(HISTORY_KEY, JSON.stringify(history));
     }
   }
@@ -328,7 +330,9 @@ export class LeonardoOutputsStorage {
     const index = outputs.findIndex((entry) => entry.id === id);
 
     if (index !== -1) {
-      outputs[index] = { ...outputs[index], ...updates };
+      // With exactOptionalPropertyTypes: true, we need to ensure the result
+      // maintains the required properties from the original entry
+      outputs[index] = { ...outputs[index], ...updates } as LeonardoOutputEntry;
       storage.setItem(OUTPUTS_KEY, JSON.stringify(outputs));
     }
   }
@@ -359,8 +363,12 @@ export const exportLeonardoData = (): LeonardoExportData => {
   const historyStorage = LeonardoHistoryStorage.getInstance();
   const outputsStorage = LeonardoOutputsStorage.getInstance();
 
+  const currentConfig = configStorage.load();
+  
+  // With exactOptionalPropertyTypes: true, we conditionally include
+  // currentConfig only when it has a value
   return {
-    currentConfig: configStorage.load() || undefined,
+    ...(currentConfig ? { currentConfig } : {}),
     presets: presetsStorage.loadAll(),
     history: historyStorage.loadAll(),
     outputs: outputsStorage.loadAll(),
